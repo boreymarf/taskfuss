@@ -10,6 +10,9 @@ func SetupAPIRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.GET("/test", handlers.TestHandler) // GET /api/test
+		api.GET("/status", func(c *gin.Context) {
+			c.JSON(200, gin.H{"isUp": true})
+		})
 	}
-	logger.Log.Info().Msg("API end points are connected.")
+	logger.Log.Info().Msg("API end points are connected!")
 }

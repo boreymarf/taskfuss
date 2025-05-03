@@ -11,6 +11,17 @@ import (
 var Log zerolog.Logger
 
 func init() {
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	level, err := zerolog.ParseLevel(logLevel)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+
 	output := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: "2006/01/02 15:04:05",
@@ -21,23 +32,30 @@ func init() {
 	output.FormatLevel = func(i any) string {
 		var level string
 		if l, ok := i.(string); ok {
-			switch l {
+			switch strings.ToLower(l) {
 			case "debug":
-				level = fmt.Sprintf("%-5s", "DEBUG")
+				level = "[\x1b[90mDEBUG\x1b[0m]"
+			case "trace":
+				level = "[\x1b[90mTRACE\x1b[0m]"
 			case "info":
-				level = fmt.Sprintf("%-5s", "INFO")
+				level = "[INFO]"
 			case "warn":
-				level = fmt.Sprintf("\x1b[30;43m%-5s\x1b[0m", "WARN") // Black text/Yellow background
+				level = "[\x1b[33mWARN\x1b[0m]"
 			case "error":
-				level = fmt.Sprintf("\x1b[30;41m%-5s\x1b[0m", "ERROR") // Black text/Red background
+				level = "[\x1b[31mERROR\x1b[0m]"
+			case "fatal":
+				level = "[\x1b[37;41mFATAL\x1b[0m]"
+			case "panic":
+				level = "[\x1b[37;41mPANIC\x1b[0m]"
 			default:
-				level = strings.ToUpper(fmt.Sprintf("%-5s", l))
+				level = strings.ToUpper(l)
 			}
 		}
-		return fmt.Sprintf("[%s]", level)
+		return fmt.Sprintf("%-7s  ", level) // Два пробела после скобки
 	}
 
 	Log = zerolog.New(output).
+		Level(level).
 		With().
 		Timestamp().
 		Logger()
