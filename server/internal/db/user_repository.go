@@ -10,12 +10,12 @@ import (
 )
 
 type User struct {
-	ID           int64
-	Name         string
-	Email        string
-	PasswordHash string // TODO: Make it hashed later
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"passwordHash,omitempty"` // TODO: Hash password later
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 type UserRepository struct {
@@ -25,7 +25,6 @@ type UserRepository struct {
 func InitUserRepository(db *sql.DB) (*UserRepository, error) {
 	repo := &UserRepository{db: db}
 
-	// Выполняем миграции при создании репозитория
 	if err := repo.CreateTable(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
@@ -35,11 +34,11 @@ func InitUserRepository(db *sql.DB) (*UserRepository, error) {
 
 func (r *UserRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS users (
-	userId 				INT NOT NULL PRIMARY KEY,
+	userId 				INTEGER NOT NULL PRIMARY KEY,
 	name 					VARCHAR(255) NOT NULL,
 	email 				VARCHAR(255) UNIQUE NOT NULL,
-	password_hash VARCHAR(255) NOT NULL
-	created_at 		DATETIME DEFAULT CURRENT_TIMESTAMP
+	password_hash VARCHAR(255) NOT NULL,
+	created_at 		DATETIME DEFAULT CURRENT_TIMESTAMP,
 	updated_at 		DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`
 
@@ -67,6 +66,11 @@ func (r *UserRepository) CreateUser(user *User) error {
 
 	user.ID = id
 
+	err = r.GetUserByID(id, user)
+	if err != nil {
+		return err
+	}
+
 	logger.Log.Info().
 		Str("name", user.Name).
 		Int64("id", user.ID).
@@ -77,9 +81,9 @@ func (r *UserRepository) CreateUser(user *User) error {
 
 func (r *UserRepository) GetUserByID(id int64, user *User) error {
 
-	query := `SELECT id, name, email, created_at, updated_at 
+	query := `SELECT userId, name, email, created_at, updated_at 
 	FROM users 
-	WHERE id = ?`
+	WHERE userId = ?`
 
 	row := r.db.QueryRow(query, id)
 
@@ -101,4 +105,41 @@ func (r *UserRepository) GetUserByID(id int64, user *User) error {
 	}
 
 	return nil
+}
+
+func (r *UserRepository) GetAllUsers() ([]User, error) {
+
+	query := `SELECT userId, name, email, created_at, updated_at 
+              FROM users`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to execute users query")
+		return nil, fmt.Errorf("failed to get users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("Failed to scan user row")
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		logger.Log.Error().Err(err).Msg("Rows iteration error")
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return users, nil
 }

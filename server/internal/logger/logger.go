@@ -51,7 +51,7 @@ func init() {
 				level = strings.ToUpper(l)
 			}
 		}
-		return fmt.Sprintf("%-7s  ", level) // Два пробела после скобки
+		return fmt.Sprintf("%-7s", level)
 	}
 
 	Log = zerolog.New(output).
