@@ -6,10 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupAPIRoutes(router *gin.Engine) {
+func SetupAPIRoutes(router *gin.Engine, authHandler *handlers.AuthHandler) {
 	api := router.Group("/api")
 	{
 		api.GET("/test", handlers.TestHandler) // GET /api/test
+		api.POST("/register", authHandler.RegisterHandler)
 		api.GET("/status", func(c *gin.Context) {
 			c.JSON(200, gin.H{"isUp": true})
 		})

@@ -1,12 +1,14 @@
 import { createWebHistory, createRouter } from 'vue-router'
 
+import { useAuthStore } from '../stores/auth.ts'
+
 import HomeView from '../views/HomeView.vue'
 import AboutView from '../views/AboutView.vue'
 import StatusView from '../views/StatusView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import LoginView from '../views/LoginView.vue'
+import RegisterView from '../views/RegisterView.vue'
 
-import { useAuthStore } from '../stores/auth.ts'
 
 const routes = [
   {
@@ -34,6 +36,11 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: RegisterView
   }
 ]
 
@@ -42,6 +49,7 @@ const router = createRouter({
   routes,
 })
 
+// TODO: Тут так же можно сделать логику GuestOnly, где login и homePage доступны только гостям
 router.beforeEach((to, _from, next) => {
   const auth = useAuthStore()
 

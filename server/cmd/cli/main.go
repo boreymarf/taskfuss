@@ -11,6 +11,7 @@ import (
 
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
+	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -78,7 +79,7 @@ var addUserCmd = &cobra.Command{
 			logger.Log.Fatal().Err(err).Msg("Failed to create userRepository")
 		}
 
-		user := db.User{}
+		user := models.User{}
 		user.Name = name
 		user.PasswordHash = password
 		user.Email = email
@@ -150,7 +151,7 @@ var getUserCmd = &cobra.Command{
 			logger.Log.Fatal().Msg("Incorrect input, must be 'all' or numeric ID")
 		}
 
-		user := db.User{}
+		user := models.User{}
 		err = userRepository.GetUserByID(id, &user)
 		if err != nil {
 			logger.Log.Fatal().

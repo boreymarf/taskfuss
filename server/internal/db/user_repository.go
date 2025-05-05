@@ -4,19 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/logger"
+	"github.com/boreymarf/task-fuss/server/internal/models"
 )
-
-type User struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"passwordHash,omitempty"` // TODO: Hash password later
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-}
 
 type UserRepository struct {
 	db *sql.DB
@@ -50,7 +41,7 @@ func (r *UserRepository) CreateTable() error {
 	return nil
 }
 
-func (r *UserRepository) CreateUser(user *User) error {
+func (r *UserRepository) CreateUser(user *models.User) error {
 
 	query := `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`
 
@@ -79,7 +70,7 @@ func (r *UserRepository) CreateUser(user *User) error {
 	return nil
 }
 
-func (r *UserRepository) GetUserByID(id int64, user *User) error {
+func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
 	query := `SELECT userId, name, email, created_at, updated_at 
 	FROM users 
@@ -107,7 +98,7 @@ func (r *UserRepository) GetUserByID(id int64, user *User) error {
 	return nil
 }
 
-func (r *UserRepository) GetAllUsers() ([]User, error) {
+func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 
 	query := `SELECT userId, name, email, created_at, updated_at 
               FROM users`
@@ -119,9 +110,9 @@ func (r *UserRepository) GetAllUsers() ([]User, error) {
 	}
 	defer rows.Close()
 
-	var users []User
+	var users []models.User
 	for rows.Next() {
-		var user User
+		var user models.User
 		err := rows.Scan(
 			&user.ID,
 			&user.Name,

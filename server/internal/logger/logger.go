@@ -13,6 +13,7 @@ var Log zerolog.Logger
 func init() {
 
 	logLevel := os.Getenv("LOG_LEVEL")
+	fmt.Println(logLevel)
 	if logLevel == "" {
 		logLevel = "info"
 	}
