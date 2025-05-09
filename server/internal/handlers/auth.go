@@ -23,33 +23,69 @@ func InitAuthHanlder(userRepo *db.UserRepository) (*AuthHandler, error) {
 
 func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	var req dto.RegisterRequest
-	var errorMessage string
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 
-		if fieldErr, ok := err.(validator.ValidationErrors); ok { // If validation fails
-			firstErr := fieldErr[0] // We take first error we encounter
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
 
-			switch firstErr.Tag() {
-			case "required":
-				errorMessage = fmt.Sprintf("%s is required", firstErr.Field())
-			case "email":
-				errorMessage = "Invalid email format"
-			case "min":
-				errorMessage = fmt.Sprintf("%s must be at least %s characters",
-					firstErr.Field(), firstErr.Param())
-			default:
-				errorMessage = "Invalid request data"
+			var response dto.ValidationError = dto.ValidationError{
+				Code:    "VALIDATION_FAILED",
+				Message: "Validation failed",
+				Details: make([]dto.FieldError, 0),
 			}
-		} else {
-			// Handle other JSON errors
-			errorMessage = "Invalid request format"
-		}
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": errorMessage,
-		})
-		return
+			for _, fieldError := range validationErrors {
+
+				switch fieldError.Tag() {
+				case "required":
+					logger.Log.Info().
+						Str("ip", c.ClientIP()).
+						Str("field", fieldError.Field()).
+						Msg("Failed registration attempt: missing required field")
+					response.Details = append(response.Details, dto.FieldError{
+						Field:   fieldError.Field(),
+						Code:    "REQUIRED",
+						Message: fmt.Sprintf("%s is required", fieldError.Field()),
+					})
+				case "email":
+					logger.Log.Info().
+						Str("ip", c.ClientIP()).
+						Str("field", fieldError.Field()).
+						Msg("Failed registration attempt: invalid email")
+					response.Details = append(response.Details, dto.FieldError{
+						Field:   fieldError.Field(),
+						Code:    "INVALID_EMAIL",
+						Message: fmt.Sprintf("Email should be vaild"),
+					})
+				case "min":
+					logger.Log.Info().
+						Str("ip", c.ClientIP()).
+						Str("field", fieldError.Field()).
+						Str("validation_tag", "min").
+						Str("required_min", fieldError.Param()).
+						Msg("Password length validation failed")
+					response.Details = append(response.Details, dto.FieldError{
+						Field:   fieldError.Field(),
+						Code:    "MIN",
+						Message: fmt.Sprintf("Field %s should be longer than %s characters", fieldError.Field(), fieldError.Param()),
+					})
+				case "max":
+					logger.Log.Info().
+						Str("ip", c.ClientIP()).
+						Str("field", fieldError.Field()).
+						Str("validation_tag", "max").
+						Str("required_max", fieldError.Param()).
+						Msg("Password length validation failed")
+					response.Details = append(response.Details, dto.FieldError{
+						Field:   fieldError.Field(),
+						Code:    "MAX",
+						Message: fmt.Sprintf("Field %s should be shorter than %s characters", fieldError.Field(), fieldError.Param()),
+					})
+				}
+			}
+			c.JSON(http.StatusBadRequest, response)
+			return
+		}
 	}
 
 	// Hashing
@@ -98,4 +134,8 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"result": "success"})
+}
+
+func (h *AuthHandler) LoginHandler(c *gin.Context) {
+
 }

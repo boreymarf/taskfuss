@@ -135,15 +135,11 @@ var getUserCmd = &cobra.Command{
 				logger.Log.Fatal().Err(err).Send()
 			}
 
-			jsonData, err := json.Marshal(users)
-			if err != nil {
-				logger.Log.Fatal().
-					Err(err).
-					Msg("Serialization error")
+			for _, user := range users {
+				fmt.Printf("%3d | %10s | %30s | %20s\n", user.ID, user.Name, user.Email, user.CreatedAt)
 			}
 
-			fmt.Println(string(jsonData))
-			os.Exit(0)
+			return
 		}
 
 		id, err := strconv.ParseInt(input, 10, 64)

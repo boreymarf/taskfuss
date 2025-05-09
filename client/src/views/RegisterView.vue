@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { reactive, ref } from 'vue'
+import { useAuthStore } from '../stores/auth';
+
+const authStore = useAuthStore()
+const statusMessage = ref<string>()
 
 const formData = reactive({
   name: <string>'',
@@ -9,7 +13,6 @@ const formData = reactive({
   confirmPassword: ''
 });
 
-const statusMessage = ref<string>()
 
 const handleSubmit = async () => {
   statusMessage.value = ''
@@ -30,6 +33,13 @@ const handleSubmit = async () => {
   }
 
   try {
+    // const result = await authStore.register({
+    //   name: formData.name,
+    //   email: formData.email,
+    //   password: formData.password
+    // })
+
+
     const response = await axios.post('/api/register/', {
       name: formData.name,
       email: formData.email,

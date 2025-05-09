@@ -50,24 +50,14 @@ const router = createRouter({
 })
 
 // TODO: Тут так же можно сделать логику GuestOnly, где login и homePage доступны только гостям
-router.beforeEach((to, _from, next) => {
-  const auth = useAuthStore()
-
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    next('/login') // Используем next() для редиректа
-  } else {
-    next() // Всегда вызывайте next()!
-  }
-})
-
-router.beforeEach(async (to, _from) => {
-  const auth = useAuthStore()
-
-  if (to.meta.requiresAuth && !auth.isAuthenticated && to.name !== 'Login') {
-    {
-      return { name: 'Login' }
-    }
-  }
-})
+// router.beforeEach((to, _from, next) => {
+//   const auth = useAuthStore()
+//
+//   if (to.meta.requiresAuth && !auth.isAuthenticated) {
+//     next('/login') // Используем next() для редиректа
+//   } else {
+//     next() // Всегда вызывайте next()!
+//   }
+// })
 
 export default router

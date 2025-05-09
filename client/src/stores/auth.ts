@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { defineStore } from 'pinia'
 
 interface User {
@@ -12,23 +13,29 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   actions: {
-    login(username: string, password: string): Promise<void> { // Добавили типы параметров
-      return new Promise<void>((resolve) => { // Указали тип Promise<void>
-        setTimeout(() => {
-          // Добавим минимальную проверку пароля для примера
-          if (password.length < 1) {
-            throw new Error('Password cannot be empty')
-          }
+    async login(username: string, password: string): Promise<void> { // Добавили типы параметров
+      return new Promise<void>(async (resolve) => { // Указали тип Promise<void>
 
-          this.user = { id: 1, username }
-          this.token = 'fake-jwt-token'
-          localStorage.setItem('token', this.token)
-          resolve()
-        }, 500)
+        try {
+
+          const response = await axios.post('/api/login/', {
+            name: username,
+            password: password
+          })
+
+        } catch (error) {
+
+        }
+
+        resolve()
       })
     },
 
-    logout(): void { // Добавили тип возвращаемого значения
+    async register(): Promise<void> {
+
+    },
+
+    async logout(): Promise<void> { // Добавили тип возвращаемого значения
       this.user = null
       this.token = null
       localStorage.removeItem('token')
