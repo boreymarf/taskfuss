@@ -1,14 +1,21 @@
 package dto
 
+import "time"
+
+type User struct {
+	Id        int64     `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type RegisterRequest struct {
-	Name     string `json:"name" binding:"required"`
+	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8,max=40"`
 }
 
 type RegisterResponse struct {
-	UserID    int64  `json:"userId"`
-	Status    string `json:"status"`
+	User      User   `json:"user"`
 	AuthToken string `json:"auth_token"`
 	ExpiresAt int64  `json:"expires_at"`
 }
@@ -19,8 +26,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	UserID    int64  `json:"userId"`
-	Status    string `json:"status"`
+	User      User   `json:"user"`
 	AuthToken string `json:"auth_token"`
 	ExpiresAt int64  `json:"expires_at"`
 }

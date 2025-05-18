@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/mattn/go-sqlite3"
 )
 
 type UserRepository struct {
@@ -45,8 +47,15 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 
 	query := `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`
 
-	result, err := r.db.Exec(query, user.Name, user.Email, user.PasswordHash)
+	result, err := r.db.Exec(query, user.Username, user.Email, user.PasswordHash)
 	if err != nil {
+		// If there's a dublicate user
+		var sqliteErr sqlite3.Error
+		if errors.As(err, &sqliteErr) {
+			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return apperrors.ErrDuplicate
+			}
+		}
 		return err
 	}
 
@@ -63,7 +72,7 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 	}
 
 	logger.Log.Info().
-		Str("name", user.Name).
+		Str("name", user.Username).
 		Int64("id", user.ID).
 		Time("created_at", user.CreatedAt).
 		Msg("User was created")
@@ -80,7 +89,7 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
 	err := row.Scan(
 		&user.ID,
-		&user.Name,
+		&user.Username,
 		&user.Email,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -115,7 +124,7 @@ func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 		var user models.User
 		err := rows.Scan(
 			&user.ID,
-			&user.Name,
+			&user.Username,
 			&user.Email,
 			&user.CreatedAt,
 			&user.UpdatedAt,

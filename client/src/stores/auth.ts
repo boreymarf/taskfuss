@@ -1,50 +1,74 @@
 import axios from 'axios'
 import { defineStore } from 'pinia'
-
-interface User {
-  id: number
-  username: string
-}
+import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User, ValidationError } from '../types/api'
+import type { LoginForm, RegisterForm } from '../types/forms'
+import { RegisterError } from '../types/stores'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
-    token: localStorage.getItem('token') || null as string | null
+    authToken: localStorage.getItem('token') || null as string | null
   }),
 
   actions: {
-    async login(username: string, password: string): Promise<void> { // Добавили типы параметров
-      return new Promise<void>(async (resolve) => { // Указали тип Promise<void>
+    async register(formData: RegisterForm): Promise<void> {
+      const requestData: RegisterRequest = {
+        username: formData.name,
+        email: formData.email,
+        password: formData.password
+      }
 
-        try {
+      try {
+        const responseData: RegisterResponse = await axios.post("/api/register", requestData)
 
-          const response = await axios.post('/api/login/', {
-            name: username,
-            password: password
-          })
+        this.user = responseData.user
+        this.authToken = responseData.authToken
+        localStorage.setItem('token', responseData.authToken)
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
 
-        } catch (error) {
+          // If bad request, expect validation error
+          if (error.response?.status === 400) {
+            const serverError = error.response.data as ValidationError
 
+            throw new RegisterError(
+              serverError.message,
+              serverError.code,
+              serverError.details
+            )
+          }
+
+          // Обработка других HTTP ошибок
+          throw new Error(error.response?.data?.message || 'Request failed')
         }
-
-        resolve()
-      })
+      }
     },
 
-    async register(): Promise<void> {
+    async login(formData: LoginForm): Promise<void> {
 
+      const requestData: LoginRequest = {
+        email: formData.email,
+        password: formData.password
+      }
+
+      try {
+        const responseData: LoginResponse = await axios.post("/api/login", requestData)
+
+      } catch (error) {
+
+      }
     },
 
-    async logout(): Promise<void> { // Добавили тип возвращаемого значения
+    async logout(): Promise<void> {
       this.user = null
-      this.token = null
+      this.authToken = null
       localStorage.removeItem('token')
     }
   },
 
   getters: {
-    isAuthenticated(): boolean { // Добавили тип возвращаемого значения
-      return !!this.token
+    isAuthenticated(): boolean {
+      return !!this.authToken
     }
   }
 })

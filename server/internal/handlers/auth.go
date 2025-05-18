@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -21,12 +23,15 @@ func InitAuthHanlder(userRepo *db.UserRepository) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 
+// FIXME: JSON failes here if client sends invalid json package (number instead of string for example)
 func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	var req dto.RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+
+			logger.Log.Error().Err(validationErrors).Send()
 
 			var response dto.ValidationError = dto.ValidationError{
 				Code:    "VALIDATION_FAILED",
@@ -81,12 +86,31 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 						Code:    "MAX",
 						Message: fmt.Sprintf("Field %s should be shorter than %s characters", fieldError.Field(), fieldError.Param()),
 					})
+				case "type":
+					logger.Log.Info().
+						Str("ip", c.ClientIP()).
+						Str("field", fieldError.Field()).
+						Msg("Failed registration attempt: type mismatch")
+					response.Details = append(response.Details, dto.FieldError{
+						Field:   fieldError.Field(),
+						Code:    "TYPE_MISMATCH",
+						Message: fmt.Sprintf("%s must be a %s", fieldError.Field(), fieldError.Param()), // e.g., "age must be an integer"
+					})
 				}
 			}
 			c.JSON(http.StatusBadRequest, response)
 			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  "INTERNAL_ERROR",
+				"text":  "Internal server error",
+				"error": err,
+			})
+			return
 		}
 	}
+
+	logger.Log.Debug().Str("username", req.Username).Str("password", req.Password).Str("email", req.Email).Msg("WHY THE FUCK DOES IT PASS")
 
 	// Hashing
 	passwordHash, err := security.HashPassword(req.Password)
@@ -95,7 +119,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 
 		logger.Log.Error().
 			Err(err).
-			Str("name", req.Name).
+			Str("username", req.Username).
 			Str("email", req.Email).
 			Msg("Failed to hash password for new user")
 
@@ -110,7 +134,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 
 	// Creating user
 	var user models.User
-	user.Name = req.Name
+	user.Username = req.Username
 	user.Email = req.Email
 	user.PasswordHash = passwordHash
 
@@ -118,9 +142,17 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 
 	if err != nil {
 
+		if errors.Is(err, apperrors.ErrDuplicate) {
+			c.JSON(http.StatusConflict, dto.GenericError{
+				Code:    "DUPLICATE_ENTRY",
+				Message: "User already exists",
+			})
+			return
+		}
+
 		logger.Log.Error().
 			Err(err).
-			Str("name", req.Name).
+			Str("name", req.Username).
 			Str("email", req.Email).
 			Msg("Failed to create new user in the database")
 

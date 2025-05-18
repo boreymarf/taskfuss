@@ -35,24 +35,24 @@ func init() {
 		if l, ok := i.(string); ok {
 			switch strings.ToLower(l) {
 			case "debug":
-				level = "[\x1b[90mDEBUG\x1b[0m]"
+				level = "[\x1b[90mDEBUG\x1b[0m] "
 			case "trace":
-				level = "[\x1b[90mTRACE\x1b[0m]"
+				level = "[\x1b[90mTRACE\x1b[0m] "
 			case "info":
-				level = "[INFO]"
+				level = "[INFO]  "
 			case "warn":
-				level = "[\x1b[33mWARN\x1b[0m]"
+				level = "[\x1b[33mWARN\x1b[0m]  "
 			case "error":
-				level = "[\x1b[31mERROR\x1b[0m]"
+				level = "[\x1b[31mERROR\x1b[0m] "
 			case "fatal":
-				level = "[\x1b[37;41mFATAL\x1b[0m]"
+				level = "[\x1b[37;41mFATAL\x1b[0m] "
 			case "panic":
-				level = "[\x1b[37;41mPANIC\x1b[0m]"
+				level = "[\x1b[37;41mPANIC\x1b[0m] "
 			default:
 				level = strings.ToUpper(l)
 			}
 		}
-		return fmt.Sprintf("%-7s", level)
+		return level
 	}
 
 	Log = zerolog.New(output).

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import axios from 'axios';
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth';
+import type { RegisterForm } from '../types/forms';
+import { isValidEmail, isValidPassword } from '../utils/validation';
+import { RegisterError } from '../types/stores';
 
 const authStore = useAuthStore()
 const statusMessage = ref<string>()
 
-const formData = reactive({
-  name: <string>'',
+const formData = reactive<RegisterForm>({
+  name: '',
   email: '',
   password: '',
   confirmPassword: ''
@@ -17,52 +19,47 @@ const formData = reactive({
 const handleSubmit = async () => {
   statusMessage.value = ''
 
+  // Client sided validation
+  if (!isValidEmail(formData.email)) {
+    statusMessage.value = "Please enter valid email"
+    return
+  }
+
+  if (!isValidPassword(formData.password)) {
+    statusMessage.value = "Please enter valid password"
+    return
+  }
+
   if (formData.password !== formData.confirmPassword) {
-    statusMessage.value = 'Пароли не совпадают';
-    return;
-  }
-
-  if (!formData.email.includes('@')) {
-    statusMessage.value = 'Введите корректный email';
-    return;
-  }
-
-  if (formData.password.length < 6) {
-    statusMessage.value = 'Пароль должен содержать минимум 6 символов';
-    return;
+    statusMessage.value = "Passwords do not match"
+    return
   }
 
   try {
-    // const result = await authStore.register({
-    //   name: formData.name,
-    //   email: formData.email,
-    //   password: formData.password
-    // })
 
-
-    const response = await axios.post('/api/register/', {
-      name: formData.name,
-      email: formData.email,
-      password: formData.password
-    })
-
-    statusMessage.value = response.data
+    await authStore.register(formData)
+    statusMessage.value = "Success!"
 
   } catch (error) {
 
-    if (axios.isAxiosError(error)) {
-      statusMessage.value = error.response?.data
-      console.error(error.response?.data)
+    // TODO: Make this error field look better
+    if (error instanceof RegisterError) {
+      const messages = [
+        error.message,
+        ...error.details.map(e => e.message)
+      ];
+
+      statusMessage.value = messages.join('\n');
+
+    } else if (error instanceof Error) {
+      statusMessage.value = error.message
     } else {
-      statusMessage.value = `Unknown error: ${error}`
-      console.error(error)
+      statusMessage.value = "Unknown error"
     }
 
     return
   }
 }
-
-
 
 </script>
 
@@ -91,7 +88,7 @@ const handleSubmit = async () => {
           <input type="password" id="confirmPassword" v-model="formData.confirmPassword" required />
         </div>
 
-        <div v-if="statusMessage" class="error">
+        <div v-if="statusMessage" class="status-message">
           {{ statusMessage }}
         </div>
       </div>
@@ -101,4 +98,8 @@ const handleSubmit = async () => {
   </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.status-message {
+  white-space: pre-line
+}
+</style>

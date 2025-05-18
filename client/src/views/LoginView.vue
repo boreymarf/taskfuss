@@ -1,57 +1,40 @@
 <script setup lang="ts">
 import axios from 'axios';
 import { reactive, ref } from 'vue';
+import { useAuthStore } from '../stores/auth';
+import type { LoginForm, RegisterForm } from '../types/forms';
 
 const statusMessage = ref<string>()
+const authStore = useAuthStore()
 
-const formData = reactive({
-  name: <string>'',
-  password: <string>'',
+const formData = reactive<LoginForm>({
+  email: '',
+  password: '',
 });
 
 const handleSubmit = async () => {
 
   try {
-    // const result = await authStore.register({
-    //   name: formData.name,
-    //   email: formData.email,
-    //   password: formData.password
-    // })
 
-
-    const response = await axios.post('/api/login/', {
-      name: formData.name,
-      password: formData.password
-    })
-
-    statusMessage.value = response.data
+    authStore
 
   } catch (error) {
 
-    if (axios.isAxiosError(error)) {
-      statusMessage.value = error.response?.data
-      console.error(error.response?.data)
-    } else {
-      statusMessage.value = `Unknown error: ${error}`
-      console.error(error)
-    }
-
-    return
   }
 
-  return
 }
+
 
 </script>
 
 <template>
   <div>
-    <h2>Введите логин и пароль</h2>
+    <h2>Login page</h2>
     <form @submit.prevent="handleSubmit">
       <div>
         <div>
-          <label for="name">Name</label>
-          <input type="text" id="name" v-model="formData.name" required>
+          <label for="name">Email</label>
+          <input type="text" id="name" v-model="formData.email" required>
         </div>
 
         <div>
@@ -64,7 +47,7 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      <button type="submit">Register</button>
+      <button type="submit">Login</button>
     </form>
   </div>
 </template>

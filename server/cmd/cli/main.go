@@ -80,7 +80,7 @@ var addUserCmd = &cobra.Command{
 		}
 
 		user := models.User{}
-		user.Name = name
+		user.Username = name
 		user.PasswordHash = password
 		user.Email = email
 
@@ -136,7 +136,7 @@ var getUserCmd = &cobra.Command{
 			}
 
 			for _, user := range users {
-				fmt.Printf("%3d | %10s | %30s | %20s\n", user.ID, user.Name, user.Email, user.CreatedAt)
+				fmt.Printf("%3d | %10s | %30s | %20s\n", user.ID, user.Username, user.Email, user.CreatedAt)
 			}
 
 			return
