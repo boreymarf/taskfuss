@@ -91,6 +91,7 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.Email,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -100,6 +101,35 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 			Int64("userID", id).
 			Msg("No User was found")
 		return fmt.Errorf("user %d not found: %w", id, err)
+	} else if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *UserRepository) GetUserByEmail(email string, user *models.User) error {
+
+	query := `SELECT userId, name, password_hash, email, created_at, updated_at 
+	FROM users 
+	WHERE email = ?`
+
+	row := r.db.QueryRow(query, email)
+
+	err := row.Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Email,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logger.Log.Error().
+			Str("email", email).
+			Msg("No User was found")
+		return apperrors.ErrNotFound
 	} else if err != nil {
 		return err
 	}

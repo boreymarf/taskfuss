@@ -6,16 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/boreymarf/task-fuss/server/internal/logger"
-	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3" // Used for sql.Open("sqlite3"), without it will panic
 )
 
 func InitDB() (*sql.DB, error) {
-	// .env file
-	if err := godotenv.Load(); err != nil {
-		logger.Log.Fatal().Msg("Error loading .env file")
-	}
-
 	// Create directory for the db
 	db_path := os.Getenv("DB_PATH")
 	dir := filepath.Dir(db_path)

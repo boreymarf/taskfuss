@@ -17,7 +17,6 @@ type RegisterRequest struct {
 type RegisterResponse struct {
 	User      User   `json:"user"`
 	AuthToken string `json:"auth_token"`
-	ExpiresAt int64  `json:"expires_at"`
 }
 
 type LoginRequest struct {
@@ -28,7 +27,6 @@ type LoginRequest struct {
 type LoginResponse struct {
 	User      User   `json:"user"`
 	AuthToken string `json:"auth_token"`
-	ExpiresAt int64  `json:"expires_at"`
 }
 
 type ValidationError struct {

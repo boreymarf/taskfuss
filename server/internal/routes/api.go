@@ -12,6 +12,7 @@ func SetupAPIRoutes(router *gin.Engine, authHandler *handlers.AuthHandler) {
 	{
 		api.GET("/test", handlers.TestHandler) // GET /api/test
 		api.POST("/register", authHandler.RegisterHandler)
+		api.POST("/login", authHandler.LoginHandler)
 		api.GET("/status", func(c *gin.Context) {
 			c.JSON(200, gin.H{"isUp": true})
 		})

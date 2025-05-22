@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/db"
@@ -13,6 +16,7 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthHandler struct {
@@ -23,11 +27,38 @@ func InitAuthHanlder(userRepo *db.UserRepository) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 
-// FIXME: JSON failes here if client sends invalid json package (number instead of string for example)
 func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	var req dto.RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+
+		var syntaxErr *json.SyntaxError
+		if errors.As(err, &syntaxErr) {
+
+			logger.Log.Error().Err(syntaxErr).Send()
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":  "INVALID_JSON",
+				"text":  "Invalid JSON syntax",
+				"error": err,
+			})
+			return
+		}
+
+		var typeErr *json.UnmarshalTypeError
+		if errors.As(err, &typeErr) {
+
+			logger.Log.Error().
+				Str("field", typeErr.Field).
+				Str("expected_type", typeErr.Type.String()).
+				Msg("Type mismatch")
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code": "TYPE_MISMATCH",
+				"text": fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
+			})
+			return
+		}
 
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
 
@@ -101,6 +132,9 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, response)
 			return
 		} else {
+
+			logger.Log.Error().Err(err).Msg("Unhandled exception occured during registration validation.")
+
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":  "INTERNAL_ERROR",
 				"text":  "Internal server error",
@@ -109,8 +143,6 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 			return
 		}
 	}
-
-	logger.Log.Debug().Str("username", req.Username).Str("password", req.Password).Str("email", req.Email).Msg("WHY THE FUCK DOES IT PASS")
 
 	// Hashing
 	passwordHash, err := security.HashPassword(req.Password)
@@ -124,9 +156,8 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 			Msg("Failed to hash password for new user")
 
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  "INTERNAL_ERROR",
-			"text":  "Internal server error",
-			"error": err,
+			"code": "INTERNAL_ERROR",
+			"text": "Internal server error",
 		})
 
 		return
@@ -165,9 +196,122 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"result": "success"})
+	secret := os.Getenv("JWT_SECRET")
+
+	token, err := security.CreateToken(user.ID, []byte(secret), time.Hour*24)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code": "INTERNAL_ERROR",
+			"text": "Internal server error",
+		})
+		return
+	}
+
+	c.JSON(200, dto.RegisterResponse{
+		User: dto.User{
+			Id:        user.ID,
+			Username:  user.Username,
+			CreatedAt: user.CreatedAt,
+		},
+		AuthToken: token,
+	})
 }
 
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
+	var req dto.LoginRequest
 
+	if err := c.ShouldBindJSON(&req); err != nil {
+
+		var syntaxErr *json.SyntaxError
+		if errors.As(err, &syntaxErr) {
+
+			logger.Log.Error().Err(syntaxErr).Send()
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":  "INVALID_JSON",
+				"text":  "Invalid JSON syntax",
+				"error": err,
+			})
+			return
+		}
+
+		var typeErr *json.UnmarshalTypeError
+		if errors.As(err, &typeErr) {
+
+			logger.Log.Error().
+				Str("field", typeErr.Field).
+				Str("expected_type", typeErr.Type.String()).
+				Msg("Type mismatch")
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code": "TYPE_MISMATCH",
+				"text": fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
+			})
+			return
+		}
+	}
+
+	var user models.User
+
+	err := h.userRepo.GetUserByEmail(req.Email, &user)
+
+	logger.Log.Debug().Str("email", user.Email).Str("hash", user.PasswordHash).Send()
+
+	if err != nil {
+		if errors.Is(err, apperrors.ErrNotFound) {
+			logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: user does not exists")
+			c.JSON(http.StatusUnauthorized, dto.GenericError{
+				Code:    "INVALID_CREDENTIALS",
+				Message: "Invalid email or password",
+			})
+			return
+		} else {
+			logger.Log.Error().Str("email", req.Email).Err(err).Msg("Failed login attempt: internal server error")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code": "INTERNAL_ERROR",
+				"text": "Internal server error",
+			})
+			return
+		}
+	}
+
+	if req.Password == "" {
+
+		logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: empty password")
+		c.JSON(http.StatusUnauthorized, dto.GenericError{
+			Code:    "INVALID_CREDENTIALS",
+			Message: "Invalid email or password",
+		})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+
+		logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: incorrect password")
+		c.JSON(http.StatusUnauthorized, dto.GenericError{
+			Code:    "INVALID_CREDENTIALS",
+			Message: "Invalid email or password",
+		})
+		return
+	}
+
+	secret := os.Getenv("JWT_SECRET")
+
+	token, err := security.CreateToken(user.ID, []byte(secret), time.Hour*24)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code": "INTERNAL_ERROR",
+			"text": "Internal server error",
+		})
+		return
+	}
+
+	c.JSON(200, dto.LoginResponse{
+		User: dto.User{
+			Id:        user.ID,
+			Username:  user.Username,
+			CreatedAt: user.CreatedAt,
+		},
+		AuthToken: token,
+	})
 }
