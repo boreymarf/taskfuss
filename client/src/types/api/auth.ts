@@ -1,7 +1,7 @@
 export interface User {
   id: number;
   username: string;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export interface RegisterRequest {
@@ -12,8 +12,8 @@ export interface RegisterRequest {
 
 export interface RegisterResponse {
   user: User;
-  authToken: string;
-  expiresAt: number;
+  auth_token: string;
+  expires_at: number;
 }
 
 export interface LoginRequest {
@@ -23,8 +23,8 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   user: User;
-  authToken: string;
-  expiresAt: number;
+  auth_token: string;
+  expires_at: number;
 }
 
 export interface ValidationError {

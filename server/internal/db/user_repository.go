@@ -45,6 +45,8 @@ func (r *UserRepository) CreateTable() error {
 
 func (r *UserRepository) CreateUser(user *models.User) error {
 
+	logger.Log.Info().Str("email", user.Email).Msg("Creating new user...")
+
 	query := `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`
 
 	result, err := r.db.Exec(query, user.Username, user.Email, user.PasswordHash)
@@ -81,7 +83,7 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 
 func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
-	query := `SELECT userId, name, email, created_at, updated_at 
+	query := `SELECT userId, name, password_hash, email, created_at, updated_at 
 	FROM users 
 	WHERE userId = ?`
 
@@ -90,14 +92,14 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 	err := row.Scan(
 		&user.ID,
 		&user.Username,
-		&user.Email,
+		&user.PasswordHash,
 		&user.Email,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		logger.Log.Error().
+		logger.Log.Warn().
 			Int64("userID", id).
 			Msg("No User was found")
 		return fmt.Errorf("user %d not found: %w", id, err)

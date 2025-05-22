@@ -3,6 +3,7 @@ import axios from 'axios';
 import { reactive, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import type { LoginForm, RegisterForm } from '../types/forms';
+import { StoreGenericError } from '../types/stores';
 
 const statusMessage = ref<string>()
 const authStore = useAuthStore()
@@ -16,9 +17,15 @@ const handleSubmit = async () => {
 
   try {
 
-    authStore
+    await authStore.login(formData)
 
   } catch (error) {
+
+    if (error instanceof StoreGenericError) { 
+
+      statusMessage.value = error.message
+
+    }   
 
   }
 

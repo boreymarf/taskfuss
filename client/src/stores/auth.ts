@@ -1,13 +1,13 @@
 import axios from 'axios'
 import { defineStore } from 'pinia'
-import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User, ValidationError } from '../types/api'
+import type { ApiGenericError, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User, ValidationError } from '../types/api'
 import type { LoginForm, RegisterForm } from '../types/forms'
-import { RegisterError } from '../types/stores'
+import { StoreGenericError, RegisterError } from '../types/stores'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,
-    authToken: localStorage.getItem('token') || null as string | null
+    auth_token: localStorage.getItem('auth_token') || null as string | null
   }),
 
   actions: {
@@ -19,11 +19,12 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const responseData: RegisterResponse = await axios.post("/api/register", requestData)
+        const response = await axios.post<RegisterResponse>("/api/register", requestData);
+        const responseData = response.data;
 
         this.user = responseData.user
-        this.authToken = responseData.authToken
-        localStorage.setItem('token', responseData.authToken)
+        this.auth_token = responseData.auth_token
+        localStorage.setItem('auth_token', responseData.auth_token)
       } catch (error) {
         if (axios.isAxiosError(error)) {
 
@@ -52,23 +53,38 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const responseData: LoginResponse = await axios.post("/api/login", requestData)
+        const response = await axios.post<LoginResponse>("/api/login", requestData);
+        const responseData = response.data;
+
+        this.user = responseData.user
+        this.auth_token = responseData.auth_token
+        console.log(responseData)
+        console.log(responseData.auth_token)
+        localStorage.setItem('auth_token', responseData.auth_token)
 
       } catch (error) {
 
+        if (axios.isAxiosError(error)) {
+          const serverError = error.response?.data as ApiGenericError
+
+          throw new StoreGenericError(
+            serverError.code,
+            serverError.message
+          )
+        }
       }
     },
 
     async logout(): Promise<void> {
       this.user = null
-      this.authToken = null
-      localStorage.removeItem('token')
+      this.auth_token = null
+      localStorage.removeItem('auth_token')
     }
   },
 
   getters: {
     isAuthenticated(): boolean {
-      return !!this.authToken
+      return !!this.auth_token
     }
   }
 })

@@ -11,3 +11,4 @@ export class RegisterError extends Error {
     this.name = 'RegisterError';
   }
 }
+
