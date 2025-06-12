@@ -22,6 +22,8 @@ func InitUserRepository(db *sql.DB) (*UserRepository, error) {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
+	logger.Log.Debug().Msg("UserRepository initialization completed")
+
 	return repo, nil
 }
 
@@ -45,7 +47,7 @@ func (r *UserRepository) CreateTable() error {
 
 func (r *UserRepository) CreateUser(user *models.User) error {
 
-	logger.Log.Info().Str("email", user.Email).Msg("Creating new user...")
+	logger.Log.Info().Str("email", user.Email).Msg("UserRepository tries to create new user")
 
 	query := `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`
 
@@ -83,6 +85,8 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 
 func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
+	logger.Log.Debug().Int64("id", id).Msg("UserRepository tries to find user")
+
 	query := `SELECT userId, name, password_hash, email, created_at, updated_at 
 	FROM users 
 	WHERE userId = ?`
@@ -112,9 +116,11 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
 func (r *UserRepository) GetUserByEmail(email string, user *models.User) error {
 
+	logger.Log.Debug().Str("email", email).Msg("UserRepository tries to find user")
+
 	query := `SELECT userId, name, password_hash, email, created_at, updated_at 
 	FROM users 
-	WHERE email = ?`
+	WHERE email = ? COLLATE NOCASE`
 
 	row := r.db.QueryRow(query, email)
 

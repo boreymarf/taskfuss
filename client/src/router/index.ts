@@ -33,6 +33,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/tasks',
+    name: 'tasks',
+    component: DashboardView,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/login',
     name: 'login',
     component: LoginView
@@ -50,14 +56,14 @@ const router = createRouter({
 })
 
 // TODO: Тут так же можно сделать логику GuestOnly, где login и homePage доступны только гостям
-// router.beforeEach((to, _from, next) => {
-//   const auth = useAuthStore()
-//
-//   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-//     next('/login') // Используем next() для редиректа
-//   } else {
-//     next() // Всегда вызывайте next()!
-//   }
-// })
+router.beforeEach((to, _from, next) => {
+  const auth = useAuthStore()
+
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    next('/login') // Используем next() для редиректа
+  } else {
+    next() // Всегда вызывайте next()!
+  }
+})
 
 export default router

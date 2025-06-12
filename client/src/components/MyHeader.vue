@@ -12,10 +12,11 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
   <div class="header">
     <div class="logo">TASKFUSS</div>
     <div class="nav">
-      <router-link v-if="isAuthenticated" to="/dashboard">Dashboard</router-link>
-      <router-link v-if="!isAuthenticated" to="/login">Login</router-link>
-      <router-link v-if="!isAuthenticated" to="/register">Register</router-link>
-      <router-link to="/about">About</router-link>
+      <router-link v-if="isAuthenticated" to="/tasks" class="option">Tasks</router-link>
+      <router-link to="/about" class="option">About</router-link>
+      <router-link v-if="!isAuthenticated" to="/login" class="option">Login</router-link>
+      <router-link v-if="!isAuthenticated" to="/register" class="option">Register</router-link>
+      <button v-if="isAuthenticated" v-on:click="authStore.logout" class="option">Logout</button>
     </div>
   </div>
 </template>
@@ -39,6 +40,18 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
     a {
       text-decoration: none;
       color: inherit;
+    }
+  }
+
+  .option {
+    background-color: transparent;
+    padding: 8px 8px;
+    border: 1px solid transparent;
+    transition: border-color 0.25s;
+    border-radius: 8px;
+
+    &:hover {
+      border-color: #646cff;
     }
   }
 }

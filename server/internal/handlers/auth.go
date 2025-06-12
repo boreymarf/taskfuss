@@ -27,7 +27,7 @@ func InitAuthHanlder(userRepo *db.UserRepository) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 
-func (h *AuthHandler) RegisterHandler(c *gin.Context) {
+func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -217,7 +217,7 @@ func (h *AuthHandler) RegisterHandler(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) LoginHandler(c *gin.Context) {
+func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {

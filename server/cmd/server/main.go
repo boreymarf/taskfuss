@@ -72,7 +72,12 @@ func main() {
 		logger.Log.Error().Err(err).Msg("Unable to initialize auth handler")
 	}
 
-	routes.SetupAPIRoutes(r, authHandler)
+	profileHandler, err := handlers.InitProfileHanlder(userRepository)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Unable to initialize profile handler")
+	}
+
+	routes.SetupAPIRoutes(r, authHandler, profileHandler)
 
 	// Initializing
 	port := os.Getenv("PORT")
