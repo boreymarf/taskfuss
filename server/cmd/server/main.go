@@ -67,6 +67,11 @@ func main() {
 		logger.Log.Error().Err(err).Msg("Unable to initialize user repository")
 	}
 
+	taskRepository, err := db.InitTaskRepository(database)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Unable to initialize task repository")
+	}
+
 	authHandler, err := handlers.InitAuthHanlder(userRepository)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Unable to initialize auth handler")
@@ -77,7 +82,12 @@ func main() {
 		logger.Log.Error().Err(err).Msg("Unable to initialize profile handler")
 	}
 
-	routes.SetupAPIRoutes(r, authHandler, profileHandler)
+	taskHandler, err := handlers.InitTaskHanlder(userRepository, taskRepository)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Unable to initialize task handler")
+	}
+
+	routes.SetupAPIRoutes(r, authHandler, profileHandler, taskHandler)
 
 	// Initializing
 	port := os.Getenv("PORT")

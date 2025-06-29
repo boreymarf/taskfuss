@@ -4,9 +4,12 @@ import { reactive, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import type { LoginForm, RegisterForm } from '../types/forms';
 import { StoreGenericError } from '../types/stores';
+import { useRouter } from 'vue-router';
 
 const statusMessage = ref<string>()
 const authStore = useAuthStore()
+const router = useRouter()
+
 
 const formData = reactive<LoginForm>({
   email: '',
@@ -16,19 +19,13 @@ const formData = reactive<LoginForm>({
 const handleSubmit = async () => {
 
   try {
-
     await authStore.login(formData)
-
+    router.push("/tasks")
   } catch (error) {
-
-    if (error instanceof StoreGenericError) { 
-
+    if (error instanceof StoreGenericError) {
       statusMessage.value = error.message
-
-    }   
-
+    }
   }
-
 }
 
 

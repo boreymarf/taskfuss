@@ -4,9 +4,11 @@ import { useAuthStore } from '../stores/auth';
 import type { RegisterForm } from '../types/forms';
 import { isValidEmail, isValidPassword } from '../utils/validation';
 import { RegisterError } from '../types/stores';
+import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore()
 const statusMessage = ref<string>()
+const router = useRouter()
 
 const formData = reactive<RegisterForm>({
   name: '',
@@ -39,6 +41,7 @@ const handleSubmit = async () => {
 
     await authStore.register(formData)
     statusMessage.value = "Success!"
+    router.push("/tasks")
 
   } catch (error) {
 

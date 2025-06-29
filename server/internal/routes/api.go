@@ -7,7 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupAPIRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, profileHandler *handlers.ProfileHandler) {
+func SetupAPIRoutes(
+	router *gin.Engine,
+	authHandler *handlers.AuthHandler,
+	profileHandler *handlers.ProfileHandler,
+	taskHandler *handlers.TaskHandler,
+) {
 	api := router.Group("/api")
 	{
 		api.GET("/test", handlers.TestHandler) // GET /api/test
@@ -21,6 +26,7 @@ func SetupAPIRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, profi
 		protected.Use(middleware.Auth())
 		{
 			protected.GET("/profile", profileHandler.GetProfile)
+			protected.GET("/tasks", profileHandler.GetProfile)
 		}
 
 	}

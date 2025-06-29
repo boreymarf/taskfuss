@@ -8,6 +8,7 @@ import StatusView from '../views/StatusView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import TasksView from '../views/TasksView.vue'
 
 
 const routes = [
@@ -35,7 +36,7 @@ const routes = [
   {
     path: '/tasks',
     name: 'tasks',
-    component: DashboardView,
+    component: TasksView,
     meta: { requiresAuth: true }
   },
   {
