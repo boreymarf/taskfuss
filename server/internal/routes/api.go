@@ -27,6 +27,7 @@ func SetupAPIRoutes(
 		{
 			protected.GET("/profile", profileHandler.GetProfile)
 			protected.GET("/tasks", profileHandler.GetProfile)
+			protected.POST("/tasks", profileHandler.GetProfile)
 		}
 
 	}
