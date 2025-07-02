@@ -38,6 +38,7 @@ func Auth() gin.HandlerFunc {
 
 		secret := os.Getenv("JWT_SECRET")
 		if secret == "" {
+			logger.Log.Error().Msg("Cannot generate JWT token since the secret is not set in the .env!")
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.InternalError{})
 			return
 		}
@@ -56,6 +57,12 @@ func Auth() gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, dto.GenericError{
 					Code:    "BAD_TOKEN",
 					Message: "Invalid token format",
+				})
+			} else if errors.Is(err, apperrors.ErrTokenExpired) {
+				logger.Log.Warn().Msg("Auth attempt with a expired token")
+				c.AbortWithStatusJSON(http.StatusUnauthorized, dto.GenericError{
+					Code:    "EXPIRED_TOKEN",
+					Message: "Expired token",
 				})
 			} else {
 				logger.Log.Error().Err(err).Msg("Auth attempt failed")

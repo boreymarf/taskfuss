@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -31,12 +32,14 @@ func InitTaskRepository(db *sql.DB) (*TaskRepository, error) {
 func (r *TaskRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS tasks (
 	id 						INTEGER NOT NULL PRIMARY KEY,
+	owner_id 			INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	requirements  TEXT NOT NULL,
 	name 					VARCHAR(255) NOT NULL,
 	description 	VARCHAR(255),
 	created_at 		DATETIME DEFAULT CURRENT_TIMESTAMP,
 	updated_at 		DATETIME DEFAULT CURRENT_TIMESTAMP,
 	start_date 		DATETIME DEFAULT CURRENT_TIMESTAMP,
- 	end_date 			DATETIME DEFAULT CURRENT_TIMESTAMP
+	end_date 			DATETIME DEFAULT NULL
 	)`
 
 	_, err := r.db.Exec(query)
@@ -49,11 +52,21 @@ func (r *TaskRepository) CreateTable() error {
 
 func (r *TaskRepository) CreateTask(task *models.Task) error {
 
-	logger.Log.Info().Int64("id", task.ID).Msg("TaskRepository tries to create new task")
+	logger.Log.Debug().
+		Str("name", task.Name).
+		Int64("owner_id", task.OwnerID).
+		Msg("TaskRepository tries to create new task")
 
-	query := `INSERT INTO tasks (name, description, start_date, end_date) VALUES (?, ?, ?, ?)`
+	requirementsJson, err := json.Marshal(task.Requirement)
+	if err != nil {
+		return err
+	}
 
-	result, err := r.db.Exec(query, task.Name, task.Description, task.StartDate, task.EndDate)
+	query := `INSERT INTO tasks (name, description, requirements, owner_id) VALUES (?, ?, ?, ?)`
+
+	result, err := r.db.Exec(query, task.Name, task.Description, requirementsJson, task.OwnerID)
+
+	logger.Log.Debug().Msg("Successfully added task to the DB!")
 
 	if err != nil {
 		// If there's a dublicate task
@@ -83,7 +96,7 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 
 func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
 
-	logger.Log.Debug().Int64("id", id).Msg("taskRepository tries to find user")
+	logger.Log.Debug().Int64("id", id).Msg("taskRepository tries to find task")
 
 	query := `SELECT id, name , description, created_at, updated_at, start_date, end_date  
 	FROM tasks 

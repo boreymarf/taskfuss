@@ -29,7 +29,7 @@ func InitUserRepository(db *sql.DB) (*UserRepository, error) {
 
 func (r *UserRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS users (
-	userId 				INTEGER NOT NULL PRIMARY KEY,
+	id 				INTEGER NOT NULL PRIMARY KEY,
 	name 					VARCHAR(255) NOT NULL,
 	email 				VARCHAR(255) UNIQUE NOT NULL,
 	password_hash VARCHAR(255) NOT NULL,
@@ -87,9 +87,9 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
 	logger.Log.Debug().Int64("id", id).Msg("UserRepository tries to find user")
 
-	query := `SELECT userId, name, password_hash, email, created_at, updated_at 
+	query := `SELECT id, name, password_hash, email, created_at, updated_at 
 	FROM users 
-	WHERE userId = ?`
+	WHERE id = ?`
 
 	row := r.db.QueryRow(query, id)
 
@@ -104,7 +104,7 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Log.Warn().
-			Int64("userID", id).
+			Int64("id", id).
 			Msg("No User was found")
 		return fmt.Errorf("user %d not found: %w", id, err)
 	} else if err != nil {
@@ -118,7 +118,7 @@ func (r *UserRepository) GetUserByEmail(email string, user *models.User) error {
 
 	logger.Log.Debug().Str("email", email).Msg("UserRepository tries to find user")
 
-	query := `SELECT userId, name, password_hash, email, created_at, updated_at 
+	query := `SELECT id, name, password_hash, email, created_at, updated_at 
 	FROM users 
 	WHERE email = ? COLLATE NOCASE`
 
@@ -147,7 +147,7 @@ func (r *UserRepository) GetUserByEmail(email string, user *models.User) error {
 
 func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 
-	query := `SELECT userId, name, email, created_at, updated_at 
+	query := `SELECT id, name, email, created_at, updated_at 
               FROM users`
 
 	rows, err := r.db.Query(query)
