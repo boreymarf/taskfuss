@@ -13,7 +13,7 @@ type ProfileHandler struct {
 	userRepo *db.UserRepository
 }
 
-func InitProfileHanlder(userRepo *db.UserRepository) (*ProfileHandler, error) {
+func InitProfileHandler(userRepo *db.UserRepository) (*ProfileHandler, error) {
 	return &ProfileHandler{userRepo: userRepo}, nil
 }
 

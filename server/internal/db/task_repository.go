@@ -24,8 +24,6 @@ func InitTaskRepository(db *sql.DB) (*TaskRepository, error) {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	logger.Log.Debug().Msg("taskRepository initialization completed")
-
 	return repo, nil
 }
 
@@ -33,6 +31,7 @@ func (r *TaskRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS tasks (
 	id 						INTEGER NOT NULL PRIMARY KEY,
 	owner_id 			INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	done
 	requirements  TEXT NOT NULL,
 	name 					VARCHAR(255) NOT NULL,
 	description 	VARCHAR(255),
@@ -66,8 +65,6 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 
 	result, err := r.db.Exec(query, task.Name, task.Description, requirementsJson, task.OwnerID)
 
-	logger.Log.Debug().Msg("Successfully added task to the DB!")
-
 	if err != nil {
 		// If there's a dublicate task
 		var sqliteErr sqlite3.Error
@@ -90,6 +87,11 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 	if err != nil {
 		return err
 	}
+
+	logger.Log.Debug().
+		Str("name", task.Name).
+		Int64("owner_id", task.OwnerID).
+		Msg("TaskRepository created new task")
 
 	return nil
 }

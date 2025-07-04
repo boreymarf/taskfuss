@@ -23,7 +23,7 @@ type AuthHandler struct {
 	userRepo *db.UserRepository
 }
 
-func InitAuthHanlder(userRepo *db.UserRepository) (*AuthHandler, error) {
+func InitAuthHandler(userRepo *db.UserRepository) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 

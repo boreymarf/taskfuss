@@ -17,7 +17,14 @@ type TaskHandler struct {
 	taskRepo *db.TaskRepository
 }
 
-func InitTaskHanlder(userRepo *db.UserRepository, taskRepo *db.TaskRepository) (*TaskHandler, error) {
+func InitTaskHandler(
+	userRepo *db.UserRepository,
+	taskRepo *db.TaskRepository,
+	taskEntryRepo *db.TaskEntryRepository,
+	requirementRepo *db.RequirementRepository,
+	requirementEntryRepo *db.RequirementEntryRepository,
+
+) (*TaskHandler, error) {
 	return &TaskHandler{userRepo: userRepo, taskRepo: taskRepo}, nil
 }
 
@@ -79,5 +86,12 @@ func (h *TaskHandler) Add(c *gin.Context) {
 
 	task.OwnerID = claims.UserID
 
-	h.taskRepo.CreateTask(&task)
+	if err := h.taskRepo.CreateTask(&task); err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to handle task add!")
+		c.AbortWithStatusJSON(500, dto.GenericError{
+			Code:    "INTERNAL_ERROR",
+			Message: "Internal error",
+		})
+		return
+	}
 }

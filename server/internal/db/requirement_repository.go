@@ -7,13 +7,13 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 )
 
-type TaskEntryRepository struct {
+type RequirementRepository struct {
 	db *sql.DB
 }
 
-func InitTaskEntryRepository(db *sql.DB) (*TaskEntryRepository, error) {
+func InitRequirementRepository(db *sql.DB) (*RequirementRepository, error) {
 
-	repo := &TaskEntryRepository{db: db}
+	repo := &RequirementRepository{db: db}
 
 	if err := repo.CreateTable(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
@@ -24,8 +24,8 @@ func InitTaskEntryRepository(db *sql.DB) (*TaskEntryRepository, error) {
 	return repo, nil
 }
 
-func (r *TaskEntryRepository) CreateTable() error {
-	query := `CREATE TABLE IF NOT EXISTS task_entries (
+func (r *RequirementRepository) CreateTable() error {
+	query := `CREATE TABLE IF NOT EXISTS requirements (
 	id 						INTEGER NOT NULL PRIMARY KEY,
 	task_id 			INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
 	date 					DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

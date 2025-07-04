@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/boreymarf/task-fuss/server/internal/config"
+	// "github.com/boreymarf/task-fuss/server/internal/config"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/handlers"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -28,12 +28,15 @@ func main() {
 	if level := os.Getenv("LOG_LEVEL"); level != "" {
 		if logLevel, err := zerolog.ParseLevel(level); err == nil {
 			logger.Log = logger.Log.Level(logLevel)
+			logger.Log.Info().Msgf("Current log level is set to %s", level)
+		} else {
+			logger.Log.Error().Str("log_level", level).Msg("Failed to set log level!")
 		}
 	}
 
-	if os.Getenv("APP_ENV") == config.EnvDevelopment {
-		logger.Log.Warn().Msg("APP_ENV is set to production!")
-	}
+	// if os.Getenv("APP_ENV") == config.EnvDevelopment {
+	// 	logger.Log.Warn().Msg("APP_ENV is set to production!")
+	// }
 
 	// Connecting to database
 	database, err := db.InitDB()
@@ -61,30 +64,52 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Handlers and repositories
+	// Repositories
 	userRepository, err := db.InitUserRepository(database)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Unable to initialize user repository")
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize user repository")
 	}
 
 	taskRepository, err := db.InitTaskRepository(database)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Unable to initialize task repository")
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize task repository")
 	}
 
-	authHandler, err := handlers.InitAuthHanlder(userRepository)
+	taskEntryRepository, err := db.InitTaskEntryRepository(database)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Unable to initialize auth handler")
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize task entry repository")
 	}
 
-	profileHandler, err := handlers.InitProfileHanlder(userRepository)
+	requirementRepository, err := db.InitRequirementRepository(database)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Unable to initialize profile handler")
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement repository")
 	}
 
-	taskHandler, err := handlers.InitTaskHanlder(userRepository, taskRepository)
+	requirementEntryRepository, err := db.InitRequirementEntryRepository(database)
 	if err != nil {
-		logger.Log.Error().Err(err).Msg("Unable to initialize task handler")
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement entry repository")
+	}
+
+	// Handlers
+	authHandler, err := handlers.InitAuthHandler(userRepository)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize auth handler")
+	}
+
+	profileHandler, err := handlers.InitProfileHandler(userRepository)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize profile handler")
+	}
+
+	taskHandler, err := handlers.InitTaskHandler(
+		userRepository,
+		taskRepository,
+		taskEntryRepository,
+		requirementRepository,
+		requirementEntryRepository,
+	)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize task handler")
 	}
 
 	routes.SetupAPIRoutes(r, authHandler, profileHandler, taskHandler)
