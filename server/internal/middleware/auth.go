@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
+	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/gin-gonic/gin"
 )
 
-func Auth() gin.HandlerFunc {
+func Auth(userRepo *db.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		authHeader := c.GetHeader("Authorization")
@@ -81,6 +82,22 @@ func Auth() gin.HandlerFunc {
 				Message: "User ID must be a positive integer",
 			})
 			return
+		}
+
+		exists, err := userRepo.Exists(claims.UserID)
+		if err != nil {
+			logger.Log.Error().Err(err).Send()
+			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.InternalError{
+				Code:    "INTERNAL_ERROR",
+				Message: "Internal error",
+			})
+		}
+		if !exists {
+			logger.Log.Warn().Int64("user_id", claims.UserID).Msg("Auth attempt failed, user does not exist")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.GenericError{
+				Code:    "INVALID_TOKEN",
+				Message: "Invalid token",
+			})
 		}
 
 		c.Set("userClaims", claims)

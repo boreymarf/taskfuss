@@ -22,7 +22,7 @@ func InitUserRepository(db *sql.DB) (*UserRepository, error) {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	logger.Log.Debug().Msg("UserRepository initialization completed")
+	logger.Log.Debug().Msg("Repository initialization completed")
 
 	return repo, nil
 }
@@ -180,4 +180,11 @@ func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+func (r *UserRepository) Exists(userID int64) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`
+	var exists bool
+	err := r.db.QueryRow(query, userID).Scan(&exists)
+	return exists, err
 }

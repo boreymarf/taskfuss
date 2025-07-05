@@ -57,16 +57,24 @@ func init() {
 
 	output.FormatCaller = func(i any) string {
 		if caller, ok := i.(string); ok {
-			// Убираем путь к директории, оставляем только имя файла
-			file := caller
-			if idx := strings.LastIndex(caller, "/"); idx != -1 {
-				file = caller[idx+1:]
+			// Находим последний слеш в пути
+			lastSlash := strings.LastIndex(caller, "/")
+			if lastSlash != -1 {
+				// Ищем предыдущий слеш (для выделения папки)
+				prevSlash := -1
+				if lastSlash > 0 {
+					prevSlash = strings.LastIndex(caller[:lastSlash], "/")
+				}
+				// Обрезаем до последней папки (если есть)
+				if prevSlash != -1 {
+					caller = caller[prevSlash+1:]
+				}
+				// Удаляем ведущий слеш (если остался)
+				if len(caller) > 0 && caller[0] == '/' {
+					caller = caller[1:]
+				}
 			}
-			// // Убираем полный путь к пакету
-			// if idx := strings.Index(file, "."); idx != -1 {
-			// 	file = file[:idx]
-			// }
-			return fmt.Sprintf(" \x1b[90m(%s)\x1b[0m", file)
+			return fmt.Sprintf(" \x1b[90m(%s)\x1b[0m", caller)
 		}
 		return ""
 	}

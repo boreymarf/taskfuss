@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -24,21 +23,21 @@ func InitTaskRepository(db *sql.DB) (*TaskRepository, error) {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
+	logger.Log.Debug().Msg("Repository initialization completed")
+
 	return repo, nil
 }
 
 func (r *TaskRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS tasks (
-	id 						INTEGER NOT NULL PRIMARY KEY,
-	owner_id 			INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	done
-	requirements  TEXT NOT NULL,
-	name 					VARCHAR(255) NOT NULL,
-	description 	VARCHAR(255),
-	created_at 		DATETIME DEFAULT CURRENT_TIMESTAMP,
-	updated_at 		DATETIME DEFAULT CURRENT_TIMESTAMP,
-	start_date 		DATETIME DEFAULT CURRENT_TIMESTAMP,
-	end_date 			DATETIME DEFAULT NULL
+	id 							INTEGER NOT NULL PRIMARY KEY,
+	owner_id 				INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	title						VARCHAR(255) NOT NULL,
+	description 		VARCHAR(255),
+	created_at 			DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at 			DATETIME DEFAULT CURRENT_TIMESTAMP,
+	start_date 			DATETIME DEFAULT CURRENT_TIMESTAMP,
+	end_date 				DATETIME DEFAULT NULL
 	)`
 
 	_, err := r.db.Exec(query)
@@ -49,25 +48,19 @@ func (r *TaskRepository) CreateTable() error {
 	return nil
 }
 
-func (r *TaskRepository) CreateTask(task *models.Task) error {
-
+func (r *TaskRepository) AddTask(task *models.Task) error {
 	logger.Log.Debug().
-		Str("name", task.Name).
+		Str("title", task.Title).
 		Int64("owner_id", task.OwnerID).
-		Msg("TaskRepository tries to create new task")
+		Msg("Trying to add new task to the db...")
 
-	requirementsJson, err := json.Marshal(task.Requirement)
-	if err != nil {
-		return err
-	}
+	query := `INSERT INTO tasks (owner_id, title, description) VALUES (?, ?, ?)`
 
-	query := `INSERT INTO tasks (name, description, requirements, owner_id) VALUES (?, ?, ?, ?)`
-
-	result, err := r.db.Exec(query, task.Name, task.Description, requirementsJson, task.OwnerID)
+	result, err := r.db.Exec(query, task.OwnerID, task.Title, task.Description)
 
 	if err != nil {
-		// If there's a dublicate task
 		var sqliteErr sqlite3.Error
+		// If there's a dublicate task
 		if errors.As(err, &sqliteErr) {
 			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
 				return apperrors.ErrDuplicate
@@ -88,11 +81,6 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 		return err
 	}
 
-	logger.Log.Debug().
-		Str("name", task.Name).
-		Int64("owner_id", task.OwnerID).
-		Msg("TaskRepository created new task")
-
 	return nil
 }
 
@@ -100,14 +88,21 @@ func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
 
 	logger.Log.Debug().Int64("id", id).Msg("taskRepository tries to find task")
 
-	query := `SELECT id, name , description, created_at, updated_at, start_date, end_date  
-	FROM tasks 
-	WHERE taskId = ?`
+	query := `SELECT id, owner_id, title, description, created_at, updated_at, start_date, end_date
+	FROM tasks
+	WHERE id = ?`
 
 	row := r.db.QueryRow(query, id)
 
 	err := row.Scan(
 		&task.ID,
+		&task.OwnerID,
+		&task.Title,
+		&task.Description,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+		&task.StartDate,
+		&task.EndDate,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {

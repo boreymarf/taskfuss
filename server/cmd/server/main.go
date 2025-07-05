@@ -9,6 +9,7 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/middleware"
 	"github.com/boreymarf/task-fuss/server/internal/routes"
+	"github.com/boreymarf/task-fuss/server/internal/service"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -50,14 +51,15 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
-	r.SetTrustedProxies([]string{"127.0.0.1"})
+	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.1.82"})
 
 	// Middleware
 	r.Use(middleware.SimpleMiddleware())
 
 	// TODO: Потом заменить на Prod и Dev вариации
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowAllOrigins: true,
+		// AllowOrigins:     []string{"http://localhost:5173", "http://192.168.1.82:5173"},
 		AllowMethods:     []string{"GET", "POST"},
 		AllowHeaders:     []string{"Origin", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -90,6 +92,17 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement entry repository")
 	}
 
+	// Services
+	taskService, err := service.InitTaskService(
+		taskRepository,
+		taskEntryRepository,
+		requirementRepository,
+		requirementEntryRepository,
+	)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize task service repository")
+	}
+
 	// Handlers
 	authHandler, err := handlers.InitAuthHandler(userRepository)
 	if err != nil {
@@ -107,12 +120,13 @@ func main() {
 		taskEntryRepository,
 		requirementRepository,
 		requirementEntryRepository,
+		taskService,
 	)
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize task handler")
 	}
 
-	routes.SetupAPIRoutes(r, authHandler, profileHandler, taskHandler)
+	routes.SetupAPIRoutes(r, userRepository, authHandler, profileHandler, taskHandler)
 
 	// Initializing
 	port := os.Getenv("PORT")
@@ -120,7 +134,9 @@ func main() {
 		port = "4000"
 	}
 
-	if err := r.Run(":" + port); err != nil {
+	addr := "0.0.0.0:" + port
+	logger.Log.Info().Msgf("Server listening on %s", addr)
+	if err := r.Run(addr); err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to start server")
 	}
 }

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/handlers"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/middleware"
@@ -9,6 +10,7 @@ import (
 
 func SetupAPIRoutes(
 	router *gin.Engine,
+	userRepo *db.UserRepository,
 	authHandler *handlers.AuthHandler,
 	profileHandler *handlers.ProfileHandler,
 	taskHandler *handlers.TaskHandler,
@@ -23,7 +25,7 @@ func SetupAPIRoutes(
 		})
 
 		protected := api.Group("")
-		protected.Use(middleware.Auth())
+		protected.Use(middleware.Auth(userRepo))
 		{
 			protected.GET("/profile", profileHandler.GetProfile)
 			protected.GET("/task", taskHandler.Get)
