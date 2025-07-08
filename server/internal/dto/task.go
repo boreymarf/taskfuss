@@ -30,3 +30,7 @@ func (t TaskRequirement) IsEmpty() bool {
 type TaskAddRequest struct {
 	Task Task `json:"task"`
 }
+
+type GetTaskByID struct {
+	Task Task `json:"task"`
+}
