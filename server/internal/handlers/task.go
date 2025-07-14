@@ -41,7 +41,7 @@ func InitTaskHandler(
 	}, nil
 }
 
-func (h *TaskHandler) GetAll(c *gin.Context) {
+func (h *TaskHandler) ListTasks(c *gin.Context) {
 	// c.JSON(200, gin.H{
 	// 	"message": "Hello, we can hear you.",
 	// })

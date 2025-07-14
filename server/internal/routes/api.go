@@ -28,7 +28,8 @@ func SetupAPIRoutes(
 		protected.Use(middleware.Auth(userRepo))
 		{
 			protected.GET("/profile", profileHandler.GetProfile)
-			protected.GET("/task", taskHandler.GetAll)
+			protected.GET("/task", taskHandler.ListTasks)
+			protected.GET("/tasks/:id", taskHandler.GetTaskByID)
 			protected.POST("/task", taskHandler.Add)
 		}
 
