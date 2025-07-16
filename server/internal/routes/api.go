@@ -30,7 +30,8 @@ func SetupAPIRoutes(
 			protected.GET("/profile", profileHandler.GetProfile)
 			protected.GET("/task", taskHandler.ListTasks)
 			protected.GET("/tasks/:id", taskHandler.GetTaskByID)
-			protected.POST("/task", taskHandler.Add)
+			protected.POST("/task", taskHandler.CreateTask)
+			protected.GET("/requirements", taskHandler.GetRequirements) // GET /requirements?start=2024-01-01T00:00:00&end=2024-01-31T23:59:59
 		}
 
 	}

@@ -53,6 +53,9 @@ func VerifyToken(tokenString string, secret []byte) (*CustomClaims, error) {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, apperrors.ErrTokenExpired
 		}
+		if errors.Is(err, jwt.ErrSignatureInvalid) {
+			return nil, apperrors.ErrInvalidToken
+		}
 		return nil, err
 	}
 
