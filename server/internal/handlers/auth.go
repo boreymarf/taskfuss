@@ -47,7 +47,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			Str("email", req.Email).
 			Msg("Failed to hash password for new user")
 
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 
 		if errors.Is(err, apperrors.ErrDuplicate) {
-			api.DuplicateUser.Send(c)
+			api.DuplicateUser.SendAndAbort(c)
 			return
 		}
 
@@ -72,7 +72,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			Str("email", req.Email).
 			Msg("Failed to create new user in the database")
 
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	token, err := security.CreateToken(user.ID, []byte(secret), time.Hour*24)
 	if err != nil {
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 			logger.Log.Error().Err(syntaxErr).Send()
 
-			api.InvalidJSON.Send(c)
+			api.InvalidJSON.SendAndAbort(c)
 			return
 		}
 
@@ -135,11 +135,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: user does not exists")
-			api.InvalidCredentials.Send(c)
+			api.InvalidCredentials.SendAndAbort(c)
 			return
 		} else {
 			logger.Log.Error().Str("email", req.Email).Err(err).Msg("Failed login attempt: internal server error")
-			api.InternalServerError.Send(c)
+			api.InternalServerError.SendAndAbort(c)
 			return
 		}
 	}
@@ -147,14 +147,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if req.Password == "" {
 
 		logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: empty password")
-		api.InvalidCredentials.Send(c)
+		api.InvalidCredentials.SendAndAbort(c)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 
 		logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: incorrect password")
-		api.InvalidCredentials.Send(c)
+		api.InvalidCredentials.SendAndAbort(c)
 		return
 	}
 
@@ -162,7 +162,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	token, err := security.CreateToken(user.ID, []byte(secret), time.Hour*24)
 	if err != nil {
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 

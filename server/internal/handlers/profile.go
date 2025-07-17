@@ -23,14 +23,14 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 	rawClaims, exists := c.Get("userClaims")
 	if !exists {
 		logger.Log.Error().Msg("Failed to get claims in the profile handler")
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 
 	claims, ok := rawClaims.(*security.CustomClaims)
 	if !ok {
 		logger.Log.Error().Msg("Failed to get claims in the profile handler")
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 
