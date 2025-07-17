@@ -12,15 +12,15 @@ type APIError struct {
 	Message    string `json:"message"`
 }
 
-func (e *APIError) Send(c *gin.Context) {
-	c.JSON(e.HTTPStatus, gin.H{
+func (e *APIError) SendAndAbort(c *gin.Context) {
+	c.AbortWithStatusJSON(e.HTTPStatus, gin.H{
 		"code":    e.Code,
 		"message": e.Message,
 	})
 }
 
-func (e *APIError) SendWithDetails(c *gin.Context, details any) {
-	c.JSON(e.HTTPStatus, gin.H{
+func (e *APIError) SendWithDetailsAndAbort(c *gin.Context, details any) {
+	c.AbortWithStatusJSON(e.HTTPStatus, gin.H{
 		"code":    e.Code,
 		"text":    e.Message,
 		"details": details,
@@ -66,5 +66,29 @@ var (
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "INVALID_CREDENTIALS",
 		Message:    "Invalid email or password",
+	}
+
+	NoToken = &APIError{
+		HTTPStatus: http.StatusUnauthorized,
+		Code:       "NO_TOKEN",
+		Message:    "Authorization token required",
+	}
+
+	BadToken = &APIError{
+		HTTPStatus: http.StatusUnauthorized,
+		Code:       "BAD_TOKEN",
+		Message:    "Invalid token format",
+	}
+
+	InvalidToken = &APIError{
+		HTTPStatus: http.StatusUnauthorized,
+		Code:       "INVALID_TOKEN",
+		Message:    "Invalid token",
+	}
+
+	ExpiredToken = &APIError{
+		HTTPStatus: http.StatusUnauthorized,
+		Code:       "Expired token",
+		Message:    "Expired token",
 	}
 )

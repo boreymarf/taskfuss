@@ -92,6 +92,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		},
 		AuthToken: token,
 	})
+
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {

@@ -19,7 +19,7 @@ func HandleBindingError(c *gin.Context, err error) {
 
 		logger.Log.Error().Err(syntaxErr).Send()
 
-		api.InvalidJSON.Send(c)
+		api.InvalidJSON.SendAndAbort(c)
 		return
 	}
 
@@ -113,7 +113,7 @@ func HandleBindingError(c *gin.Context, err error) {
 
 		logger.Log.Error().Err(err).Msg("Unhandled exception occured during registration validation.")
 
-		api.InternalServerError.Send(c)
+		api.InternalServerError.SendAndAbort(c)
 		return
 	}
 }

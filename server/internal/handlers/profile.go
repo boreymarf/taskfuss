@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -22,20 +23,14 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 	rawClaims, exists := c.Get("userClaims")
 	if !exists {
 		logger.Log.Error().Msg("Failed to get claims in the profile handler")
-		c.AbortWithStatusJSON(500, dto.GenericError{
-			Code:    "INTERNAL_ERROR",
-			Message: "Internal error",
-		})
+		api.InternalServerError.Send(c)
 		return
 	}
 
 	claims, ok := rawClaims.(*security.CustomClaims)
 	if !ok {
 		logger.Log.Error().Msg("Failed to get claims in the profile handler")
-		c.AbortWithStatusJSON(500, dto.GenericError{
-			Code:    "INTERNAL_ERROR",
-			Message: "Internal error",
-		})
+		api.InternalServerError.Send(c)
 		return
 	}
 
