@@ -6,7 +6,6 @@ import (
 
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
-	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/boreymarf/task-fuss/server/internal/service"

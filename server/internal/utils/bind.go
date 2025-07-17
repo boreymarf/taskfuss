@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/gin-gonic/gin"
@@ -18,11 +19,7 @@ func HandleBindingError(c *gin.Context, err error) {
 
 		logger.Log.Error().Err(syntaxErr).Send()
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  "INVALID_JSON",
-			"text":  "Invalid JSON syntax",
-			"error": err,
-		})
+		api.InvalidJSON.Send(c)
 		return
 	}
 
@@ -116,11 +113,7 @@ func HandleBindingError(c *gin.Context, err error) {
 
 		logger.Log.Error().Err(err).Msg("Unhandled exception occured during registration validation.")
 
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  "INTERNAL_ERROR",
-			"text":  "Internal server error",
-			"error": err,
-		})
+		api.InternalServerError.Send(c)
 		return
 	}
 }

@@ -28,11 +28,15 @@ func SetupAPIRoutes(
 		protected.Use(middleware.Auth(userRepo))
 		{
 			protected.GET("/profile", profileHandler.GetProfile)
-			protected.GET("/task", taskHandler.ListTasks)
-			protected.GET("/tasks/:id", taskHandler.GetTaskByID)
-			protected.POST("/task", taskHandler.CreateTask)
-			protected.GET("/requirements", taskHandler.GetRequirements) // GET /requirements?start=2024-01-01T00:00:00&end=2024-01-31T23:59:59
-			protected.
+
+			protected.GET("/tasks", taskHandler.ListTasks)            // Will list all tasks with names, requrements only, end date, start date
+			protected.GET("/tasks/:task_id", taskHandler.GetTaskByID) // Get other info of the task like description
+			protected.PUT("/tasks/:task_id")                          // Update task
+			protected.POST("/tasks", taskHandler.CreateTask)          // Create a task
+
+			protected.GET("/requirements/entries", taskHandler.GetRequirements) // GET /requirements/entries?start=2024-01-01T00:00:00&end=2024-01-31T23:59:59
+			protected.POST("/requirements/:requirement_id/entries")             // Create an entry for any requirement
+			protected.PUT("/entries/:entry_id")                                 // Update entry
 		}
 
 	}

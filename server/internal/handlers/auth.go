@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
@@ -46,11 +47,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			Str("email", req.Email).
 			Msg("Failed to hash password for new user")
 
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": "INTERNAL_ERROR",
-			"text": "Internal server error",
-		})
-
+		api.InternalServerError.Send(c)
 		return
 	}
 
@@ -65,10 +62,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 
 		if errors.Is(err, apperrors.ErrDuplicate) {
-			c.JSON(http.StatusConflict, dto.GenericError{
-				Code:    "DUPLICATE_ENTRY",
-				Message: "User already exists",
-			})
+			api.DuplicateUser.Send(c)
 			return
 		}
 
@@ -78,12 +72,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			Str("email", req.Email).
 			Msg("Failed to create new user in the database")
 
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  "INTERNAL_ERROR",
-			"text":  "Internal server error",
-			"error": err,
-		})
-
+		api.InternalServerError.Send(c)
 		return
 	}
 
@@ -91,10 +80,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	token, err := security.CreateToken(user.ID, []byte(secret), time.Hour*24)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": "INTERNAL_ERROR",
-			"text": "Internal server error",
-		})
+		api.InternalServerError.Send(c)
 		return
 	}
 
@@ -118,11 +104,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 			logger.Log.Error().Err(syntaxErr).Send()
 
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":  "INVALID_JSON",
-				"text":  "Invalid JSON syntax",
-				"error": err,
-			})
+			api.InvalidJSON.Send(c)
 			return
 		}
 
@@ -134,6 +116,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 				Str("expected_type", typeErr.Type.String()).
 				Msg("Type mismatch")
 
+			// TODO: Make a custom api error later
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code": "TYPE_MISMATCH",
 				"text": fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
@@ -151,17 +134,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, apperrors.ErrNotFound) {
 			logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: user does not exists")
-			c.JSON(http.StatusUnauthorized, dto.GenericError{
-				Code:    "INVALID_CREDENTIALS",
-				Message: "Invalid email or password",
-			})
+			api.InvalidCredentials.Send(c)
 			return
 		} else {
 			logger.Log.Error().Str("email", req.Email).Err(err).Msg("Failed login attempt: internal server error")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code": "INTERNAL_ERROR",
-				"text": "Internal server error",
-			})
+			api.InternalServerError.Send(c)
 			return
 		}
 	}
@@ -169,20 +146,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if req.Password == "" {
 
 		logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: empty password")
-		c.JSON(http.StatusUnauthorized, dto.GenericError{
-			Code:    "INVALID_CREDENTIALS",
-			Message: "Invalid email or password",
-		})
+		api.InvalidCredentials.Send(c)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 
 		logger.Log.Warn().Str("email", req.Email).Err(err).Msg("Failed login attempt: incorrect password")
-		c.JSON(http.StatusUnauthorized, dto.GenericError{
-			Code:    "INVALID_CREDENTIALS",
-			Message: "Invalid email or password",
-		})
+		api.InvalidCredentials.Send(c)
 		return
 	}
 
@@ -190,10 +161,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	token, err := security.CreateToken(user.ID, []byte(secret), time.Hour*24)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": "INTERNAL_ERROR",
-			"text": "Internal server error",
-		})
+		api.InternalServerError.Send(c)
 		return
 	}
 
