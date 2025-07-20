@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"net/http"
 	"strconv"
 
+	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
+	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/boreymarf/task-fuss/server/internal/service"
@@ -40,9 +41,69 @@ func InitTaskHandler(
 	}, nil
 }
 
-func (h *TaskHandler) ListTasks(c *gin.Context) {
-	// c.JSON(200, gin.H{ "message": "Hello, we can hear you.",
-	// })
+type GetAllTasksQuery struct {
+	DetailLevel   string `form:"detail" binding:"omitempty,oneof=minimal basic full"`
+	ShowActive    string `form:"active" binding:"omitempty,oneof=true false"`
+	ShowArchived  string `form:"archived" binding:"omitempty,oneof=true false"`
+	ShowCompleted string `form:"completed" binding:"omitempty,oneof=true false"`
+}
+
+func (h *TaskHandler) GetAllTasks(c *gin.Context) {
+
+	var queryParams GetAllTasksQuery
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		api.InvalidQuery.SendAndAbort(c)
+	}
+
+	var opts db.GetAllTasksOptions
+	var err error
+
+	opts.DetailLevel = c.DefaultQuery("detail", "basic")
+
+	opts.ShowActive, err = strconv.ParseBool(c.DefaultQuery("completed", "true"))
+	if err != nil {
+		api.InvalidQuery.SendAndAbort(c)
+	}
+	opts.ShowArchived, err = strconv.ParseBool(c.DefaultQuery("archived", "false"))
+	if err != nil {
+		api.InvalidQuery.SendAndAbort(c)
+	}
+
+	claims := security.GetClaimsFromContext(c)
+
+	opts.UserID = claims.UserID
+
+	modelsTasks, err := h.taskRepo.GetAllTasks(&opts)
+	if err != nil {
+		logger.Log.Err(err).Msg("Failed to get all tasks!")
+		api.InternalServerError.SendAndAbort(c)
+	}
+
+	var tasks []dto.Task
+	for _, modelTask := range modelsTasks {
+
+		task := dto.Task{
+			Title:       modelTask.Title,
+			Description: modelTask.Description,
+		}
+
+		if modelTask.CreatedAt.Valid {
+			task.CreatedAt = &modelTask.CreatedAt.Time
+		}
+		if modelTask.UpdatedAt.Valid {
+			task.UpdatedAt = &modelTask.UpdatedAt.Time
+		}
+		if modelTask.StartDate.Valid {
+			task.StartDate = &modelTask.StartDate.Time
+		}
+		if modelTask.EndDate.Valid {
+			task.EndDate = &modelTask.EndDate.Time
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	c.JSON(200, tasks)
 }
 
 func (h *TaskHandler) GetTaskByID(c *gin.Context) {
@@ -51,8 +112,7 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 
 	taskID, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task ID"})
-		return
+		api.BadRequest.SendWithDetailsAndAbort(c, gin.H{"error": "Invalid task ID"})
 	}
 
 	claims := security.GetClaimsFromContext(c)
@@ -61,14 +121,12 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 	err = h.taskRepo.GetTaskByID(taskID, &task)
 	if err != nil {
 		// TODO: This needs to be more specific
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task ID"})
-		return
+		api.BadRequest.SendWithDetailsAndAbort(c, gin.H{"error": "Invalid task ID"})
 	}
 
 	if task.OwnerID != claims.UserID {
 		// TODO: This needs to be more specific
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid task ID"})
-		return
+		api.BadRequest.SendWithDetailsAndAbort(c, gin.H{"error": "Invalid task ID"})
 	}
 
 }
@@ -84,15 +142,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	claims := security.GetClaimsFromContext(c)
 
-	// Get claims
 	if err := h.taskService.AddTask(&req, claims.UserID); err != nil {
-
-		// TODO: Make normal errors
-		c.JSON(http.StatusBadRequest, gin.H{})
-		return
+		api.InternalServerError.SendAndAbort(c)
 	}
-}
-
-func (h *TaskHandler) GetRequirements(c *gin.Context) {
-
 }

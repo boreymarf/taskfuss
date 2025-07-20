@@ -6,7 +6,6 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
-	"github.com/sanity-io/litter"
 )
 
 type TaskService struct {
@@ -37,8 +36,6 @@ func (s *TaskService) AddTask(req *dto.TaskAddRequest, user_id int64) error {
 
 	logger.Log.Debug().Msg("Trying to add new task")
 
-	litter.Dump(req)
-
 	if req.Task.Title == "" {
 		return apperrors.NewValidationError("EMPTY_FIELD", "title", "Field 'title' cannot be empty")
 	}
@@ -59,7 +56,7 @@ func (s *TaskService) AddTask(req *dto.TaskAddRequest, user_id int64) error {
 
 	logger.Log.Debug().Msg("Now trying to add requirements of the task...")
 
-	if err := s.addRequirement(&req.Task.Requirement, task.ID, nil); err != nil {
+	if err := s.addRequirement(req.Task.Requirement, task.ID, nil); err != nil {
 		return err
 	}
 

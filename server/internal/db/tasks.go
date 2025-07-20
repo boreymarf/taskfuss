@@ -9,6 +9,7 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/mattn/go-sqlite3"
+	"github.com/sanity-io/litter"
 )
 
 type TaskRepository struct {
@@ -30,15 +31,16 @@ func InitTaskRepository(db *sql.DB) (*TaskRepository, error) {
 
 func (r *TaskRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS tasks (
-	id 							INTEGER NOT NULL PRIMARY KEY,
-	owner_id 				INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	title						VARCHAR(255) NOT NULL,
-	description 		VARCHAR(255),
-	created_at 			DATETIME DEFAULT CURRENT_TIMESTAMP,
-	updated_at 			DATETIME DEFAULT CURRENT_TIMESTAMP,
-	start_date 			DATETIME DEFAULT CURRENT_TIMESTAMP,
-	end_date 				DATETIME DEFAULT NULL
-	)`
+		id              INTEGER NOT NULL PRIMARY KEY,
+		owner_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		status          VARCHAR(255) NOT NULL DEFAULT 'active' CHECK(status IN ('archived', 'active')),
+		title           VARCHAR(255) NOT NULL,
+		description     VARCHAR(255),
+		created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+		start_date      DATETIME DEFAULT CURRENT_TIMESTAMP,
+		end_date        DATETIME DEFAULT NULL
+    )`
 
 	_, err := r.db.Exec(query)
 	if err != nil {
@@ -88,7 +90,7 @@ func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
 
 	logger.Log.Debug().Int64("id", id).Msg("taskRepository tries to find task")
 
-	query := `SELECT id, owner_id, title, description, created_at, updated_at, start_date, end_date
+	query := `SELECT id, owner_id, title, description, created_at, updated_at, start_date, end_date, status
 	FROM tasks
 	WHERE id = ?`
 
@@ -103,6 +105,7 @@ func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
 		&task.UpdatedAt,
 		&task.StartDate,
 		&task.EndDate,
+		&task.Status,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -117,6 +120,70 @@ func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
 	return nil
 }
 
-func (r *TaskRepository) GetAllTasks() error {
-	return nil
+type GetAllTasksOptions struct {
+	DetailLevel  string
+	ShowArchived bool
+	ShowActive   bool
+	UserID       int64
+}
+
+func (r *TaskRepository) GetAllTasks(opts *GetAllTasksOptions) ([]models.Task, error) {
+
+	// TODO: Format a string based on opts.DetailLevel
+	// Like `SELECT %s FROM tasks`
+	query := `SELECT 
+		id,
+		owner_id,
+		title,
+		description,
+		created_at,
+		updated_at,
+		start_date,
+		end_date,
+		status
+	FROM 
+		tasks
+	WHERE 
+		owner_id = ?
+  AND (
+    (status = 'archived' AND ?) 
+    OR 
+    (status = 'active' AND ?)
+  )`
+
+	rows, err := r.db.Query(query,
+		opts.UserID,
+		opts.ShowArchived,
+		opts.ShowActive,
+	)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to execute query")
+		return nil, fmt.Errorf("failed to get tasks: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []models.Task
+	for rows.Next() {
+		var task models.Task
+
+		err := rows.Scan(
+			&task.ID,
+			&task.OwnerID,
+			&task.Title,
+			&task.Description,
+			&task.CreatedAt,
+			&task.UpdatedAt,
+			&task.StartDate,
+			&task.EndDate,
+			&task.Status,
+		)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("Failed to scan task row")
+			return nil, fmt.Errorf("failed to scan task: %w", err)
+		}
+		tasks = append(tasks, task)
+	}
+
+	litter.Dump(tasks)
+	return tasks, nil
 }

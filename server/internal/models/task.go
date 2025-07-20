@@ -1,16 +1,20 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type Task struct {
-	ID          int64      `json:"id"`
-	OwnerID     int64      `json:"owner_id"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description"` // Nullable
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	StartDate   time.Time  `json:"start_date"`
-	EndDate     *time.Time `json:"end_date"` // Nullable
+	ID          int64        `json:"id"`
+	OwnerID     int64        `json:"owner_id"`
+	Title       string       `json:"title"`
+	Description *string      `json:"description"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	StartDate   sql.NullTime `json:"start_date"`
+	EndDate     sql.NullTime `json:"end_date"`
+	Status      string       `json:"status"`
 }
 
 type TaskEntry struct {

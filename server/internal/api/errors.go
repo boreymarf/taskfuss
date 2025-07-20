@@ -91,4 +91,19 @@ var (
 		Code:       "Expired token",
 		Message:    "Expired token",
 	}
+
+	InvalidQuery = &APIError{
+		HTTPStatus: http.StatusBadRequest,
+		Code:       "INVALID_QUERY",
+		Message:    "Invalid query parameters",
+	}
+)
+
+// Task handler
+var (
+	InvalidTaskID = &APIError{
+		HTTPStatus: http.StatusBadRequest,
+		Code:       "INVALID_ID",
+		Message:    "Invalid task ID",
+	}
 )
