@@ -6,6 +6,7 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/sanity-io/litter"
 )
 
 type TaskService struct {
@@ -92,4 +93,54 @@ func (s *TaskService) addRequirement(requirement *dto.TaskRequirement, task_id i
 
 	return nil
 
+}
+
+func (s *TaskService) GetAllTasks(opts *db.GetAllTasksOptions) ([]dto.Task, error) {
+
+	// Get tasks
+	modelsTasks, err := s.taskRepo.GetAllTasks(opts)
+	if err != nil {
+		logger.Log.Err(err).Msg("Failed to get all tasks!")
+		return nil, err
+	}
+
+	// Get requirements
+	var tasksIDs []int64
+	for _, modelTask := range modelsTasks {
+		tasksIDs = append(tasksIDs, modelTask.ID)
+	}
+	requirements, err := s.requirementRepo.GetRequirementsByTaskIDs(tasksIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	litter.Dump(requirements)
+
+	// Convert to DTO
+	var dtoTasks []dto.Task
+	for _, modelTask := range modelsTasks {
+
+		task := dto.Task{
+			Id:          modelTask.ID,
+			Title:       modelTask.Title,
+			Description: modelTask.Description,
+		}
+
+		if modelTask.CreatedAt.Valid {
+			task.CreatedAt = &modelTask.CreatedAt.Time
+		}
+		if modelTask.UpdatedAt.Valid {
+			task.UpdatedAt = &modelTask.UpdatedAt.Time
+		}
+		if modelTask.StartDate.Valid {
+			task.StartDate = &modelTask.StartDate.Time
+		}
+		if modelTask.EndDate.Valid {
+			task.EndDate = &modelTask.EndDate.Time
+		}
+
+		dtoTasks = append(dtoTasks, task)
+	}
+
+	return dtoTasks, nil
 }

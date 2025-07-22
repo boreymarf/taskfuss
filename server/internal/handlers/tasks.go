@@ -73,36 +73,13 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 
 	opts.UserID = claims.UserID
 
-	modelsTasks, err := h.taskRepo.GetAllTasks(&opts)
+	tasks, err := h.taskService.GetAllTasks(&opts)
 	if err != nil {
-		logger.Log.Err(err).Msg("Failed to get all tasks!")
+		logger.Log.Err(err).Msg("Failed to get all tasks")
 		api.InternalServerError.SendAndAbort(c)
 	}
 
-	var tasks []dto.Task
-	for _, modelTask := range modelsTasks {
-
-		task := dto.Task{
-			Title:       modelTask.Title,
-			Description: modelTask.Description,
-		}
-
-		if modelTask.CreatedAt.Valid {
-			task.CreatedAt = &modelTask.CreatedAt.Time
-		}
-		if modelTask.UpdatedAt.Valid {
-			task.UpdatedAt = &modelTask.UpdatedAt.Time
-		}
-		if modelTask.StartDate.Valid {
-			task.StartDate = &modelTask.StartDate.Time
-		}
-		if modelTask.EndDate.Valid {
-			task.EndDate = &modelTask.EndDate.Time
-		}
-
-		tasks = append(tasks, task)
-	}
-
+	// TODO: Make this a API function
 	c.JSON(200, tasks)
 }
 

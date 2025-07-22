@@ -3,6 +3,7 @@ package dto
 import "time"
 
 type Task struct {
+	Id          int64            `json:"id"`
 	Title       string           `json:"title"`
 	Requirement *TaskRequirement `json:"requirement,omitempty"`
 	Description *string          `json:"description,omitempty"` // Nullable

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -101,4 +103,49 @@ func (r *RequirementRepository) AddRequirement(requirement *models.Requirement) 
 	// }
 
 	return nil
+}
+
+func (r *RequirementRepository) GetRequirementsByTaskIDs(taskIDs []int64) ([]models.Requirement, error) {
+
+	var stringIDs []string
+
+	for _, id := range taskIDs {
+		stringIDs = append(stringIDs, strconv.FormatInt(id, 10))
+	}
+	idQuery := strings.Join(stringIDs, ", ")
+
+	query := fmt.Sprintf(`SELECT id, task_id, parent_id, title, type, data_type, operator, target_value, sort_order 
+		FROM requirements WHERE task_id IN (%s)`, idQuery)
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query requirements: %w", err)
+	}
+	defer rows.Close()
+
+	var requirements []models.Requirement
+	for rows.Next() {
+		var req models.Requirement
+		err := rows.Scan(
+			&req.ID,
+			&req.TaskID,
+			&req.ParentID,
+			&req.Title,
+			&req.Type,
+			&req.DataType,
+			&req.Operator,
+			&req.TargetValue,
+			&req.SortOrder,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan requirement: %w", err)
+		}
+		requirements = append(requirements, req)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error after scanning requirements: %w", err)
+	}
+
+	return requirements, nil
 }
