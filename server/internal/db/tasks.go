@@ -49,11 +49,11 @@ func (r *TaskRepository) CreateTable() error {
 	return nil
 }
 
-func (r *TaskRepository) AddTask(task *models.Task) error {
+func (r *TaskRepository) CreateTask(task *models.Task) error {
 	logger.Log.Debug().
 		Str("title", task.Title).
 		Int64("owner_id", task.OwnerID).
-		Msg("Trying to add new task to the db...")
+		Msg("Trying to Create new task to the db...")
 
 	query := `INSERT INTO tasks (owner_id, title, description) VALUES (?, ?, ?)`
 

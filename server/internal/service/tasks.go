@@ -34,9 +34,9 @@ func InitTaskService(
 	return repo, nil
 }
 
-func (s *TaskService) AddTask(req *dto.TaskAddRequest, user_id int64) error {
+func (s *TaskService) CreateTask(req *dto.TaskCreateRequest, user_id int64) error {
 
-	logger.Log.Debug().Msg("Trying to add new task")
+	logger.Log.Debug().Msg("Trying to Create new task")
 
 	if req.Task.Title == "" {
 		return apperrors.NewValidationError("EMPTY_FIELD", "title", "Field 'title' cannot be empty")
@@ -52,21 +52,21 @@ func (s *TaskService) AddTask(req *dto.TaskAddRequest, user_id int64) error {
 		Description: req.Task.Description,
 	}
 
-	if err := s.taskRepo.AddTask(&task); err != nil {
-		logger.Log.Error().Err(err).Msg("Failed to add new task")
+	if err := s.taskRepo.CreateTask(&task); err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to Create new task")
 		return err
 	}
 
-	logger.Log.Debug().Msg("Now trying to add requirements of the task...")
+	logger.Log.Debug().Msg("Now trying to Create requirements of the task...")
 
-	if err := s.addRequirement(req.Task.Requirement, task.ID, nil); err != nil {
+	if err := s.CreateRequirement(req.Task.Requirement, task.ID, nil); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *TaskService) addRequirement(requirement *dto.Requirement, task_id int64, parent_id *int64) error {
+func (s *TaskService) CreateRequirement(requirement *dto.Requirement, task_id int64, parent_id *int64) error {
 
 	r := models.Requirement{
 		TaskID:      task_id,
@@ -81,15 +81,15 @@ func (s *TaskService) addRequirement(requirement *dto.Requirement, task_id int64
 	}
 
 	// Returns id after
-	if err := s.requirementRepo.AddRequirement(&r); err != nil {
+	if err := s.requirementRepo.CreateRequirement(&r); err != nil {
 		return err
 	}
 
-	logger.Log.Debug().Str("title", requirement.Title).Msg("Added requirement to the db!")
+	logger.Log.Debug().Str("title", requirement.Title).Msg("Created requirement to the db!")
 
 	if requirement.Type == "condition" {
 		for _, operand := range requirement.Operands {
-			s.addRequirement(&operand, task_id, &r.ID)
+			s.CreateRequirement(&operand, task_id, &r.ID)
 		}
 	}
 
@@ -97,10 +97,26 @@ func (s *TaskService) addRequirement(requirement *dto.Requirement, task_id int64
 
 }
 
-func (s *TaskService) GetAllTasks(opts *db.GetAllTasksOptions) ([]dto.Task, error) {
+func (s *TaskService) GetTaskByID() {}
+
+type GetAllTasksOptions struct {
+	DetailLevel   string
+	ShowActive    bool
+	ShowArchived  bool
+	ShowCompleted bool
+}
+
+func (s *TaskService) GetAllTasks(opts *GetAllTasksOptions, userID int64) ([]dto.Task, error) {
+
+	dbOpts := db.GetAllTasksOptions{
+		DetailLevel:  opts.DetailLevel,
+		ShowActive:   opts.ShowActive,
+		ShowArchived: opts.ShowArchived,
+		UserID:       userID,
+	}
 
 	// Get tasks
-	modelTasks, err := s.taskRepo.GetAllTasks(opts)
+	modelTasks, err := s.taskRepo.GetAllTasks(&dbOpts)
 	if err != nil {
 		logger.Log.Err(err).Msg("Failed to get all tasks!")
 		return nil, err
@@ -117,8 +133,9 @@ func (s *TaskService) GetAllTasks(opts *db.GetAllTasksOptions) ([]dto.Task, erro
 	}
 
 	// TODO: Check later if req can be a pointer instead
-	modelRequirementsByTask := make(map[int64][]models.Requirement)
-	for _, req := range modelRequirements {
+	modelRequirementsByTask := make(map[int64][]*models.Requirement)
+	for i := range modelRequirements {
+		req := &modelRequirements[i]
 		modelRequirementsByTask[req.TaskID] = append(modelRequirementsByTask[req.TaskID], req)
 	}
 
@@ -130,7 +147,7 @@ func (s *TaskService) GetAllTasks(opts *db.GetAllTasksOptions) ([]dto.Task, erro
 			Description: modelTask.Description,
 		}
 
-		// Add requirement if exists
+		// Create requirement if exists
 		if reqs, exists := modelRequirementsByTask[modelTask.ID]; exists {
 			dtoTask.Requirement = buildTree(reqs, modelTask.ID)
 		}
@@ -155,7 +172,7 @@ func (s *TaskService) GetAllTasks(opts *db.GetAllTasksOptions) ([]dto.Task, erro
 
 }
 
-func buildTree(modelRequirements []models.Requirement, taskID int64) *dto.Requirement {
+func buildTree(modelRequirements []*models.Requirement, taskID int64) *dto.Requirement {
 	// A map for quick access by ID
 	nodeMap := make(map[int64]*models.Requirement)
 	// A map for quick access by ParentID
@@ -164,8 +181,7 @@ func buildTree(modelRequirements []models.Requirement, taskID int64) *dto.Requir
 	var root *models.Requirement
 
 	// Fill the maps with pointers
-	for i := range modelRequirements {
-		req := &modelRequirements[i]
+	for _, req := range modelRequirements {
 		nodeMap[req.ID] = req
 
 		if req.ParentID == nil {

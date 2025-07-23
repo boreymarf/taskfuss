@@ -22,7 +22,7 @@ func (e *APIError) SendAndAbort(c *gin.Context) {
 func (e *APIError) SendWithDetailsAndAbort(c *gin.Context, details any) {
 	c.AbortWithStatusJSON(e.HTTPStatus, gin.H{
 		"code":    e.Code,
-		"text":    e.Message,
+		"message": e.Message,
 		"details": details,
 	})
 }

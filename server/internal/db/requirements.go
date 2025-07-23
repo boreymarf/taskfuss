@@ -51,10 +51,10 @@ func (r *RequirementRepository) CreateTable() error {
 	return nil
 }
 
-func (r *RequirementRepository) AddRequirement(requirement *models.Requirement) error {
+func (r *RequirementRepository) CreateRequirement(requirement *models.Requirement) error {
 	logger.Log.Debug().
 		Str("title", requirement.Title).
-		Msg("Trying to add new requirement to the db...")
+		Msg("Trying to create new requirement to the db...")
 
 	query := `INSERT INTO requirements (
 		task_id,

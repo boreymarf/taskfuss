@@ -25,7 +25,7 @@ type Requirement struct {
 	SortOrder   int           `json:"sort_order"`
 }
 
-type TaskAddRequest struct {
+type TaskCreateRequest struct {
 	Task Task `json:"task"`
 }
 
