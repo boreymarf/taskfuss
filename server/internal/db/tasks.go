@@ -9,7 +9,6 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/mattn/go-sqlite3"
-	"github.com/sanity-io/litter"
 )
 
 type TaskRepository struct {
@@ -129,8 +128,6 @@ type GetAllTasksOptions struct {
 
 func (r *TaskRepository) GetAllTasks(opts *GetAllTasksOptions) ([]models.Task, error) {
 
-	// TODO: Format a string based on opts.DetailLevel
-	// Like `SELECT %s FROM tasks`
 	query := `SELECT 
 		id,
 		owner_id,
@@ -181,9 +178,28 @@ func (r *TaskRepository) GetAllTasks(opts *GetAllTasksOptions) ([]models.Task, e
 			logger.Log.Error().Err(err).Msg("Failed to scan task row")
 			return nil, fmt.Errorf("failed to scan task: %w", err)
 		}
-		tasks = append(tasks, task)
+
+		filteredTask := models.Task{
+			ID:      task.ID,
+			OwnerID: task.OwnerID,
+			Title:   task.Title,
+			Status:  task.Status,
+		}
+
+		if opts.DetailLevel == "basic" || opts.DetailLevel == "full" {
+			filteredTask.StartDate = task.StartDate
+			filteredTask.EndDate = task.EndDate
+		}
+
+		if opts.DetailLevel == "full" {
+			filteredTask.Description = task.Description
+			filteredTask.CreatedAt = task.CreatedAt
+			filteredTask.UpdatedAt = task.UpdatedAt
+		}
+
+		tasks = append(tasks, filteredTask)
+
 	}
 
-	litter.Dump(tasks)
 	return tasks, nil
 }
