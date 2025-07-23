@@ -79,8 +79,10 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 		api.InternalServerError.SendAndAbort(c)
 	}
 
-	// TODO: Make this a API function
-	c.JSON(200, tasks)
+	// TODO: Make this an API function
+	c.JSON(200, dto.GetAllTasksResponse{
+		Tasks: tasks,
+	})
 }
 
 func (h *TaskHandler) GetTaskByID(c *gin.Context) {

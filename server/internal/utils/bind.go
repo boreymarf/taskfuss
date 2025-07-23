@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/boreymarf/task-fuss/server/internal/api"
@@ -16,11 +17,12 @@ import (
 func HandleBindingError(c *gin.Context, err error) {
 	var syntaxErr *json.SyntaxError
 	if errors.As(err, &syntaxErr) {
-
-		logger.Log.Error().Err(syntaxErr).Send()
-
+		logger.Log.Warn().Err(syntaxErr).Msg("Incorrect type in the JSON")
 		api.InvalidJSON.SendAndAbort(c)
-		return
+	}
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		logger.Log.Warn().Err(err).Msg("Unexpected EOF in the JSON request")
+		api.InvalidJSON.SendAndAbort(c)
 	}
 
 	var typeErr *json.UnmarshalTypeError
@@ -40,7 +42,7 @@ func HandleBindingError(c *gin.Context, err error) {
 
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 
-		logger.Log.Error().Err(validationErrors).Send()
+		logger.Log.Warn().Err(validationErrors).Send()
 
 		var response dto.ValidationError = dto.ValidationError{
 			Code:    "VALIDATION_FAILED",

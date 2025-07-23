@@ -21,20 +21,20 @@ type TaskEntry struct {
 	ID        int64     `json:"id"`
 	TaskID    int64     `json:"task_id"`
 	EntryDate time.Time `json:"entry_date"`
-	Completed bool      `json:"completed"` // Stored as 0/1 in DB
+	Completed bool      `json:"completed"`
 }
 
 type Requirement struct {
 	ID          int64   `json:"id"`
 	TaskID      int64   `json:"task_id"`
-	ParentID    *int64  `json:"parent_id"` // Nullable
+	ParentID    *int64  `json:"parent_id"`
 	Title       string  `json:"title"`
-	Type        string  `json:"type"`         // ENUM: 'atom','and','or','not'
-	DataType    *string `json:"data_type"`    // ENUM: 'bool','int','float','duration'
-	Operator    *string `json:"operator"`     // Nullable
-	TargetValue *string `json:"target_value"` // Nullable
-	Value       *string `json:"value"`        // Nullable
-	SortOrder   int     `json:"sort_order"`   // Nullable
+	Type        string  `json:"type"`
+	DataType    *string `json:"data_type"`
+	Operator    *string `json:"operator"`
+	TargetValue *string `json:"target_value"`
+	Value       *string `json:"value"`
+	SortOrder   int     `json:"sort_order"`
 }
 
 type RequirementEntry struct {
