@@ -2,29 +2,39 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type APIError struct {
-	HTTPStatus int    `json:"-"`
+	HTTPStatus int    `json:"-"` // Not included in JSON response
 	Code       string `json:"code"`
 	Message    string `json:"message"`
+	Details    any    `json:"details,omitempty"` // Optional error details
+	Time       string `json:"time,omitempty"`    // Request start time
+	Latency    string `json:"latency,omitempty"` // Processing duration
 }
 
 func (e *APIError) SendAndAbort(c *gin.Context) {
-	c.AbortWithStatusJSON(e.HTTPStatus, gin.H{
-		"code":    e.Code,
-		"message": e.Message,
-	})
+	e.addTimingInfo(c)
+	c.AbortWithStatusJSON(e.HTTPStatus, e)
 }
 
 func (e *APIError) SendWithDetailsAndAbort(c *gin.Context, details any) {
-	c.AbortWithStatusJSON(e.HTTPStatus, gin.H{
-		"code":    e.Code,
-		"message": e.Message,
-		"details": details,
-	})
+	e.Details = details
+	e.addTimingInfo(c)
+	c.AbortWithStatusJSON(e.HTTPStatus, e)
+}
+
+// Helper to add timing information to error
+func (e *APIError) addTimingInfo(c *gin.Context) {
+	if start, exists := c.Get("request_start"); exists {
+		if startTime, ok := start.(time.Time); ok {
+			e.Time = startTime.Format(time.RFC3339)
+			e.Latency = time.Since(startTime).String()
+		}
+	}
 }
 
 // General errors
@@ -68,6 +78,12 @@ var (
 		Message:    "Invalid email or password",
 	}
 
+	Forbidden = &APIError{
+		HTTPStatus: http.StatusForbidden,
+		Code:       "FORBIDDEN",
+		Message:    "You don't have access to this data",
+	}
+
 	NoToken = &APIError{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "NO_TOKEN",
@@ -96,6 +112,12 @@ var (
 		HTTPStatus: http.StatusBadRequest,
 		Code:       "INVALID_QUERY",
 		Message:    "Invalid query parameters",
+	}
+
+	NotFound = &APIError{
+		HTTPStatus: http.StatusNotFound,
+		Code:       "NOT_FOUND",
+		Message:    "Data not found",
 	}
 )
 

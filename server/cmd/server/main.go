@@ -51,6 +51,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
+	r.Use(middleware.MetricsMiddleware())
 	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.1.82"})
 
 	// Middleware
