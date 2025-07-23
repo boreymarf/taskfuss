@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
@@ -97,7 +98,51 @@ func (s *TaskService) CreateRequirement(requirement *dto.Requirement, task_id in
 
 }
 
-func (s *TaskService) GetTaskByID() {}
+func (s *TaskService) GetTaskByID(taskID int64, userID int64) (dto.Task, error) {
+
+	modelTask, err := s.taskRepo.GetTaskByID(taskID)
+	if err != nil {
+		return dto.Task{}, nil
+	}
+
+	if modelTask.OwnerID != userID {
+		return dto.Task{}, apperrors.ErrForbidden
+	}
+
+	var modelRequirements []models.Requirement
+	modelRequirements, err = s.requirementRepo.GetRequirementsByTaskIDs([]int64{taskID})
+	if err != nil {
+		return dto.Task{}, err
+	}
+
+	dtoTask := dto.Task{
+		ID:          modelTask.ID,
+		Title:       modelTask.Title,
+		Description: modelTask.Description,
+	}
+
+	if modelTask.CreatedAt.Valid {
+		dtoTask.CreatedAt = &modelTask.CreatedAt.Time
+	}
+	if modelTask.UpdatedAt.Valid {
+		dtoTask.UpdatedAt = &modelTask.UpdatedAt.Time
+	}
+	if modelTask.StartDate.Valid {
+		dtoTask.StartDate = &modelTask.StartDate.Time
+	}
+	if modelTask.EndDate.Valid {
+		dtoTask.EndDate = &modelTask.EndDate.Time
+	}
+
+	dtoRequirement, err := buildTree(modelRequirements, taskID)
+	if err != nil {
+		return dto.Task{}, err
+	}
+
+	dtoTask.Requirement = dtoRequirement
+
+	return dtoTask, nil
+}
 
 type GetAllTasksOptions struct {
 	DetailLevel   string
@@ -132,10 +177,9 @@ func (s *TaskService) GetAllTasks(opts *GetAllTasksOptions, userID int64) ([]dto
 		return nil, err
 	}
 
-	// TODO: Check later if req can be a pointer instead
-	modelRequirementsByTask := make(map[int64][]*models.Requirement)
+	modelRequirementsByTask := make(map[int64][]models.Requirement)
 	for i := range modelRequirements {
-		req := &modelRequirements[i]
+		req := modelRequirements[i]
 		modelRequirementsByTask[req.TaskID] = append(modelRequirementsByTask[req.TaskID], req)
 	}
 
@@ -149,7 +193,10 @@ func (s *TaskService) GetAllTasks(opts *GetAllTasksOptions, userID int64) ([]dto
 
 		// Create requirement if exists
 		if reqs, exists := modelRequirementsByTask[modelTask.ID]; exists {
-			dtoTask.Requirement = buildTree(reqs, modelTask.ID)
+			dtoTask.Requirement, err = buildTree(reqs, modelTask.ID)
+			if err != nil {
+				return []dto.Task{}, err
+			}
 		}
 
 		if modelTask.CreatedAt.Valid {
@@ -172,7 +219,7 @@ func (s *TaskService) GetAllTasks(opts *GetAllTasksOptions, userID int64) ([]dto
 
 }
 
-func buildTree(modelRequirements []*models.Requirement, taskID int64) *dto.Requirement {
+func buildTree(modelRequirements []models.Requirement, taskID int64) (*dto.Requirement, error) {
 	// A map for quick access by ID
 	nodeMap := make(map[int64]*models.Requirement)
 	// A map for quick access by ParentID
@@ -182,21 +229,23 @@ func buildTree(modelRequirements []*models.Requirement, taskID int64) *dto.Requi
 
 	// Fill the maps with pointers
 	for _, req := range modelRequirements {
-		nodeMap[req.ID] = req
+		nodeMap[req.ID] = &req
 
 		if req.ParentID == nil {
 			if root != nil {
-				logger.Log.Warn().Int64("Task ID", taskID).Msg("Multiple root requirements found")
+				logger.Log.Error().Int64("taskID", taskID).Msg("Multiple requirement roots found!")
+				return nil, fmt.Errorf("multiple root requirements found")
 			}
-			root = req
+			root = &req
 		} else {
 			parentID := *req.ParentID
-			childrenMap[parentID] = append(childrenMap[parentID], req)
+			childrenMap[parentID] = append(childrenMap[parentID], &req)
 		}
 	}
 
 	if root == nil {
-		return nil
+		logger.Log.Error().Int64("taskID", taskID).Msg("No requirement roots found!")
+		return nil, fmt.Errorf("no root requirement found")
 	}
 
 	var convert func(*models.Requirement) *dto.Requirement
@@ -235,5 +284,5 @@ func buildTree(modelRequirements []*models.Requirement, taskID int64) *dto.Requi
 		return dtoReq
 	}
 
-	return convert(root)
+	return convert(root), nil
 }

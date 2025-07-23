@@ -77,7 +77,7 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 
 	task.ID = id
 
-	err = r.GetTaskByID(id, task)
+	_, err = r.GetTaskByID(id)
 	if err != nil {
 		return err
 	}
@@ -85,8 +85,9 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 	return nil
 }
 
-func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
+func (r *TaskRepository) GetTaskByID(id int64) (models.Task, error) {
 
+	var task models.Task
 	logger.Log.Debug().Int64("id", id).Msg("taskRepository tries to find task")
 
 	query := `SELECT id, owner_id, title, description, created_at, updated_at, start_date, end_date, status
@@ -111,12 +112,12 @@ func (r *TaskRepository) GetTaskByID(id int64, task *models.Task) error {
 		logger.Log.Warn().
 			Int64("taskID", id).
 			Msg("No task was found")
-		return fmt.Errorf("task %d not found: %w", id, err)
+		return models.Task{}, fmt.Errorf("task %d not found: %w", id, err)
 	} else if err != nil {
-		return err
+		return models.Task{}, err
 	}
 
-	return nil
+	return task, nil
 }
 
 type GetAllTasksOptions struct {

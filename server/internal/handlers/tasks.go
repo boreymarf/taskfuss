@@ -1,18 +1,18 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"strconv"
 
 	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
-	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/boreymarf/task-fuss/server/internal/service"
 	"github.com/boreymarf/task-fuss/server/internal/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/sanity-io/litter"
 )
 
 type TaskHandler struct {
@@ -98,8 +98,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 		api.InternalServerError.SendAndAbort(c)
 	}
 
-	// TODO: Make this an API function later
-	c.JSON(200, dto.GetAllTasksResponse{
+	api.Success(c, dto.GetAllTasksResponse{
 		Tasks: tasks,
 	})
 }
@@ -108,40 +107,27 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 
 	idParam := c.Param("task_id")
 
-	taskID, err := strconv.ParseInt(idParam, 10, 64)
+	taskId, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
-		api.BadRequest.SendWithDetailsAndAbort(c, gin.H{"error": "Invalid task ID"})
-		return
+		logger.Log.Warn().Str("task_id", idParam).Msg("Tried to parse bad task id")
+		api.BadRequest.SendAndAbort(c)
 	}
 
 	claims := security.GetClaimsFromContext(c)
 
-	var task models.Task
-	err = h.taskRepo.GetTaskByID(taskID, &task)
+	dtoTask, err := h.taskService.GetTaskByID(taskId, claims.UserID)
 	if err != nil {
-		// TODO: This needs to be more specific
-		api.BadRequest.SendWithDetailsAndAbort(c, gin.H{"error": "Invalid task ID"})
+		if errors.Is(err, sql.ErrNoRows) {
+			api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
+		} else {
+			api.InternalServerError.SendAndAbort(c)
+		}
 		return
 	}
 
-	if task.OwnerID != claims.UserID {
-		// TODO: This needs to be more specific
-		api.BadRequest.SendWithDetailsAndAbort(c, gin.H{"error": "Invalid task ID"})
-		return
+	data := dto.GetTaskByIDResponse{
+		Task: dtoTask,
 	}
 
-	var modelTask models.Task
-	err = h.taskRepo.GetTaskByID(taskID, &modelTask)
-	if err != nil {
-		api.InternalServerError.SendAndAbort(c)
-	}
-
-	var modelRequirements []models.Requirement
-	modelRequirements, err = h.requirementRepo.GetRequirementsByTaskIDs([]int64{taskID})
-	if err != nil {
-		api.InternalServerError.SendAndAbort(c)
-	}
-
-	litter.Dump(modelRequirements)
-
+	api.Success(c, data)
 }
