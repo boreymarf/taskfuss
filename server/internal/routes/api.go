@@ -17,7 +17,7 @@ func SetupAPIRoutes(
 ) {
 	api := router.Group("/api")
 	{
-		api.GET("/test", handlers.TestHandler) // GET /api/test
+		api.GET("/ping", handlers.PingHandler)
 		api.POST("/register", authHandler.Register)
 		api.POST("/login", authHandler.Login)
 		api.GET("/status", func(c *gin.Context) {
