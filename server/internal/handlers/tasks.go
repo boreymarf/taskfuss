@@ -53,9 +53,12 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	claims := security.GetClaimsFromContext(c)
 
-	if err := h.taskService.CreateTask(&req, claims.UserID); err != nil {
+	createdTask, err := h.taskService.CreateTask(&req, claims.UserID)
+	if err != nil {
 		api.InternalServerError.SendAndAbort(c)
 	}
+
+	api.Accepted(c, createdTask)
 }
 
 type GetAllTasksQuery struct {
@@ -131,3 +134,29 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 
 	api.Success(c, data)
 }
+
+// func (h *TaskHandler) DeleteTaskByID(c *gin.Context) {
+//
+// 	idParam := c.Param("task_id")
+//
+// 	taskId, err := strconv.ParseInt(idParam, 10, 64)
+// 	if err != nil {
+// 		logger.Log.Warn().Str("task_id", idParam).Msg("Tried to parse bad task id")
+// 		api.BadRequest.SendAndAbort(c)
+// 	}
+//
+// 	claims := security.GetClaimsFromContext(c)
+//
+// 	dtoTask, err := h.taskService.GetTaskByID(taskId, claims.UserID)
+// 	if err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
+// 		} else {
+// 			api.InternalServerError.SendAndAbort(c)
+// 		}
+// 		return
+// 	}
+//
+// 	api.Success(c, d)
+//
+// }

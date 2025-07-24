@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -84,7 +83,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, dto.RegisterResponse{
+	api.Success(c, dto.RegisterResponse{
 		User: dto.User{
 			Id:        user.ID,
 			Username:  user.Username,
@@ -117,11 +116,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 				Str("expected_type", typeErr.Type.String()).
 				Msg("Type mismatch")
 
-			// TODO: Make a custom api error later
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code": "TYPE_MISMATCH",
-				"text": fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
-			})
+			details := api.FieldErrorDetail{
+				Field:    typeErr.Field,
+				Expected: typeErr.Type.String(),
+				Message:  fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
+			}
+			api.TypeMismatch.SendWithDetailsAndAbort(c, details)
 			return
 		}
 	}
@@ -166,7 +166,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, dto.LoginResponse{
+	api.Success(c, dto.RegisterResponse{
 		User: dto.User{
 			Id:        user.ID,
 			Username:  user.Username,

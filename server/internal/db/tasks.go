@@ -49,7 +49,7 @@ func (r *TaskRepository) CreateTable() error {
 	return nil
 }
 
-func (r *TaskRepository) CreateTask(task *models.Task) error {
+func (r *TaskRepository) CreateTask(task models.Task) (*models.Task, error) {
 	logger.Log.Debug().
 		Str("title", task.Title).
 		Int64("owner_id", task.OwnerID).
@@ -64,25 +64,23 @@ func (r *TaskRepository) CreateTask(task *models.Task) error {
 		// If there's a dublicate task
 		if errors.As(err, &sqliteErr) {
 			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-				return apperrors.ErrDuplicate
+				return nil, apperrors.ErrDuplicate
 			}
 		}
-		return err
+		return nil, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	task.ID = id
-
-	_, err = r.GetTaskByID(id)
+	createdTask, err := r.GetTaskByID(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &createdTask, nil
 }
 
 func (r *TaskRepository) GetTaskByID(id int64) (models.Task, error) {

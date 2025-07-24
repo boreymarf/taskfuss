@@ -14,6 +14,32 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// HandleBindingError processes various types of JSON binding and validation errors,
+// providing appropriate error responses to the client.
+//
+// It handles the following error types:
+//   - JSON syntax errors (json.SyntaxError)
+//   - Unexpected EOF errors (io.ErrUnexpectedEOF)
+//   - Type mismatch errors (json.UnmarshalTypeError)
+//   - Validation errors (validator.ValidationErrors)
+//
+// For each error type, it:
+//   - Logs detailed error information
+//   - Returns an appropriate HTTP response with error details
+//   - Aborts the request context
+//
+// For validation errors, it provides detailed field-specific error information including:
+//   - Required field validation
+//   - Email format validation
+//   - Minimum length validation
+//   - Maximum length validation
+//   - Type validation
+//
+// Any unhandled error types result in a 500 Internal Server Error response.
+//
+// Parameters:
+//   - c: Gin context for handling the HTTP request/response
+//   - err: The error to process, typically from c.ShouldBindJSON()
 func HandleBindingError(c *gin.Context, err error) {
 	var syntaxErr *json.SyntaxError
 	if errors.As(err, &syntaxErr) {
@@ -28,15 +54,17 @@ func HandleBindingError(c *gin.Context, err error) {
 	var typeErr *json.UnmarshalTypeError
 	if errors.As(err, &typeErr) {
 
-		logger.Log.Error().
+		logger.Log.Warn().
 			Str("field", typeErr.Field).
 			Str("expected_type", typeErr.Type.String()).
-			Msg("Type mismatch")
+			Msg("Request had incorrect field type")
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code": "TYPE_MISMATCH",
-			"text": fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
-		})
+		details := api.FieldErrorDetail{
+			Field:    typeErr.Field,
+			Expected: typeErr.Type.String(),
+			Message:  fmt.Sprintf("Field '%s' must be a %s", typeErr.Field, typeErr.Type),
+		}
+		api.TypeMismatch.SendWithDetailsAndAbort(c, details)
 		return
 	}
 

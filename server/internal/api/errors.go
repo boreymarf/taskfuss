@@ -56,6 +56,12 @@ var (
 		Code:       "INVALID_JSON",
 		Message:    "Invalid JSON syntax",
 	}
+
+	TypeMismatch = &APIError{
+		HTTPStatus: http.StatusBadRequest,
+		Code:       "TYPE_MISMATCH",
+		Message:    "Field type mismatch",
+	}
 )
 
 // Auth related

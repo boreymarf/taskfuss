@@ -35,16 +35,16 @@ func InitTaskService(
 	return repo, nil
 }
 
-func (s *TaskService) CreateTask(req *dto.TaskCreateRequest, user_id int64) error {
+func (s *TaskService) CreateTask(req *dto.TaskCreateRequest, user_id int64) (*models.Task, error) {
 
 	logger.Log.Debug().Msg("Trying to Create new task")
 
 	if req.Task.Title == "" {
-		return apperrors.NewValidationError("EMPTY_FIELD", "title", "Field 'title' cannot be empty")
+		return nil, apperrors.NewValidationError("EMPTY_FIELD", "title", "Field 'title' cannot be empty")
 	}
 	// TODO: This can fail I think
 	if req.Task.Requirement == nil {
-		return apperrors.NewValidationError("EMPTY_FIELD", "requirement", "Field 'requirement' cannot be empty")
+		return nil, apperrors.NewValidationError("EMPTY_FIELD", "requirement", "Field 'requirement' cannot be empty")
 	}
 
 	task := models.Task{
@@ -53,18 +53,19 @@ func (s *TaskService) CreateTask(req *dto.TaskCreateRequest, user_id int64) erro
 		Description: req.Task.Description,
 	}
 
-	if err := s.taskRepo.CreateTask(&task); err != nil {
+	createdTask, err := s.taskRepo.CreateTask(task)
+	if err != nil {
 		logger.Log.Error().Err(err).Msg("Failed to Create new task")
-		return err
+		return nil, err
 	}
 
 	logger.Log.Debug().Msg("Now trying to Create requirements of the task...")
 
 	if err := s.CreateRequirement(req.Task.Requirement, task.ID, nil); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return createdTask, nil
 }
 
 func (s *TaskService) CreateRequirement(requirement *dto.Requirement, task_id int64, parent_id *int64) error {
@@ -98,6 +99,7 @@ func (s *TaskService) CreateRequirement(requirement *dto.Requirement, task_id in
 
 }
 
+// FIXME: Service should not return DTO, I'll fix it later
 func (s *TaskService) GetTaskByID(taskID int64, userID int64) (dto.Task, error) {
 
 	modelTask, err := s.taskRepo.GetTaskByID(taskID)
@@ -151,6 +153,7 @@ type GetAllTasksOptions struct {
 	ShowCompleted bool
 }
 
+// FIXME: Service shouldn't return dto, I'll fix it later
 func (s *TaskService) GetAllTasks(opts *GetAllTasksOptions, userID int64) ([]dto.Task, error) {
 
 	dbOpts := db.GetAllTasksOptions{
