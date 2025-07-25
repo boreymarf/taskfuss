@@ -8,7 +8,7 @@ import (
 
 type Response struct {
 	Data      any    `json:"data"`
-	Timestamp int64  `json:"timestamp,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
 	Latency   string `json:"latency"`
 }
 
@@ -33,7 +33,7 @@ func sendResponse(c *gin.Context, status int, data any) {
 	// Add timing data if available
 	if start, exists := c.Get("request_start"); exists {
 		if startTime, ok := start.(time.Time); ok {
-			resp.Timestamp = startTime.UnixMilli()
+			resp.Timestamp = startTime.Format(time.RFC3339)
 			resp.Latency = time.Since(startTime).String()
 		}
 	}

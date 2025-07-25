@@ -2,7 +2,9 @@ import { defineStore } from "pinia";
 import type { Task } from "../types/stores/tasks";
 import axios from "axios";
 import { useAuthStore } from "./auth";
+import { useRouter } from "vue-router";
 
+const router = useRouter()
 export const useTasksStore = defineStore("tasks", {
   state: () => ({
     tasks: [] as Task[],
@@ -20,6 +22,7 @@ export const useTasksStore = defineStore("tasks", {
 
       if (!authStore.auth_token) {
         this.error = 'No authentication token found';
+        router.push('login/')
         return;
       }
 
@@ -32,7 +35,14 @@ export const useTasksStore = defineStore("tasks", {
         })
         this.tasks = response.data;
       } catch (err) {
-        this.error = err;
+        if (axios.isAxiosError(err)) {
+          if (err.response?.status === 401) {
+            authStore.logout()
+            router.push('login/')
+          } else {
+            this.error = err;
+          }
+        }
       } finally {
         this.isLoading = false;
       }

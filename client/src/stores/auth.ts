@@ -2,6 +2,7 @@ import axios from 'axios'
 import { defineStore } from 'pinia'
 import type { ApiGenericError, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User, ValidationError } from '../types/api'
 import type { LoginForm, RegisterForm } from '../types/forms'
+import type { ApiResponse } from '../types/api/generic'
 import { StoreGenericError, RegisterError } from '../types/stores'
 
 export const useAuthStore = defineStore('auth', {
@@ -29,6 +30,7 @@ export const useAuthStore = defineStore('auth', {
         if (axios.isAxiosError(error)) {
 
           // If bad request, expect validation error
+          // FIXME: DTO has changed
           if (error.response?.status === 400) {
             const serverError = error.response.data as ValidationError
 
@@ -53,8 +55,8 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const response = await axios.post<LoginResponse>("/api/login", requestData);
-        const responseData = response.data;
+        const response = await axios.post<ApiResponse<LoginResponse>>("/api/login", requestData);
+        const responseData = response.data.data;
 
         this.user = responseData.user
         this.auth_token = responseData.auth_token
@@ -64,6 +66,7 @@ export const useAuthStore = defineStore('auth', {
 
       } catch (error) {
 
+        // FIXME: DTO has changed
         if (axios.isAxiosError(error)) {
           const serverError = error.response?.data as ApiGenericError
 
@@ -71,6 +74,7 @@ export const useAuthStore = defineStore('auth', {
             serverError.code,
             serverError.message
           )
+
         }
       }
     },

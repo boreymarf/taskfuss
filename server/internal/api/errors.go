@@ -11,9 +11,9 @@ type APIError struct {
 	HTTPStatus int    `json:"-"` // Not included in JSON response
 	Code       string `json:"code"`
 	Message    string `json:"message"`
-	Details    any    `json:"details,omitempty"` // Optional error details
-	Time       string `json:"time,omitempty"`    // Request start time
-	Latency    string `json:"latency,omitempty"` // Processing duration
+	Details    any    `json:"details,omitempty"`   // Optional error details
+	Timestamp  string `json:"timestamp,omitempty"` // Request start time
+	Latency    string `json:"latency,omitempty"`   // Processing duration
 }
 
 func (e *APIError) SendAndAbort(c *gin.Context) {
@@ -31,7 +31,7 @@ func (e *APIError) SendWithDetailsAndAbort(c *gin.Context, details any) {
 func (e *APIError) addTimingInfo(c *gin.Context) {
 	if start, exists := c.Get("request_start"); exists {
 		if startTime, ok := start.(time.Time); ok {
-			e.Time = startTime.Format(time.RFC3339)
+			e.Timestamp = startTime.Format(time.RFC3339)
 			e.Latency = time.Since(startTime).String()
 		}
 	}
