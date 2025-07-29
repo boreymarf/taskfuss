@@ -1,0 +1,72 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API for TaskFuss app",
+        "title": "TaskFuss API",
+        "contact": {},
+        "version": "1.0.0"
+    },
+    "host": "localhost:4000",
+    "basePath": "/api",
+    "paths": {
+        "/api/ping": {
+            "get": {
+                "description": "Returns \"pong\" if the server is running",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "service"
+                ],
+                "summary": "Server health check",
+                "responses": {
+                    "200": {
+                        "description": "Server is running",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PongResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.Response": {
+            "description": "Standard API response wrapper",
+            "type": "object",
+            "properties": {
+                "data": {},
+                "latency": {
+                    "type": "string",
+                    "example": "42.123µs"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "example": "2025-07-27T20:32:29+03:00"
+                }
+            }
+        },
+        "dto.PongResponse": {
+            "description": "A simple health check response.",
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "pong"
+                }
+            }
+        }
+    }
+}

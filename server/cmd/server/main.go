@@ -16,6 +16,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// @title TaskFuss API
+// @version 1.0.0
+// @description API for TaskFuss app
+
+// @host localhost:4000
+// @BasePath /api
 func main() {
 
 	logger.Log.Info().Msg("Starting server...")

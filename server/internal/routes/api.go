@@ -1,6 +1,10 @@
 package routes
 
 import (
+	_ "github.com/boreymarf/task-fuss/server/docs"
+	"github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
+
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/handlers"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -15,8 +19,10 @@ func SetupAPIRoutes(
 	profileHandler *handlers.ProfileHandler,
 	taskHandler *handlers.TaskHandler,
 ) {
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api")
 	{
+
 		api.GET("/ping", handlers.PingHandler)
 		api.POST("/register", authHandler.Register)
 		api.POST("/login", authHandler.Login)

@@ -1,0 +1,46 @@
+basePath: /api
+definitions:
+  api.Response:
+    description: Standard API response wrapper
+    properties:
+      data: {}
+      latency:
+        example: 42.123µs
+        type: string
+      timestamp:
+        example: "2025-07-27T20:32:29+03:00"
+        type: string
+    type: object
+  dto.PongResponse:
+    description: A simple health check response.
+    properties:
+      message:
+        example: pong
+        type: string
+    type: object
+host: localhost:4000
+info:
+  contact: {}
+  description: API for TaskFuss app
+  title: TaskFuss API
+  version: 1.0.0
+paths:
+  /api/ping:
+    get:
+      description: Returns "pong" if the server is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Server is running
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PongResponse'
+              type: object
+      summary: Server health check
+      tags:
+      - service
+swagger: "2.0"

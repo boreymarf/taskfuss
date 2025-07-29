@@ -6,10 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Description Standard API response wrapper
 type Response struct {
 	Data      any    `json:"data"`
-	Timestamp string `json:"timestamp,omitempty"`
-	Latency   string `json:"latency"`
+	Timestamp string `json:"timestamp,omitempty" example:"2025-07-27T20:32:29+03:00"`
+	Latency   string `json:"latency" example:"42.123µs"`
 }
 
 func Success(c *gin.Context, data any) {

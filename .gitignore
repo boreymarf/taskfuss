@@ -49,3 +49,6 @@ tmp/**
 tmp/
 data/**
 data/
+
+client/src/api/.openapi-generator/
+client/src/api/.openapi-generator-ignore
