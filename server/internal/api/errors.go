@@ -7,13 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// APIError represents a standardized error response format
+// @Description Common error response structure for API failures
 type APIError struct {
-	HTTPStatus int    `json:"-"` // Not included in JSON response
-	Code       string `json:"code"`
-	Message    string `json:"message"`
-	Details    any    `json:"details,omitempty"`   // Optional error details
-	Timestamp  string `json:"timestamp,omitempty"` // Request start time
-	Latency    string `json:"latency,omitempty"`   // Processing duration
+	HTTPStatus int    `json:"-"`
+	Code       string `json:"code" example:"UPPERCASE_CODE"`
+	Message    string `json:"message" example:"Brief message about the error."`
+	Details    any    `json:"details,omitempty"`
+	Timestamp  string `json:"timestamp,omitempty" example:"2025-07-27T20:32:29+03:00"`
+	Latency    string `json:"latency" example:"42.123µs"`
 }
 
 func (e *APIError) SendAndAbort(c *gin.Context) {

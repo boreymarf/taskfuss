@@ -21,6 +21,7 @@ import (
 // @description API for TaskFuss app
 
 // @host localhost:4000
+// @BasePath /api
 func main() {
 
 	logger.Log.Info().Msg("Starting server...")

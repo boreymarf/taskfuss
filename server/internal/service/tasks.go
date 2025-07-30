@@ -35,7 +35,7 @@ func InitTaskService(
 	return repo, nil
 }
 
-func (s *TaskService) CreateTask(req *dto.TaskCreateRequest, user_id int64) (*models.Task, error) {
+func (s *TaskService) CreateTask(req *dto.CreateTaskRequest, user_id int64) (*models.Task, error) {
 
 	logger.Log.Debug().Msg("Trying to Create new task")
 

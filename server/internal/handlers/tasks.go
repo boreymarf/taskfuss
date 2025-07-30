@@ -42,9 +42,23 @@ func InitTaskHandler(
 	}, nil
 }
 
+// CreateTask godoc
+// @Summary Create a new task
+// @Description Create a new task for the authenticated user
+// @Tags tasks
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param CreateTaskRequest body dto.CreateTaskRequest true "Task creation data"
+// @Success 201 {object} api.Response{data=dto.CreateTaskResponse} "Task successfully created"
+// @Failure 400 {object} api.APIError "Invalid request format"
+// @Failure 401 {object} api.APIError "Unauthorized"
+// @Failure 500 {object} api.APIError "Internal server error"
+// @Router /tasks [post]
 func (h *TaskHandler) CreateTask(c *gin.Context) {
 
-	var req dto.TaskCreateRequest
+	var req dto.CreateTaskRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.HandleBindingError(c, err)
@@ -68,6 +82,22 @@ type GetAllTasksQuery struct {
 	ShowCompleted string `form:"completed" binding:"omitempty,oneof=true false"`
 }
 
+// GetAllTasks godoc
+// @Summary Get all tasks with filtering options
+// @Description Retrieves tasks based on filter criteria (active/archived/completed) and detail level
+// @Tags tasks
+// @Security ApiKeyAuth
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param detailLevel query string false "Detail level (minimal|standard|full)" Enums(minimal, standard, full)
+// @Param showActive query boolean false "Include active tasks (default: true)"
+// @Param showArchived query boolean false "Include archived tasks (default: false)"
+// @Param showCompleted query boolean false "Include completed tasks (default: true)"
+// @Success 200 {object} api.Response{data=dto.GetAllTasksResponse} "List of tasks"
+// @Failure 400 {object} api.APIError "Invalid query parameters"
+// @Failure 401 {object} api.APIError "Unauthorized"
+// @Failure 500 {object} api.APIError "Internal server error"
+// @Router /tasks [get]
 func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 
 	var queryParams GetAllTasksQuery
@@ -106,6 +136,20 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	})
 }
 
+// GetTaskByID godoc
+// @Summary Get a task by ID
+// @Description Retrieves a single task by its unique identifier
+// @Tags tasks
+// @Security ApiKeyAuth
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param task_id path string true "Task ID" Format(uuid)
+// @Success 200 {object} api.Response{data=dto.GetTaskByIDResponse} "Task details"
+// @Failure 400 {object} api.APIError "Invalid task ID format"
+// @Failure 401 {object} api.APIError "Unauthorized"
+// @Failure 404 {object} api.APIError "Task not found"
+// @Failure 500 {object} api.APIError "Internal server error"
+// @Router /tasks/{task_id} [get]
 func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 
 	idParam := c.Param("task_id")

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import axios from 'axios';
 import { reactive, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import type { LoginForm, RegisterForm } from '../types/forms';
+import type { LoginForm } from '../types/forms';
 import { StoreGenericError } from '../types/stores';
 import { useRouter } from 'vue-router';
 

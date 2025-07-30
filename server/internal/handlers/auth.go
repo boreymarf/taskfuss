@@ -27,6 +27,17 @@ func InitAuthHandler(userRepo *db.UserRepository) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 
+// Register godoc
+// @Summary Register a new user
+// @Description Create a new user account and return a JWT token
+// @Tags authentication
+// @Accept json
+// @Produce json
+// @Param RegisterRequest body dto.RegisterRequest true "User registration data"
+// @Success 201 {object} api.Response{data=dto.LoginResponse} "Successfully registered"
+// @Failure 400 {object} api.APIError "Invalid request format or username/email already exists"
+// @Failure 500 {object} api.APIError "Internal server error (code: INTERNAL_ERROR)
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
 
@@ -94,6 +105,26 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 }
 
+// PingHandler godoc
+// @Summary Server health check
+// @Description Returns "pong" if the server is running
+// @Tags service
+// @Produce json
+// @Success 200 {object} api.Response{data=dto.PongResponse} "Server is running"
+// @Router /api/ping [get]
+
+// Login authenticates a user and returns a JWT token
+// @Summary User login
+// @Description Authenticate user credentials and return a JWT token
+// @Tags authentication
+// @Accept  json
+// @Produce  json
+// @Param   LoginRequest  body  dto.LoginRequest  true  "Login credentials"
+// @Success 200 {object}  api.Response{data=dto.LoginResponse}  "Successfully authenticated"
+// @Failure 400 {object}  api.APIError                          "Invalid request format"
+// @Failure 401 {object}  api.APIError                          "Invalid credentials"
+// @Failure 500 {object}  api.APIError                          "Internal server error"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 
