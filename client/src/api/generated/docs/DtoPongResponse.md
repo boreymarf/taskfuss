@@ -1,5 +1,6 @@
 # DtoPongResponse
 
+A simple health check response.
 
 ## Properties
 

@@ -104,12 +104,29 @@ export const ServiceApiFactory = function (configuration?: Configuration, basePa
 };
 
 /**
+ * ServiceApi - interface
+ * @export
+ * @interface ServiceApi
+ */
+export interface ServiceApiInterface {
+    /**
+     * Returns \"pong\" if the server is running
+     * @summary Server health check
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ServiceApiInterface
+     */
+    apiPingGet(options?: RawAxiosRequestConfig): AxiosPromise<ApiPingGet200Response>;
+
+}
+
+/**
  * ServiceApi - object-oriented interface
  * @export
  * @class ServiceApi
  * @extends {BaseAPI}
  */
-export class ServiceApi extends BaseAPI {
+export class ServiceApi extends BaseAPI implements ServiceApiInterface {
     /**
      * Returns \"pong\" if the server is running
      * @summary Server health check

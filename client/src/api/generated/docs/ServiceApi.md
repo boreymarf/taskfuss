@@ -1,6 +1,6 @@
 # ServiceApi
 
-All URIs are relative to *http://localhost:4000/api*
+All URIs are relative to *http://localhost:50005*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|

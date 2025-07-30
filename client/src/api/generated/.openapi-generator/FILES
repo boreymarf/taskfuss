@@ -1,0 +1,17 @@
+.gitignore
+.npmignore
+api.ts
+api/service-api.ts
+base.ts
+common.ts
+configuration.ts
+docs/ApiPingGet200Response.md
+docs/ApiResponse.md
+docs/DtoPongResponse.md
+docs/ServiceApi.md
+git_push.sh
+index.ts
+models/api-ping-get200-response.ts
+models/api-response.ts
+models/dto-pong-response.ts
+models/index.ts

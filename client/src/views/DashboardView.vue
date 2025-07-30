@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
 import { ref, onMounted } from 'vue';
-import http from '@/api/http';
 
 const loading = ref(true);
 const error = ref('');

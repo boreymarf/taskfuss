@@ -1,4 +1,3 @@
-basePath: /api
 definitions:
   api.Response:
     description: Standard API response wrapper
@@ -18,7 +17,7 @@ definitions:
         example: pong
         type: string
     type: object
-host: localhost:4000
+host: localhost:50005
 info:
   contact: {}
   description: API for TaskFuss app

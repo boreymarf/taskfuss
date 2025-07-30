@@ -15,7 +15,7 @@
 
 
 /**
- * 
+ * A simple health check response.
  * @export
  * @interface DtoPongResponse
  */

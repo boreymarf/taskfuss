@@ -6,8 +6,7 @@
         "contact": {},
         "version": "1.0.0"
     },
-    "host": "localhost:4000",
-    "basePath": "/api",
+    "host": "localhost:50005",
     "paths": {
         "/api/ping": {
             "get": {

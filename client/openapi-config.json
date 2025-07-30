@@ -1,0 +1,12 @@
+{
+  "apiPackage": "api",
+  "modelPackage": "models",
+  "supportsES6": true,
+  "withSeparateModelsAndApi": true,
+  "withInterfaces": true,
+  "useSingleRequestParameter": true,
+  "stringEnums": true,
+  "enumPropertyNaming": "UPPERCASE",
+
+  "outputDir": "src/api/generated"
+}
