@@ -20,6 +20,12 @@ import (
 // @version 1.0.0
 // @description API for TaskFuss app
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @scheme bearer
+// @bearerFormat JWT
+
 // @host localhost:4000
 // @BasePath /api
 func main() {
