@@ -1,9 +1,10 @@
 import { Configuration } from "../generated/configuration";
-import { ServiceApi } from '../generated/api'
+import { AuthenticationApi, ServiceApi, TasksApi } from '../generated/api'
 
 // Создаём конфигурацию
 const config = new Configuration({
-  basePath: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
+  // basePath: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
+  basePath: 'http://localhost:4000/api',
   // Дополнительные настройки:
   // middleware: [], // можно добавить middleware
   // apiKey: 'your-api-key' // если требуется авторизация
@@ -11,5 +12,7 @@ const config = new Configuration({
 
 // Создаём экземпляр API
 export const api = {
-  service: new ServiceApi(config)
+  auth: new AuthenticationApi(config),
+  service: new ServiceApi(config),
+  tasks: new TasksApi(config),
 }

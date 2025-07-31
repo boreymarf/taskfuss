@@ -23,12 +23,10 @@ func SetupAPIRoutes(
 	api := router.Group("/api")
 	{
 
+		// For more info check OpenAPI docs
 		api.GET("/ping", handlers.PingHandler)
-		api.POST("/register", authHandler.Register)
-		api.POST("/login", authHandler.Login)
-		api.GET("/status", func(c *gin.Context) {
-			c.JSON(200, gin.H{"isUp": true})
-		})
+		api.POST("/auth/register", authHandler.Register)
+		api.POST("/auth/login", authHandler.Login)
 
 		protected := api.Group("")
 		protected.Use(middleware.Auth(userRepo))

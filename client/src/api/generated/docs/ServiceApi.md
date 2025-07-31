@@ -1,13 +1,13 @@
 # ServiceApi
 
-All URIs are relative to *http://localhost:50005*
+All URIs are relative to *http://localhost:4000/api*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
-|[**apiPingGet**](#apipingget) | **GET** /api/ping | Server health check|
+|[**pingGet**](#pingget) | **GET** /ping | Server health check|
 
-# **apiPingGet**
-> ApiPingGet200Response apiPingGet()
+# **pingGet**
+> PingGet200Response pingGet()
 
 Returns \"pong\" if the server is running
 
@@ -22,7 +22,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new ServiceApi(configuration);
 
-const { status, data } = await apiInstance.apiPingGet();
+const { status, data } = await apiInstance.pingGet();
 ```
 
 ### Parameters
@@ -31,7 +31,7 @@ This endpoint does not have any parameters.
 
 ### Return type
 
-**ApiPingGet200Response**
+**PingGet200Response**
 
 ### Authorization
 

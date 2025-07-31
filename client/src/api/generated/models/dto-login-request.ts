@@ -14,8 +14,23 @@
 
 
 
-export * from './api/authentication-api';
-export * from './api/profile-api';
-export * from './api/service-api';
-export * from './api/tasks-api';
+/**
+ * 
+ * @export
+ * @interface DtoLoginRequest
+ */
+export interface DtoLoginRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoLoginRequest
+     */
+    'email': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof DtoLoginRequest
+     */
+    'password': string;
+}
 

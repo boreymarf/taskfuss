@@ -13,9 +13,21 @@
  */
 
 
+// May contain unused imports in some cases
+// @ts-ignore
+import type { DtoUser } from './dto-user';
 
-export * from './api/authentication-api';
-export * from './api/profile-api';
-export * from './api/service-api';
-export * from './api/tasks-api';
+/**
+ * 
+ * @export
+ * @interface DtoProfileResponse
+ */
+export interface DtoProfileResponse {
+    /**
+     * 
+     * @type {DtoUser}
+     * @memberof DtoProfileResponse
+     */
+    'user'?: DtoUser;
+}
 

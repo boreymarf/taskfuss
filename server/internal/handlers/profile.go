@@ -26,9 +26,9 @@ func InitProfileHandler(userRepo *db.UserRepository) (*ProfileHandler, error) {
 // @Produce json
 // @Param Authorization header string true "Bearer token"
 // @Success 200 {object} api.Response{data=dto.ProfileResponse} "Profile retrieved successfully"
-// @Failure 401 {object} api.APIError "Unauthorized (code: UNAUTHORIZED)"
-// @Failure 404 {object} api.APIError "Profile not found (code: PROFILE_NOT_FOUND)"
-// @Failure 500 {object} api.APIError "Internal server error (code: INTERNAL_ERROR)"
+// @Failure 401 {object} api.Error "Unauthorized (code: UNAUTHORIZED)"
+// @Failure 404 {object} api.Error "Profile not found (code: PROFILE_NOT_FOUND)"
+// @Failure 500 {object} api.Error "Internal server error (code: INTERNAL_ERROR)"
 // @Router /profile [get]
 func (h *ProfileHandler) GetProfile(c *gin.Context) {
 

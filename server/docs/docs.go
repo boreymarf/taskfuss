@@ -61,19 +61,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request format",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     }
                 }
@@ -115,7 +115,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.LoginResponse"
+                                            "$ref": "#/definitions/dto.RegisterResponse"
                                         }
                                     }
                                 }
@@ -123,15 +123,15 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request format or username/email already exists",
+                        "description": "Invalid request format (code: BAD_REQUEST) or username/email already exists (code: DUPLICATE_USER)",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
                         "description": "Internal server error (code: INTERNAL_ERROR)",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     }
                 }
@@ -215,19 +215,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized (code: UNAUTHORIZED)",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "404": {
                         "description": "Profile not found (code: PROFILE_NOT_FOUND)",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
                         "description": "Internal server error (code: INTERNAL_ERROR)",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     }
                 }
@@ -263,7 +263,7 @@ const docTemplate = `{
                             "full"
                         ],
                         "type": "string",
-                        "description": "Detail level (minimal|standard|full)",
+                        "description": "Detail level",
                         "name": "detailLevel",
                         "in": "query"
                     },
@@ -308,19 +308,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid query parameters",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     }
                 }
@@ -382,19 +382,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid request format",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     }
                 }
@@ -454,25 +454,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid task ID format",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "404": {
                         "description": "Task not found",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.APIError"
+                            "$ref": "#/definitions/api.Error"
                         }
                     }
                 }
@@ -480,7 +480,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.APIError": {
+        "api.Error": {
             "description": "Common error response structure for API failures",
             "type": "object",
             "properties": {
@@ -616,6 +616,17 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "auth_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/dto.User"
                 }
             }
         },

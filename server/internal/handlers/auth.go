@@ -34,9 +34,9 @@ func InitAuthHandler(userRepo *db.UserRepository) (*AuthHandler, error) {
 // @Accept json
 // @Produce json
 // @Param RegisterRequest body dto.RegisterRequest true "User registration data"
-// @Success 201 {object} api.Response{data=dto.LoginResponse} "Successfully registered"
-// @Failure 400 {object} api.APIError "Invalid request format or username/email already exists"
-// @Failure 500 {object} api.APIError "Internal server error (code: INTERNAL_ERROR)
+// @Success 201 {object} api.Response{data=dto.RegisterResponse} "Successfully registered"
+// @Failure 400 {object} api.Error "Invalid request format (code: BAD_REQUEST) or username/email already exists (code: DUPLICATE_USER)"
+// @Failure 500 {object} api.Error "Internal server error (code: INTERNAL_ERROR)
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
@@ -94,7 +94,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	api.Success(c, dto.RegisterResponse{
+	api.Created(c, dto.RegisterResponse{
 		User: dto.User{
 			Id:        user.ID,
 			Username:  user.Username,
@@ -121,9 +121,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Produce  json
 // @Param   LoginRequest  body  dto.LoginRequest  true  "Login credentials"
 // @Success 200 {object}  api.Response{data=dto.LoginResponse}  "Successfully authenticated"
-// @Failure 400 {object}  api.APIError                          "Invalid request format"
-// @Failure 401 {object}  api.APIError                          "Invalid credentials"
-// @Failure 500 {object}  api.APIError                          "Internal server error"
+// @Failure 400 {object}  api.Error                          "Invalid request format"
+// @Failure 401 {object}  api.Error                          "Invalid credentials"
+// @Failure 500 {object}  api.Error                          "Internal server error"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest

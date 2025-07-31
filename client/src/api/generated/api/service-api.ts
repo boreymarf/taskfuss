@@ -22,7 +22,7 @@ import { DUMMY_BASE_URL, assertParamExists, setApiKeyToObject, setBasicAuthToObj
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError, operationServerMap } from '../base';
 // @ts-ignore
-import type { ApiPingGet200Response } from '../models';
+import type { PingGet200Response } from '../models';
 /**
  * ServiceApi - axios parameter creator
  * @export
@@ -35,8 +35,8 @@ export const ServiceApiAxiosParamCreator = function (configuration?: Configurati
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiPingGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/ping`;
+        pingGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/ping`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -75,10 +75,10 @@ export const ServiceApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async apiPingGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiPingGet200Response>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.apiPingGet(options);
+        async pingGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PingGet200Response>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.pingGet(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['ServiceApi.apiPingGet']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['ServiceApi.pingGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
     }
@@ -97,8 +97,8 @@ export const ServiceApiFactory = function (configuration?: Configuration, basePa
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        apiPingGet(options?: RawAxiosRequestConfig): AxiosPromise<ApiPingGet200Response> {
-            return localVarFp.apiPingGet(options).then((request) => request(axios, basePath));
+        pingGet(options?: RawAxiosRequestConfig): AxiosPromise<PingGet200Response> {
+            return localVarFp.pingGet(options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -116,7 +116,7 @@ export interface ServiceApiInterface {
      * @throws {RequiredError}
      * @memberof ServiceApiInterface
      */
-    apiPingGet(options?: RawAxiosRequestConfig): AxiosPromise<ApiPingGet200Response>;
+    pingGet(options?: RawAxiosRequestConfig): AxiosPromise<PingGet200Response>;
 
 }
 
@@ -134,8 +134,8 @@ export class ServiceApi extends BaseAPI implements ServiceApiInterface {
      * @throws {RequiredError}
      * @memberof ServiceApi
      */
-    public apiPingGet(options?: RawAxiosRequestConfig) {
-        return ServiceApiFp(this.configuration).apiPingGet(options).then((request) => request(this.axios, this.basePath));
+    public pingGet(options?: RawAxiosRequestConfig) {
+        return ServiceApiFp(this.configuration).pingGet(options).then((request) => request(this.axios, this.basePath));
     }
 }
 

@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// APIError represents a standardized error response format
+// Error represents a standardized error response format
 // @Description Common error response structure for API failures
-type APIError struct {
+type Error struct {
 	HTTPStatus int    `json:"-"`
 	Code       string `json:"code" example:"UPPERCASE_CODE"`
 	Message    string `json:"message" example:"Brief message about the error."`
@@ -18,19 +18,19 @@ type APIError struct {
 	Latency    string `json:"latency" example:"42.123µs"`
 }
 
-func (e *APIError) SendAndAbort(c *gin.Context) {
+func (e *Error) SendAndAbort(c *gin.Context) {
 	e.addTimingInfo(c)
 	c.AbortWithStatusJSON(e.HTTPStatus, e)
 }
 
-func (e *APIError) SendWithDetailsAndAbort(c *gin.Context, details any) {
+func (e *Error) SendWithDetailsAndAbort(c *gin.Context, details any) {
 	e.Details = details
 	e.addTimingInfo(c)
 	c.AbortWithStatusJSON(e.HTTPStatus, e)
 }
 
 // Helper to add timing information to error
-func (e *APIError) addTimingInfo(c *gin.Context) {
+func (e *Error) addTimingInfo(c *gin.Context) {
 	if start, exists := c.Get("request_start"); exists {
 		if startTime, ok := start.(time.Time); ok {
 			e.Timestamp = startTime.Format(time.RFC3339)
@@ -41,25 +41,25 @@ func (e *APIError) addTimingInfo(c *gin.Context) {
 
 // General errors
 var (
-	InternalServerError = &APIError{
+	InternalServerError = &Error{
 		HTTPStatus: http.StatusInternalServerError,
 		Code:       "INTERNAL_ERROR",
 		Message:    "Internal server error",
 	}
 
-	BadRequest = &APIError{
+	BadRequest = &Error{
 		HTTPStatus: http.StatusBadRequest,
 		Code:       "BAD_REQUEST",
 		Message:    "Invalid request data",
 	}
 
-	InvalidJSON = &APIError{
+	InvalidJSON = &Error{
 		HTTPStatus: http.StatusBadRequest,
 		Code:       "INVALID_JSON",
 		Message:    "Invalid JSON syntax",
 	}
 
-	TypeMismatch = &APIError{
+	TypeMismatch = &Error{
 		HTTPStatus: http.StatusBadRequest,
 		Code:       "TYPE_MISMATCH",
 		Message:    "Field type mismatch",
@@ -68,61 +68,61 @@ var (
 
 // Auth related
 var (
-	DuplicateUser = &APIError{
+	DuplicateUser = &Error{
 		HTTPStatus: http.StatusConflict,
 		Code:       "DUPLICATE_USER",
 		Message:    "User already exists",
 	}
 
-	Unauthorized = &APIError{
+	Unauthorized = &Error{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "UNAUTHORIZED",
 		Message:    "Authentication required",
 	}
 
-	InvalidCredentials = &APIError{
+	InvalidCredentials = &Error{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "INVALID_CREDENTIALS",
 		Message:    "Invalid email or password",
 	}
 
-	Forbidden = &APIError{
+	Forbidden = &Error{
 		HTTPStatus: http.StatusForbidden,
 		Code:       "FORBIDDEN",
 		Message:    "You don't have access to this data",
 	}
 
-	NoToken = &APIError{
+	NoToken = &Error{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "NO_TOKEN",
 		Message:    "Authorization token required",
 	}
 
-	BadToken = &APIError{
+	BadToken = &Error{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "BAD_TOKEN",
 		Message:    "Invalid token format",
 	}
 
-	InvalidToken = &APIError{
+	InvalidToken = &Error{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "INVALID_TOKEN",
 		Message:    "Invalid token",
 	}
 
-	ExpiredToken = &APIError{
+	ExpiredToken = &Error{
 		HTTPStatus: http.StatusUnauthorized,
 		Code:       "Expired token",
 		Message:    "Expired token",
 	}
 
-	InvalidQuery = &APIError{
+	InvalidQuery = &Error{
 		HTTPStatus: http.StatusBadRequest,
 		Code:       "INVALID_QUERY",
 		Message:    "Invalid query parameters",
 	}
 
-	NotFound = &APIError{
+	NotFound = &Error{
 		HTTPStatus: http.StatusNotFound,
 		Code:       "NOT_FOUND",
 		Message:    "Data not found",
@@ -131,7 +131,7 @@ var (
 
 // Task handler
 var (
-	InvalidTaskID = &APIError{
+	InvalidTaskID = &Error{
 		HTTPStatus: http.StatusBadRequest,
 		Code:       "INVALID_ID",
 		Message:    "Invalid task ID",
