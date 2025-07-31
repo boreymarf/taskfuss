@@ -10,7 +10,7 @@ const isLoading = ref(false)
 const pingServer = async () => {
   isLoading.value = true
   try {
-    const result = await api.service.apiPingGet()
+    const result = await api.service.pingGet()
     const responseData = result.data as ApiResponse<DtoPongResponse>
     console.log(responseData.data?.message)
 

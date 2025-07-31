@@ -1,80 +1,127 @@
 import axios from 'axios'
 import { defineStore } from 'pinia'
-import type { ApiGenericError, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User, ValidationError } from '../types/api'
+import type { DtoRegisterRequest, DtoUser, DtoRegisterResponse, ApiError, DtoLoginRequest, DtoLoginResponse } from '../api/generated'
 import type { LoginForm, RegisterForm } from '../types/forms'
-import type { ApiResponse } from '../types/api/generic'
-import { StoreGenericError, RegisterError } from '../types/stores'
+import { api } from '../api/client/http'
+import type { ApiResponse } from '../types/api/wrappers'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null as User | null,
+    user: null as DtoUser | null,
     auth_token: localStorage.getItem('auth_token') || null as string | null
   }),
 
   actions: {
     async register(formData: RegisterForm): Promise<void> {
-      const requestData: RegisterRequest = {
+      const requestData: DtoRegisterRequest = {
         username: formData.name,
         email: formData.email,
         password: formData.password
       }
 
       try {
-        const response = await axios.post<RegisterResponse>("/api/register", requestData);
-        const responseData = response.data;
+        const response = await api.auth.authRegisterPost({
+          registerRequest: requestData
+        });
 
-        this.user = responseData.user
-        this.auth_token = responseData.auth_token
-        localStorage.setItem('auth_token', responseData.auth_token)
+        const apiResponse = response.data as ApiResponse;
+        const dtoRegisterResponse = apiResponse.data as DtoRegisterResponse;
+
+        if (!dtoRegisterResponse) {
+          throw new Error('Invalid response data: missing response payload');
+        }
+
+        if (!dtoRegisterResponse.user || !dtoRegisterResponse.auth_token) {
+          throw new Error('Invalid response data: missing user or auth_token');
+        }
+
+        this.user = dtoRegisterResponse.user
+        this.auth_token = dtoRegisterResponse.auth_token
+        localStorage.setItem('auth_token', dtoRegisterResponse.auth_token)
+
       } catch (error) {
-        if (axios.isAxiosError(error)) {
 
-          // If bad request, expect validation error
-          // FIXME: DTO has changed
-          if (error.response?.status === 400) {
-            const serverError = error.response.data as ValidationError
+        if (!axios.isAxiosError(error)) {
+          throw error;
+        }
 
-            throw new RegisterError(
-              serverError.message,
-              serverError.code,
-              serverError.details
-            )
-          }
+        if (!error.response?.data) {
+          throw new Error('Unknown error');
+        }
 
-          // Обработка других HTTP ошибок
-          throw new Error(error.response?.data?.message || 'Request failed')
+        const { status, data } = error.response;
+        const apiError = data as ApiError;
+
+        if (!apiError.code) {
+          throw new Error(apiError.message || 'Unknown error');
+        }
+
+        switch (`${status}_${apiError.code}`) {
+          case "400_BAD_REQUEST":
+            // TODO: Handle later
+            console.log("BAD_REQUEST")
+            break;
+          case "400_DUPLICATE_USER":
+            // TODO: Handle later
+            console.log("DUBLICATE_USER")
+            break;
+          default:
+            throw new Error(apiError.message || 'Request failed');
         }
       }
     },
 
     async login(formData: LoginForm): Promise<void> {
 
-      const requestData: LoginRequest = {
+      const requestData: DtoLoginRequest = {
         email: formData.email,
         password: formData.password
       }
 
       try {
-        const response = await axios.post<ApiResponse<LoginResponse>>("/api/login", requestData);
-        const responseData = response.data.data;
+        const response = await api.auth.authLoginPost({
+          loginRequest: requestData
+        });
 
-        this.user = responseData.user
-        this.auth_token = responseData.auth_token
-        console.log(responseData)
-        console.log(responseData.auth_token)
-        localStorage.setItem('auth_token', responseData.auth_token)
+        const apiResponse = response.data as ApiResponse;
+        const dtoLoginResponse = apiResponse.data as DtoLoginResponse;
+
+        if (!dtoLoginResponse) {
+          throw new Error('Invalid response data: missing response payload');
+        }
+
+        if (!dtoLoginResponse.user || !dtoLoginResponse.auth_token) {
+          throw new Error('Invalid response data: missing user or auth_token');
+        }
+
+        this.user = dtoLoginResponse.user
+        this.auth_token = dtoLoginResponse.auth_token
+        localStorage.setItem('auth_token', dtoLoginResponse.auth_token)
 
       } catch (error) {
 
-        // FIXME: DTO has changed
-        if (axios.isAxiosError(error)) {
-          const serverError = error.response?.data as ApiGenericError
+        if (!axios.isAxiosError(error)) {
+          throw error;
+        }
 
-          throw new StoreGenericError(
-            serverError.code,
-            serverError.message
-          )
+        if (!error.response?.data) {
+          throw new Error('Unknown error');
+        }
 
+        const { status, data } = error.response;
+        const apiError = data as ApiError;
+
+        if (!apiError.code) {
+          throw new Error(apiError.message || 'Unknown error');
+        }
+
+        switch (`${status}_${apiError.code}`) {
+          case "400_BAD_REQUEST":
+            // TODO: Handle later
+            console.log("BAD_REQUEST")
+            break;
+          default:
+            throw new Error(apiError.message || 'Request failed');
         }
       }
     },
