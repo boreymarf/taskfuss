@@ -9,7 +9,7 @@ All URIs are relative to *http://localhost:4000/api*
 |[**tasksTaskIdGet**](#taskstaskidget) | **GET** /tasks/{task_id} | Get a task by ID|
 
 # **tasksGet**
-> TasksGet200Response tasksGet()
+> DtoGetAllTasksResponse tasksGet()
 
 Retrieves tasks based on filter criteria (active/archived/completed) and detail level
 
@@ -52,7 +52,7 @@ const { status, data } = await apiInstance.tasksGet(
 
 ### Return type
 
-**TasksGet200Response**
+**DtoGetAllTasksResponse**
 
 ### Authorization
 
@@ -75,7 +75,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **tasksPost**
-> TasksPost201Response tasksPost(createTaskRequest)
+> DtoCreateTaskResponse tasksPost(createTaskRequest)
 
 Create a new task for the authenticated user
 
@@ -110,7 +110,7 @@ const { status, data } = await apiInstance.tasksPost(
 
 ### Return type
 
-**TasksPost201Response**
+**DtoCreateTaskResponse**
 
 ### Authorization
 
@@ -133,7 +133,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **tasksTaskIdGet**
-> TasksTaskIdGet200Response tasksTaskIdGet()
+> DtoGetTaskByIDResponse tasksTaskIdGet()
 
 Retrieves a single task by its unique identifier
 
@@ -167,7 +167,7 @@ const { status, data } = await apiInstance.tasksTaskIdGet(
 
 ### Return type
 
-**TasksTaskIdGet200Response**
+**DtoGetTaskByIDResponse**
 
 ### Authorization
 

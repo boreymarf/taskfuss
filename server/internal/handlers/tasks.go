@@ -51,7 +51,7 @@ func InitTaskHandler(
 // @Produce json
 // @Param Authorization header string true "Bearer token"
 // @Param CreateTaskRequest body dto.CreateTaskRequest true "Task creation data"
-// @Success 201 {object} api.Response{data=dto.CreateTaskResponse} "Task successfully created"
+// @Success 201 {object} dto.CreateTaskResponse "Task successfully created"
 // @Failure 400 {object} api.Error "Invalid request format"
 // @Failure 401 {object} api.Error "Unauthorized"
 // @Failure 500 {object} api.Error "Internal server error"
@@ -93,7 +93,7 @@ type GetAllTasksQuery struct {
 // @Param showActive query boolean false "Include active tasks (default: true)"
 // @Param showArchived query boolean false "Include archived tasks (default: false)"
 // @Param showCompleted query boolean false "Include completed tasks (default: true)"
-// @Success 200 {object} api.Response{data=dto.GetAllTasksResponse} "List of tasks"
+// @Success 200 {object} dto.GetAllTasksResponse "List of tasks"
 // @Failure 400 {object} api.Error "Invalid query parameters"
 // @Failure 401 {object} api.Error "Unauthorized"
 // @Failure 500 {object} api.Error "Internal server error"
@@ -144,7 +144,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 // @Produce json
 // @Param Authorization header string true "Bearer token"
 // @Param task_id path string true "Task ID" Format(uuid)
-// @Success 200 {object} api.Response{data=dto.GetTaskByIDResponse} "Task details"
+// @Success 200 {object} dto.GetTaskByIDResponse "Task details"
 // @Failure 400 {object} api.Error "Invalid task ID format"
 // @Failure 401 {object} api.Error "Unauthorized"
 // @Failure 404 {object} api.Error "Task not found"

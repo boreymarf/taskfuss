@@ -74,7 +74,7 @@ func main() {
 		AllowAllOrigins: true,
 		// AllowOrigins:     []string{"http://localhost:5173", "http://192.168.1.82:5173"},
 		AllowMethods:     []string{"GET", "POST"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))

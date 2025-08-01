@@ -7,7 +7,7 @@ All URIs are relative to *http://localhost:4000/api*
 |[**pingGet**](#pingget) | **GET** /ping | Server health check|
 
 # **pingGet**
-> PingGet200Response pingGet()
+> DtoPongResponse pingGet()
 
 Returns \"pong\" if the server is running
 
@@ -31,7 +31,7 @@ This endpoint does not have any parameters.
 
 ### Return type
 
-**PingGet200Response**
+**DtoPongResponse**
 
 ### Authorization
 

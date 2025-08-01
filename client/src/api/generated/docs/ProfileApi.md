@@ -7,7 +7,7 @@ All URIs are relative to *http://localhost:4000/api*
 |[**profileGet**](#profileget) | **GET** /profile | Get user profile|
 
 # **profileGet**
-> ProfileGet200Response profileGet()
+> DtoProfileResponse profileGet()
 
 Retrieves the authenticated user\'s profile information
 
@@ -38,7 +38,7 @@ const { status, data } = await apiInstance.profileGet(
 
 ### Return type
 
-**ProfileGet200Response**
+**DtoProfileResponse**
 
 ### Authorization
 

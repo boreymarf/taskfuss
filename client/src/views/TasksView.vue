@@ -1,20 +1,30 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useTasksStore } from '../stores/tasks';
-// import { useAuthStore } from '../stores/auth';
+import TaskRow from "../components/TaskRow.vue"
 
-// const authStore = useAuthStore()
 const tasksStore = useTasksStore()
 
 onMounted(() => {
-  tasksStore.fetchTasks();
+  tasksStore.fetchAllTasks();
 });
 </script>
 
 <template>
-  <div>
+  <h1>Tasks</h1>
 
+  <div v-if="tasksStore.isLoading">Loading tasks...</div>
+  <div v-if="tasksStore.error" class="error">{{ tasksStore.error }}</div>
+
+  <ul v-if="tasksStore.tasks.length > 0">
+    <TaskRow v-for="task in tasksStore.tasks" :key="task.id" :task="task" />
+  </ul>
+
+  <!-- Empty state -->
+  <div v-else-if="!tasksStore.isLoading">
+    No tasks found.
   </div>
+
 </template>
 
 <style lang="scss" scoped></style>

@@ -43,19 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successfully authenticated",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.LoginResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.LoginResponse"
                         }
                     },
                     "400": {
@@ -107,19 +95,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Successfully registered",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.RegisterResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.RegisterResponse"
                         }
                     },
                     "400": {
@@ -151,19 +127,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Server is running",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.PongResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.PongResponse"
                         }
                     }
                 }
@@ -197,19 +161,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Profile retrieved successfully",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.ProfileResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.ProfileResponse"
                         }
                     },
                     "401": {
@@ -290,19 +242,7 @@ const docTemplate = `{
                     "200": {
                         "description": "List of tasks",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetAllTasksResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.GetAllTasksResponse"
                         }
                     },
                     "400": {
@@ -364,19 +304,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Task successfully created",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.CreateTaskResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.CreateTaskResponse"
                         }
                     },
                     "400": {
@@ -436,19 +364,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Task details",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/dto.GetTaskByIDResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.GetTaskByIDResponse"
                         }
                     },
                     "400": {
@@ -496,21 +412,6 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "Brief message about the error."
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-07-27T20:32:29+03:00"
-                }
-            }
-        },
-        "api.Response": {
-            "description": "Standard API response wrapper",
-            "type": "object",
-            "properties": {
-                "data": {},
-                "latency": {
-                    "type": "string",
-                    "example": "42.123µs"
                 },
                 "timestamp": {
                     "type": "string",

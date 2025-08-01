@@ -24,13 +24,13 @@ import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError
 // @ts-ignore
 import type { ApiError } from '../models';
 // @ts-ignore
-import type { AuthLoginPost200Response } from '../models';
-// @ts-ignore
-import type { AuthRegisterPost201Response } from '../models';
-// @ts-ignore
 import type { DtoLoginRequest } from '../models';
 // @ts-ignore
+import type { DtoLoginResponse } from '../models';
+// @ts-ignore
 import type { DtoRegisterRequest } from '../models';
+// @ts-ignore
+import type { DtoRegisterResponse } from '../models';
 /**
  * AuthenticationApi - axios parameter creator
  * @export
@@ -126,7 +126,7 @@ export const AuthenticationApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async authLoginPost(loginRequest: DtoLoginRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AuthLoginPost200Response>> {
+        async authLoginPost(loginRequest: DtoLoginRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DtoLoginResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.authLoginPost(loginRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AuthenticationApi.authLoginPost']?.[localVarOperationServerIndex]?.url;
@@ -139,7 +139,7 @@ export const AuthenticationApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async authRegisterPost(registerRequest: DtoRegisterRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<AuthRegisterPost201Response>> {
+        async authRegisterPost(registerRequest: DtoRegisterRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DtoRegisterResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.authRegisterPost(registerRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['AuthenticationApi.authRegisterPost']?.[localVarOperationServerIndex]?.url;
@@ -162,7 +162,7 @@ export const AuthenticationApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        authLoginPost(requestParameters: AuthenticationApiAuthLoginPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<AuthLoginPost200Response> {
+        authLoginPost(requestParameters: AuthenticationApiAuthLoginPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoLoginResponse> {
             return localVarFp.authLoginPost(requestParameters.loginRequest, options).then((request) => request(axios, basePath));
         },
         /**
@@ -172,7 +172,7 @@ export const AuthenticationApiFactory = function (configuration?: Configuration,
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        authRegisterPost(requestParameters: AuthenticationApiAuthRegisterPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<AuthRegisterPost201Response> {
+        authRegisterPost(requestParameters: AuthenticationApiAuthRegisterPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoRegisterResponse> {
             return localVarFp.authRegisterPost(requestParameters.registerRequest, options).then((request) => request(axios, basePath));
         },
     };
@@ -192,7 +192,7 @@ export interface AuthenticationApiInterface {
      * @throws {RequiredError}
      * @memberof AuthenticationApiInterface
      */
-    authLoginPost(requestParameters: AuthenticationApiAuthLoginPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<AuthLoginPost200Response>;
+    authLoginPost(requestParameters: AuthenticationApiAuthLoginPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoLoginResponse>;
 
     /**
      * Create a new user account and return a JWT token
@@ -202,7 +202,7 @@ export interface AuthenticationApiInterface {
      * @throws {RequiredError}
      * @memberof AuthenticationApiInterface
      */
-    authRegisterPost(requestParameters: AuthenticationApiAuthRegisterPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<AuthRegisterPost201Response>;
+    authRegisterPost(requestParameters: AuthenticationApiAuthRegisterPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoRegisterResponse>;
 
 }
 

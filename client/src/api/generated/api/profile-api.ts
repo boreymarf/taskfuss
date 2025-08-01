@@ -24,7 +24,7 @@ import { BASE_PATH, COLLECTION_FORMATS, type RequestArgs, BaseAPI, RequiredError
 // @ts-ignore
 import type { ApiError } from '../models';
 // @ts-ignore
-import type { ProfileGet200Response } from '../models';
+import type { DtoProfileResponse } from '../models';
 /**
  * ProfileApi - axios parameter creator
  * @export
@@ -84,7 +84,7 @@ export const ProfileApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async profileGet(authorization: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProfileGet200Response>> {
+        async profileGet(authorization: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DtoProfileResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.profileGet(authorization, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProfileApi.profileGet']?.[localVarOperationServerIndex]?.url;
@@ -107,7 +107,7 @@ export const ProfileApiFactory = function (configuration?: Configuration, basePa
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        profileGet(requestParameters: ProfileApiProfileGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ProfileGet200Response> {
+        profileGet(requestParameters: ProfileApiProfileGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoProfileResponse> {
             return localVarFp.profileGet(requestParameters.authorization, options).then((request) => request(axios, basePath));
         },
     };
@@ -127,7 +127,7 @@ export interface ProfileApiInterface {
      * @throws {RequiredError}
      * @memberof ProfileApiInterface
      */
-    profileGet(requestParameters: ProfileApiProfileGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ProfileGet200Response>;
+    profileGet(requestParameters: ProfileApiProfileGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoProfileResponse>;
 
 }
 

@@ -26,11 +26,11 @@ import type { ApiError } from '../models';
 // @ts-ignore
 import type { DtoCreateTaskRequest } from '../models';
 // @ts-ignore
-import type { TasksGet200Response } from '../models';
+import type { DtoCreateTaskResponse } from '../models';
 // @ts-ignore
-import type { TasksPost201Response } from '../models';
+import type { DtoGetAllTasksResponse } from '../models';
 // @ts-ignore
-import type { TasksTaskIdGet200Response } from '../models';
+import type { DtoGetTaskByIDResponse } from '../models';
 /**
  * TasksApi - axios parameter creator
  * @export
@@ -196,7 +196,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async tasksGet(authorization: string, detailLevel?: TasksGetDetailLevelEnum, showActive?: boolean, showArchived?: boolean, showCompleted?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TasksGet200Response>> {
+        async tasksGet(authorization: string, detailLevel?: TasksGetDetailLevelEnum, showActive?: boolean, showArchived?: boolean, showCompleted?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DtoGetAllTasksResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.tasksGet(authorization, detailLevel, showActive, showArchived, showCompleted, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['TasksApi.tasksGet']?.[localVarOperationServerIndex]?.url;
@@ -210,7 +210,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async tasksPost(authorization: string, createTaskRequest: DtoCreateTaskRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TasksPost201Response>> {
+        async tasksPost(authorization: string, createTaskRequest: DtoCreateTaskRequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DtoCreateTaskResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.tasksPost(authorization, createTaskRequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['TasksApi.tasksPost']?.[localVarOperationServerIndex]?.url;
@@ -224,7 +224,7 @@ export const TasksApiFp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async tasksTaskIdGet(authorization: string, taskId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<TasksTaskIdGet200Response>> {
+        async tasksTaskIdGet(authorization: string, taskId: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DtoGetTaskByIDResponse>> {
             const localVarAxiosArgs = await localVarAxiosParamCreator.tasksTaskIdGet(authorization, taskId, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['TasksApi.tasksTaskIdGet']?.[localVarOperationServerIndex]?.url;
@@ -247,7 +247,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        tasksGet(requestParameters: TasksApiTasksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<TasksGet200Response> {
+        tasksGet(requestParameters: TasksApiTasksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoGetAllTasksResponse> {
             return localVarFp.tasksGet(requestParameters.authorization, requestParameters.detailLevel, requestParameters.showActive, requestParameters.showArchived, requestParameters.showCompleted, options).then((request) => request(axios, basePath));
         },
         /**
@@ -257,7 +257,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        tasksPost(requestParameters: TasksApiTasksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<TasksPost201Response> {
+        tasksPost(requestParameters: TasksApiTasksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoCreateTaskResponse> {
             return localVarFp.tasksPost(requestParameters.authorization, requestParameters.createTaskRequest, options).then((request) => request(axios, basePath));
         },
         /**
@@ -267,7 +267,7 @@ export const TasksApiFactory = function (configuration?: Configuration, basePath
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        tasksTaskIdGet(requestParameters: TasksApiTasksTaskIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<TasksTaskIdGet200Response> {
+        tasksTaskIdGet(requestParameters: TasksApiTasksTaskIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoGetTaskByIDResponse> {
             return localVarFp.tasksTaskIdGet(requestParameters.authorization, requestParameters.taskId, options).then((request) => request(axios, basePath));
         },
     };
@@ -287,7 +287,7 @@ export interface TasksApiInterface {
      * @throws {RequiredError}
      * @memberof TasksApiInterface
      */
-    tasksGet(requestParameters: TasksApiTasksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<TasksGet200Response>;
+    tasksGet(requestParameters: TasksApiTasksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoGetAllTasksResponse>;
 
     /**
      * Create a new task for the authenticated user
@@ -297,7 +297,7 @@ export interface TasksApiInterface {
      * @throws {RequiredError}
      * @memberof TasksApiInterface
      */
-    tasksPost(requestParameters: TasksApiTasksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<TasksPost201Response>;
+    tasksPost(requestParameters: TasksApiTasksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoCreateTaskResponse>;
 
     /**
      * Retrieves a single task by its unique identifier
@@ -307,7 +307,7 @@ export interface TasksApiInterface {
      * @throws {RequiredError}
      * @memberof TasksApiInterface
      */
-    tasksTaskIdGet(requestParameters: TasksApiTasksTaskIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<TasksTaskIdGet200Response>;
+    tasksTaskIdGet(requestParameters: TasksApiTasksTaskIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<DtoGetTaskByIDResponse>;
 
 }
 

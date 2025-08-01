@@ -8,7 +8,7 @@ All URIs are relative to *http://localhost:4000/api*
 |[**authRegisterPost**](#authregisterpost) | **POST** /auth/register | Register a new user|
 
 # **authLoginPost**
-> AuthLoginPost200Response authLoginPost(loginRequest)
+> DtoLoginResponse authLoginPost(loginRequest)
 
 Authenticate user credentials and return a JWT token
 
@@ -40,7 +40,7 @@ const { status, data } = await apiInstance.authLoginPost(
 
 ### Return type
 
-**AuthLoginPost200Response**
+**DtoLoginResponse**
 
 ### Authorization
 
@@ -63,7 +63,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **authRegisterPost**
-> AuthRegisterPost201Response authRegisterPost(registerRequest)
+> DtoRegisterResponse authRegisterPost(registerRequest)
 
 Create a new user account and return a JWT token
 
@@ -95,7 +95,7 @@ const { status, data } = await apiInstance.authRegisterPost(
 
 ### Return type
 
-**AuthRegisterPost201Response**
+**DtoRegisterResponse**
 
 ### Authorization
 

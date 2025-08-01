@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import type { DtoRegisterRequest, DtoUser, DtoRegisterResponse, ApiError, DtoLoginRequest, DtoLoginResponse } from '../api/generated'
 import type { LoginForm, RegisterForm } from '../types/forms'
 import { api } from '../api/client/http'
-import type { ApiResponse } from '../types/api/wrappers'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -24,8 +23,7 @@ export const useAuthStore = defineStore('auth', {
           registerRequest: requestData
         });
 
-        const apiResponse = response.data as ApiResponse;
-        const dtoRegisterResponse = apiResponse.data as DtoRegisterResponse;
+        const dtoRegisterResponse = response.data as DtoRegisterResponse;
 
         if (!dtoRegisterResponse) {
           throw new Error('Invalid response data: missing response payload');
@@ -83,8 +81,7 @@ export const useAuthStore = defineStore('auth', {
           loginRequest: requestData
         });
 
-        const apiResponse = response.data as ApiResponse;
-        const dtoLoginResponse = apiResponse.data as DtoLoginResponse;
+        const dtoLoginResponse = response.data as DtoLoginResponse;
 
         if (!dtoLoginResponse) {
           throw new Error('Invalid response data: missing response payload');

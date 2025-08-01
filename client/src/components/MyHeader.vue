@@ -16,6 +16,7 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
       <router-link to="/about" class="option">About</router-link>
       <router-link v-if="!isAuthenticated" to="/login" class="option">Login</router-link>
       <router-link v-if="!isAuthenticated" to="/register" class="option">Register</router-link>
+      <div v-if="isAuthenticated" class="username">{{ authStore.$state.user?.username || "Unknown" }}</div>
       <button v-if="isAuthenticated" v-on:click="authStore.logout" class="option">Logout</button>
     </div>
   </div>
@@ -53,6 +54,13 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
     &:hover {
       border-color: #646cff;
     }
+  }
+
+  .username {
+    background-color: transparent;
+    padding: 8px 8px;
+    border: 1px solid transparent;
+    transition: border-color 0.25s;
   }
 }
 </style>

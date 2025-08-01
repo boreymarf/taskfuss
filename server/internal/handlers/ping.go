@@ -11,7 +11,7 @@ import (
 // @Description Returns "pong" if the server is running
 // @Tags service
 // @Produce json
-// @Success 200 {object} api.Response{data=dto.PongResponse} "Server is running"
+// @Success 200 {object} dto.PongResponse "Server is running"
 // @Router /ping [get]
 func PingHandler(c *gin.Context) {
 	api.Success(c, dto.PongResponse{
