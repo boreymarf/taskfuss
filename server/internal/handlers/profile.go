@@ -46,13 +46,18 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	h.userRepo.GetUserByID(claims.UserID, &user)
+	var modelsUser models.User
+	h.userRepo.GetUserByID(claims.UserID, &modelsUser)
 
-	// FIXME: This is incorrect for now
-	c.JSON(200, dto.User{
-		Id:        user.ID,
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-	})
+	dtoUser := dto.User{
+		Id:        modelsUser.ID,
+		Username:  modelsUser.Username,
+		CreatedAt: modelsUser.CreatedAt,
+	}
+
+	dtoProfileResponse := dto.ProfileResponse{
+		User: dtoUser,
+	}
+
+	api.Success(c, dtoProfileResponse)
 }

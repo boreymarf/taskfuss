@@ -1,13 +1,15 @@
 import axios from 'axios'
 import { defineStore } from 'pinia'
-import type { DtoRegisterRequest, DtoUser, DtoRegisterResponse, ApiError, DtoLoginRequest, DtoLoginResponse } from '../api/generated'
+import type { DtoRegisterRequest, DtoUser, DtoRegisterResponse, ApiError, DtoLoginRequest, DtoLoginResponse, DtoProfileResponse } from '../api/generated'
 import type { LoginForm, RegisterForm } from '../types/forms'
 import { api } from '../api/client/http'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as DtoUser | null,
-    auth_token: localStorage.getItem('auth_token') || null as string | null
+    auth_token: localStorage.getItem('auth_token') || null as string | null,
+    isLoading: false,
+    error: null as null | Error
   }),
 
   actions: {
@@ -127,6 +129,59 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.auth_token = null
       localStorage.removeItem('auth_token')
+    },
+
+    async fetchUser(): Promise<void> {
+      this.isLoading = true
+
+      try {
+
+        if (!this.auth_token) {
+          this.error = new Error("No auth token found!")
+          return
+        }
+
+        const response = await api.profile.profileGet({ authorization: `Bearer ${this.auth_token}` })
+        console.log(response)
+
+        const dtoProfileResponse = response.data as DtoProfileResponse;
+
+        if (!dtoProfileResponse) {
+          throw new Error('Invalid response data: missing response payload');
+        }
+
+        if (!dtoProfileResponse.user) {
+          throw new Error('Invalid response data: missing user');
+        }
+
+        this.user = dtoProfileResponse.user
+
+      } catch (error) {
+
+        if (!axios.isAxiosError(error)) {
+          throw error;
+        }
+
+        if (!error.response?.data) {
+          throw new Error('Unknown error');
+        }
+
+        const { status, data } = error.response;
+        const apiError = data as ApiError;
+
+        if (!apiError.code) {
+          throw new Error(apiError.message || 'Unknown error');
+        }
+
+        switch (`${status}_${apiError.code}`) {
+          case "400_BAD_REQUEST":
+            // TODO: Handle later
+            console.log("BAD_REQUEST")
+            break;
+          default:
+            throw new Error(apiError.message || 'Request failed');
+        }
+      }
     }
   },
 

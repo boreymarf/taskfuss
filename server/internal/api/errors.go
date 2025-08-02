@@ -14,8 +14,6 @@ type Error struct {
 	Code       string `json:"code" example:"UPPERCASE_CODE"`
 	Message    string `json:"message" example:"Brief message about the error."`
 	Details    any    `json:"details,omitempty"`
-	Timestamp  string `json:"timestamp,omitempty" example:"2025-07-27T20:32:29+03:00"`
-	Latency    string `json:"latency" example:"42.123µs"`
 }
 
 func (e *Error) SendAndAbort(c *gin.Context) {
@@ -33,8 +31,7 @@ func (e *Error) SendWithDetailsAndAbort(c *gin.Context, details any) {
 func (e *Error) addTimingInfo(c *gin.Context) {
 	if start, exists := c.Get("request_start"); exists {
 		if startTime, ok := start.(time.Time); ok {
-			e.Timestamp = startTime.Format(time.RFC3339)
-			e.Latency = time.Since(startTime).String()
+			c.Header("Request-Latency", time.Since(startTime).String())
 		}
 	}
 }

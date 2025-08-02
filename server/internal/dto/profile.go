@@ -1,6 +1,5 @@
 package dto
 
 type ProfileResponse struct {
-	User User
+	User User `json:"user"`
 }
-

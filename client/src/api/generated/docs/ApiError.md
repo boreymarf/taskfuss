@@ -8,9 +8,7 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **code** | **string** |  | [optional] [default to undefined]
 **details** | **object** |  | [optional] [default to undefined]
-**latency** | **string** |  | [optional] [default to undefined]
 **message** | **string** |  | [optional] [default to undefined]
-**timestamp** | **string** |  | [optional] [default to undefined]
 
 ## Example
 
@@ -20,9 +18,7 @@ import { ApiError } from './api';
 const instance: ApiError = {
     code,
     details,
-    latency,
     message,
-    timestamp,
 };
 ```
 

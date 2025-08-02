@@ -7,14 +7,8 @@ definitions:
         example: UPPERCASE_CODE
         type: string
       details: {}
-      latency:
-        example: 42.123µs
-        type: string
       message:
         example: Brief message about the error.
-        type: string
-      timestamp:
-        example: "2025-07-27T20:32:29+03:00"
         type: string
     type: object
   dto.CreateTaskRequest:

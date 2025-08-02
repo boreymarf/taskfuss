@@ -23,8 +23,7 @@ func sendResponse(c *gin.Context, status int, data any) {
 	// Add timing headers if available
 	if start, exists := c.Get("request_start"); exists {
 		if startTime, ok := start.(time.Time); ok {
-			c.Header("X-Request-Timestamp", startTime.Format(time.RFC3339))
-			c.Header("X-Request-Latency", time.Since(startTime).String())
+			c.Header("Request-Latency", time.Since(startTime).String())
 		}
 	}
 

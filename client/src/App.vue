@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import MyHeader from './components/MyHeader.vue';
+import { onMounted } from 'vue'
+import { useAuthStore } from './stores/auth';
+
+const authStore = useAuthStore()
+onMounted(async () => {
+  if (authStore.auth_token && !authStore.user) {
+    try {
+      await authStore.fetchUser()
+    } catch (error) {
+      console.error('Failed to fetch user:', error)
+    }
+  }
+})
 </script>
 
 <template>

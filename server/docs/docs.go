@@ -405,17 +405,9 @@ const docTemplate = `{
                     "example": "UPPERCASE_CODE"
                 },
                 "details": {},
-                "latency": {
-                    "type": "string",
-                    "example": "42.123µs"
-                },
                 "message": {
                     "type": "string",
                     "example": "Brief message about the error."
-                },
-                "timestamp": {
-                    "type": "string",
-                    "example": "2025-07-27T20:32:29+03:00"
                 }
             }
         },

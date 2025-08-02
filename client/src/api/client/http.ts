@@ -1,5 +1,5 @@
 import { Configuration } from "../generated/configuration";
-import { AuthenticationApi, ServiceApi, TasksApi } from '../generated/api'
+import { AuthenticationApi, ProfileApi, ServiceApi, TasksApi } from '../generated/api'
 
 // Создаём конфигурацию
 const config = new Configuration({
@@ -14,5 +14,6 @@ const config = new Configuration({
 export const api = {
   auth: new AuthenticationApi(config),
   service: new ServiceApi(config),
+  profile: new ProfileApi(config),
   tasks: new TasksApi(config),
 }

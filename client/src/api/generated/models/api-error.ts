@@ -37,18 +37,6 @@ export interface ApiError {
      * @type {string}
      * @memberof ApiError
      */
-    'latency'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiError
-     */
     'message'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ApiError
-     */
-    'timestamp'?: string;
 }
 
