@@ -25,16 +25,23 @@ type TaskEntry struct {
 }
 
 type Requirement struct {
-	ID          int64   `json:"id"`
-	TaskID      int64   `json:"task_id"`
-	ParentID    *int64  `json:"parent_id"`
-	Title       string  `json:"title"`
-	Type        string  `json:"type"`
-	DataType    *string `json:"data_type"`
-	Operator    *string `json:"operator"`
-	TargetValue *string `json:"target_value"`
-	Value       *string `json:"value"`
-	SortOrder   int     `json:"sort_order"`
+	ID     int64 `json:"id"`
+	TaskID int64 `json:"task_id"`
+}
+
+type RequirementSnapshot struct {
+	ID               int64   `json:"id"`
+	TaskID           int64   `json"task_id"`
+	RequirementID    int64   `json:"requirement_id"`
+	ParentID         *int64  `json:"parent_id"`
+	Title            string  `json:"title"`
+	Type             string  `json:"type"`
+	DataType         *string `json:"data_type"`
+	Operator         *string `json:"operator"`
+	TargetValue      *string `json:"target_value"`
+	Value            *string `json:"value"`
+	SortOrder        int     `json:"sort_order"`
+	ParentSnapshotID int64   `json:"parent_snapshot_id"`
 }
 
 type RequirementEntry struct {

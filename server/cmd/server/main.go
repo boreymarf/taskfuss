@@ -95,12 +95,17 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize task entry repository")
 	}
 
-	requirementRepository, err := db.InitRequirementRepository(database)
+	requirementsRepository, err := db.InitRequirementsRepository(database)
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement repository")
 	}
 
-	requirementEntryRepository, err := db.InitRequirementEntryRepository(database)
+	requirementsSnapshotsRepository, err := db.InitRequirementsSnapshotsRepository(database)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirements snapshots repository")
+	}
+
+	requirementsEntryRepository, err := db.InitRequirementsEntryRepository(database)
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement entry repository")
 	}
@@ -109,8 +114,9 @@ func main() {
 	taskService, err := service.InitTaskService(
 		taskRepository,
 		taskEntryRepository,
-		requirementRepository,
-		requirementEntryRepository,
+		requirementsRepository,
+		requirementsEntryRepository,
+		requirementsSnapshotsRepository,
 	)
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize task service repository")
@@ -131,8 +137,8 @@ func main() {
 		userRepository,
 		taskRepository,
 		taskEntryRepository,
-		requirementRepository,
-		requirementEntryRepository,
+		requirementsRepository,
+		requirementsEntryRepository,
 		taskService,
 	)
 	if err != nil {

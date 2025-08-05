@@ -7,13 +7,13 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 )
 
-type RequirementEntryRepository struct {
+type RequirementsEntryRepository struct {
 	db *sql.DB
 }
 
-func InitRequirementEntryRepository(db *sql.DB) (*RequirementEntryRepository, error) {
+func InitRequirementsEntryRepository(db *sql.DB) (*RequirementsEntryRepository, error) {
 
-	repo := &RequirementEntryRepository{db: db}
+	repo := &RequirementsEntryRepository{db: db}
 
 	if err := repo.CreateTable(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
@@ -24,12 +24,14 @@ func InitRequirementEntryRepository(db *sql.DB) (*RequirementEntryRepository, er
 	return repo, nil
 }
 
-func (r *RequirementEntryRepository) CreateTable() error {
-	query := `CREATE TABLE IF NOT EXISTS requirement_entries (
-	id 							INTEGER NOT NULL PRIMARY KEY,
-	requirement_id 	INTEGER NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
-	entry_date 			DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	value						TEXT NOT NULL
+func (r *RequirementsEntryRepository) CreateTable() error {
+	query := `CREATE TABLE IF NOT EXISTS requirements_entries (
+	id 											INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	requirement_id					INTEGER NOT NULL REFERENCES requirements(id) ON DELETE CASCADE,
+	requirement_snapshot_id INTEGER NOT NULL REFERENCES requirements_snapshots(id) ON DELETE CASCADE,
+	entry_date 							DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	value										TEXT NOT NULL,
+	recorded_at							DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 	)`
 
 	_, err := r.db.Exec(query)

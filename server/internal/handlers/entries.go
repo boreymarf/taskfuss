@@ -14,15 +14,9 @@ func InitEntriesHandler() (*EntriesHandler, error) {
 func (h *EntriesHandler) AddRequirementEntry(c *gin.Context) {
 }
 
-
 // This one takes IDs and two dates in query
 
 // CreateTask godoc
 // @Summary Create a new entry
 func (h *EntriesHandler) GetEntries(c *gin.Context) {
 }
-
-
-//
-//
-func (h *EntriesHandler) 

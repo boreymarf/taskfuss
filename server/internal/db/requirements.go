@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -13,13 +11,13 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-type RequirementRepository struct {
+type RequirementsRepository struct {
 	db *sql.DB
 }
 
-func InitRequirementRepository(db *sql.DB) (*RequirementRepository, error) {
+func InitRequirementsRepository(db *sql.DB) (*RequirementsRepository, error) {
 
-	repo := &RequirementRepository{db: db}
+	repo := &RequirementsRepository{db: db}
 
 	if err := repo.CreateTable(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
@@ -30,18 +28,11 @@ func InitRequirementRepository(db *sql.DB) (*RequirementRepository, error) {
 	return repo, nil
 }
 
-func (r *RequirementRepository) CreateTable() error {
+func (r *RequirementsRepository) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS requirements (
-  id           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  task_id      INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-  parent_id    INTEGER REFERENCES requirements(id) ON DELETE CASCADE,
-	title        TEXT NOT NULL,
-  type         TEXT NOT NULL CHECK (type IN ('atom', 'condition')),
-  data_type    TEXT CHECK (data_type IN ('bool', 'int', 'float', 'duration', 'none')),
-  operator     TEXT CHECK (operator IN ('or', 'not', 'and', '==', '>=', '<=', '!=', '>', '<')),
-  target_value TEXT,
-  sort_order   INTEGER NOT NULL DEFAULT 0
-  )`
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id   INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE
+)`
 
 	_, err := r.db.Exec(query)
 	if err != nil {
@@ -51,32 +42,15 @@ func (r *RequirementRepository) CreateTable() error {
 	return nil
 }
 
-func (r *RequirementRepository) CreateRequirement(requirement *models.Requirement) error {
+func (r *RequirementsRepository) CreateRequirement(requirement *models.Requirement) (models.Requirement, error) {
 	logger.Log.Debug().
-		Str("title", requirement.Title).
 		Msg("Trying to create new requirement to the db...")
 
-	query := `INSERT INTO requirements (
-		task_id,
-		parent_id,
-		title,
-		type,
-		data_type,
-		operator,
-		target_value,
-		sort_order
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO requirements (task_id) VALUES (?)`
 
 	result, err := r.db.Exec(
 		query,
 		requirement.TaskID,
-		requirement.ParentID,
-		requirement.Title,
-		requirement.Type,
-		requirement.DataType,
-		requirement.Operator,
-		requirement.TargetValue,
-		requirement.SortOrder,
 	)
 
 	if err != nil {
@@ -84,68 +58,86 @@ func (r *RequirementRepository) CreateRequirement(requirement *models.Requiremen
 		// If there's a dublicate requirement
 		if errors.As(err, &sqliteErr) {
 			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-				return apperrors.ErrDuplicate
+				return models.Requirement{}, apperrors.ErrDuplicate
 			}
 		}
-		return err
+		return models.Requirement{}, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return err
+		return models.Requirement{}, err
 	}
 
-	requirement.ID = id
-
-	// err = r.GetTaskByID(id, task)
-	// if err != nil {
-	// 	return err
-	// }
-
-	return nil
-}
-
-func (r *RequirementRepository) GetRequirementsByTaskIDs(taskIDs []int64) ([]models.Requirement, error) {
-
-	var stringIDs []string
-
-	for _, id := range taskIDs {
-		stringIDs = append(stringIDs, strconv.FormatInt(id, 10))
-	}
-	idQuery := strings.Join(stringIDs, ", ")
-
-	query := fmt.Sprintf(`SELECT id, task_id, parent_id, title, type, data_type, operator, target_value, sort_order 
-		FROM requirements WHERE task_id IN (%s)`, idQuery)
-
-	rows, err := r.db.Query(query)
+	createdRequirement, err := r.GetRequirementByID(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query requirements: %w", err)
-	}
-	defer rows.Close()
-
-	var requirements []models.Requirement
-	for rows.Next() {
-		var req models.Requirement
-		err := rows.Scan(
-			&req.ID,
-			&req.TaskID,
-			&req.ParentID,
-			&req.Title,
-			&req.Type,
-			&req.DataType,
-			&req.Operator,
-			&req.TargetValue,
-			&req.SortOrder,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan requirement: %w", err)
-		}
-		requirements = append(requirements, req)
+		return models.Requirement{}, err
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error after scanning requirements: %w", err)
-	}
-
-	return requirements, nil
+	return createdRequirement, nil
 }
+
+func (r *RequirementsRepository) GetRequirementByID(id int64) (models.Requirement, error) {
+
+	var requirement models.Requirement
+	logger.Log.Debug().Int64("id", id).Msg("taskRepository tries to find task")
+
+	query := `SELECT id, task_id
+	FROM requirements
+	WHERE id = ?`
+
+	row := r.db.QueryRow(query, id)
+
+	err := row.Scan(
+		&requirement.ID,
+		&requirement.TaskID,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		logger.Log.Warn().
+			Int64("taskID", id).
+			Msg("No task was found")
+		return models.Requirement{}, fmt.Errorf("task %d not found: %w", id, err)
+	} else if err != nil {
+		return models.Requirement{}, err
+	}
+
+	return requirement, nil
+}
+
+// func (r *RequirementsRepository) GetRequirementsByTaskIDs(taskIDs []int64) ([]models.Requirement, error) {
+//
+// 	var stringIDs []string
+//
+// 	for _, id := range taskIDs {
+// 		stringIDs = append(stringIDs, strconv.FormatInt(id, 10))
+// 	}
+// 	idQuery := strings.Join(stringIDs, ", ")
+//
+// 	query := fmt.Sprintf(`SELECT id, task_id`, idQuery)
+//
+// 	rows, err := r.db.Query(query)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query requirements: %w", err)
+// 	}
+// 	defer rows.Close()
+//
+// 	var requirements []models.Requirement
+// 	for rows.Next() {
+// 		var req models.Requirement
+// 		err := rows.Scan(
+// 			&req.ID,
+// 			&req.TaskID,
+// 		)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to scan requirement: %w", err)
+// 		}
+// 		requirements = append(requirements, req)
+// 	}
+//
+// 	if err := rows.Err(); err != nil {
+// 		return nil, fmt.Errorf("error after scanning requirements: %w", err)
+// 	}
+//
+// 	return requirements, nil
+// }
