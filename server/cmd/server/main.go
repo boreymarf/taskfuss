@@ -121,6 +121,7 @@ func main() {
 
 	// Services
 	taskService, err := service.InitTaskService(
+		database,
 		usersRepository,
 		taskSkeletonsRepository,
 		taskSnapshotsRepository,

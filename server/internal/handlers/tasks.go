@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"context"
+	"time"
+
 	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
+	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/boreymarf/task-fuss/server/internal/service"
 	"github.com/boreymarf/task-fuss/server/internal/utils"
@@ -37,6 +41,8 @@ func InitTaskHandler(
 // @Failure 500 {object} api.Error "Internal server error"
 // @Router /tasks [post]
 func (h *TaskHandler) CreateTask(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 
 	var req dto.CreateTaskRequest
 
@@ -47,8 +53,9 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	claims := security.GetClaimsFromContext(c)
 
-	createdTask, err := h.taskService.CreateTask(&req, claims.UserID)
+	createdTask, err := h.taskService.CreateTask(ctx, &req, claims.UserID)
 	if err != nil {
+		logger.Log.Error().Err(err).Msg("Service failed to create a new task!")
 		api.InternalServerError.SendAndAbort(c)
 	}
 

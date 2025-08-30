@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 )
 
 type TaskSkeletons interface {
-	Create(task *models.TaskSkeleton) (*models.TaskSkeleton, error)
+	CreateTx(ctx context.Context, tx *sql.Tx, task *models.TaskSkeleton) (*models.TaskSkeleton, error)
 	GetByID(id int64) (*models.TaskSkeleton, error)
 }
 
@@ -48,18 +49,16 @@ func (r *taskSkeletons) CreateTable() error {
 	return nil
 }
 
-func (r *taskSkeletons) Create(task *models.TaskSkeleton) (*models.TaskSkeleton, error) {
+func (r *taskSkeletons) CreateTx(ctx context.Context, tx *sql.Tx, taskSkeleton *models.TaskSkeleton) (*models.TaskSkeleton, error) {
 	logger.Log.Debug().
-		Int64("owner_id", task.OwnerID).
-		Msg("Trying to create new task in db")
+		Int64("owner_id", taskSkeleton.OwnerID).
+		Msg("Trying to create new task in db via ctx")
 
-	query := `INSERT INTO tasks_skeletons (owner_id) VALUES (?)`
+	query := `INSERT INTO task_skeletons (owner_id) VALUES (?)`
 
-	result, err := r.db.Exec(query, task.OwnerID)
-
+	result, err := tx.ExecContext(ctx, query, taskSkeleton.OwnerID)
 	if err != nil {
 		var sqliteErr sqlite3.Error
-		// If there's a dublicate task
 		if errors.As(err, &sqliteErr) {
 			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
 				return nil, apperrors.ErrDuplicate
@@ -73,16 +72,39 @@ func (r *taskSkeletons) Create(task *models.TaskSkeleton) (*models.TaskSkeleton,
 		return nil, err
 	}
 
-	createdTask, err := r.GetByID(id)
+	createdTaskSkeleton, err := r.getByIDTx(ctx, tx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.Log.Info().
-		Int64("task_skeleton_id", createdTask.ID).
-		Int64("owner_id", createdTask.OwnerID).
+		Int64("task_skeleton_id", createdTaskSkeleton.ID).
+		Int64("owner_id", createdTaskSkeleton.OwnerID).
 		Msg("Created new task skeleton successfully")
-	return createdTask, nil
+	return createdTaskSkeleton, nil
+}
+
+func (r *taskSkeletons) getByIDTx(ctx context.Context, tx *sql.Tx, id int64) (*models.TaskSkeleton, error) {
+	logger.Log.Debug().
+		Int64("id", id).
+		Msg("Trying to find the task skeleton in the db via ctx")
+
+	query := `SELECT id, owner_id, status 
+	FROM task_skeletons 
+	WHERE id = ?`
+
+	var task models.TaskSkeleton
+
+	err := tx.QueryRowContext(ctx, query, id).Scan(
+		&task.ID,
+		&task.OwnerID,
+		&task.Status,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &task, nil
 }
 
 func (r *taskSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
@@ -93,7 +115,7 @@ func (r *taskSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
 		Msg("Trying to find the task skeleton in the db")
 
 	query := `SELECT id, owner_id, status
-	FROM tasks_skeletons
+	FROM task_skeletons
 	WHERE id = ?`
 
 	row := r.db.QueryRow(query, id)
