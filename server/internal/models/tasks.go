@@ -42,16 +42,15 @@ type RequirementSkeleton struct {
 }
 
 type RequirementSnapshot struct {
-	RevisionUUID     uuid.UUID      `db:"revision_uuid"`
-	SkeletonID       int64          `db:"skeleton_id"`
-	ParentID         sql.NullInt64  `db:"parent_id"`
-	Title            string         `db:"title"`
-	Type             string         `db:"type"`         // atom or condition
-	DataType         sql.NullString `db:"data_type"`    // int, time, bool, none, etc.
-	Operator         sql.NullString `db:"operator"`     // or, not, and, ==, >=, <=, !=, >, < and etc.
-	TargetValue      sql.NullString `db:"target_value"` // any value that needs to be parsed using DataType field
-	SortOrder        int            `db:"sort_order"`
-	ParentSnapshotID int64          `db:"parent_snapshot_id"`
+	RevisionUUID uuid.UUID      `db:"revision_uuid"`
+	SkeletonID   int64          `db:"skeleton_id"`
+	ParentID     sql.NullInt64  `db:"parent_id"`
+	Title        string         `db:"title"`
+	Type         string         `db:"type"`         // atom or condition
+	DataType     sql.NullString `db:"data_type"`    // int, time, bool, none, etc.
+	Operator     sql.NullString `db:"operator"`     // or, not, and, ==, >=, <=, !=, >, < and etc.
+	TargetValue  sql.NullString `db:"target_value"` // any value that needs to be parsed using DataType field
+	SortOrder    int            `db:"sort_order"`
 }
 
 type RequirementEntry struct {
