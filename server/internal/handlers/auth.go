@@ -20,10 +20,10 @@ import (
 )
 
 type AuthHandler struct {
-	userRepo *db.UserRepository
+	userRepo *db.Users
 }
 
-func InitAuthHandler(userRepo *db.UserRepository) (*AuthHandler, error) {
+func InitAuthHandler(userRepo *db.Users) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 

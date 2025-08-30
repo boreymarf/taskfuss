@@ -11,10 +11,10 @@ import (
 )
 
 type ProfileHandler struct {
-	userRepo *db.UserRepository
+	userRepo *db.Users
 }
 
-func InitProfileHandler(userRepo *db.UserRepository) (*ProfileHandler, error) {
+func InitProfileHandler(userRepo *db.Users) (*ProfileHandler, error) {
 	return &ProfileHandler{userRepo: userRepo}, nil
 }
 

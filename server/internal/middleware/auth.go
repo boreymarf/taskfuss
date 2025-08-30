@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Auth(userRepo *db.UserRepository) gin.HandlerFunc {
+func Auth(userRepo *db.Users) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		authHeader := c.GetHeader("Authorization")

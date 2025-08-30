@@ -11,12 +11,12 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-type UserRepository struct {
+type Users struct {
 	db *sql.DB
 }
 
-func InitUserRepository(db *sql.DB) (*UserRepository, error) {
-	repo := &UserRepository{db: db}
+func InitUsers(db *sql.DB) (*Users, error) {
+	repo := &Users{db: db}
 
 	if err := repo.CreateTable(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
@@ -27,7 +27,7 @@ func InitUserRepository(db *sql.DB) (*UserRepository, error) {
 	return repo, nil
 }
 
-func (r *UserRepository) CreateTable() error {
+func (r *Users) CreateTable() error {
 	query := `CREATE TABLE IF NOT EXISTS users (
 	id 				INTEGER NOT NULL PRIMARY KEY,
 	name 					VARCHAR(255) NOT NULL,
@@ -45,9 +45,9 @@ func (r *UserRepository) CreateTable() error {
 	return nil
 }
 
-func (r *UserRepository) CreateUser(user *models.User) error {
+func (r *Users) CreateUser(user *models.User) error {
 
-	logger.Log.Info().Str("email", user.Email).Msg("UserRepository tries to create new user")
+	logger.Log.Info().Str("email", user.Email).Msg("Users tries to create new user")
 
 	query := `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`
 
@@ -83,9 +83,9 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
+func (r *Users) GetUserByID(id int64, user *models.User) error {
 
-	logger.Log.Debug().Int64("id", id).Msg("UserRepository tries to find user")
+	logger.Log.Debug().Int64("id", id).Msg("Users tries to find user")
 
 	query := `SELECT id, name, password_hash, email, created_at, updated_at 
 	FROM users 
@@ -114,9 +114,9 @@ func (r *UserRepository) GetUserByID(id int64, user *models.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetUserByEmail(email string, user *models.User) error {
+func (r *Users) GetUserByEmail(email string, user *models.User) error {
 
-	logger.Log.Debug().Str("email", email).Msg("UserRepository tries to find user")
+	logger.Log.Debug().Str("email", email).Msg("Users tries to find user")
 
 	query := `SELECT id, name, password_hash, email, created_at, updated_at 
 	FROM users 
@@ -145,7 +145,7 @@ func (r *UserRepository) GetUserByEmail(email string, user *models.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetAllUsers() ([]models.User, error) {
+func (r *Users) GetAllUsers() ([]models.User, error) {
 
 	query := `SELECT id, name, email, created_at, updated_at 
               FROM users`
@@ -182,7 +182,7 @@ func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-func (r *UserRepository) Exists(userID int64) (bool, error) {
+func (r *Users) Exists(userID int64) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`
 	var exists bool
 	err := r.db.QueryRow(query, userID).Scan(&exists)

@@ -2,51 +2,59 @@ package models
 
 import (
 	"database/sql"
+	"github.com/google/uuid"
 	"time"
 )
 
-type Task struct {
-	ID          int64        `json:"id"`
-	OwnerID     int64        `json:"owner_id"`
-	Title       string       `json:"title"`
-	Description *string      `json:"description"`
-	CreatedAt   sql.NullTime `json:"created_at"`
-	UpdatedAt   sql.NullTime `json:"updated_at"`
-	StartDate   sql.NullTime `json:"start_date"`
-	EndDate     sql.NullTime `json:"end_date"`
-	Status      string       `json:"status"`
+type TaskSkeleton struct {
+	ID      int64  `db:"id"`
+	OwnerID int64  `db:"owner_id"`
+	Status  string `db:"status"` // Archived, active
+}
+
+type TaskSnapshot struct {
+	RevisionUUID uuid.UUID      `db:"revision_uuid"`
+	Title        string         `db:"title"`
+	Description  sql.NullString `db:"description"`
+	CreatedAt    sql.NullTime   `db:"created_at"`
+	UpdatedAt    sql.NullTime   `db:"updated_at"`
+}
+
+type TaskPeriod struct {
+	ID        int64        `db:"id"`
+	TaskID    int64        `db:"task_id"`
+	StartDate sql.NullTime `db:"start_date"`
+	EndDate   sql.NullTime `db:"end_date"`
 }
 
 type TaskEntry struct {
-	ID        int64     `json:"id"`
-	TaskID    int64     `json:"task_id"`
-	EntryDate time.Time `json:"entry_date"`
-	Completed bool      `json:"completed"`
+	ID        int64     `db:"id"`
+	TaskID    int64     `db:"task_id"`
+	EntryDate time.Time `db:"entry_date"`
+	Completed bool      `db:"completed"`
 }
 
-type Requirement struct {
-	ID     int64 `json:"id"`
-	TaskID int64 `json:"task_id"`
+type RequirementSkeleton struct {
+	ID     int64 `db:"id"`
+	TaskID int64 `db:"task_id"`
 }
 
 type RequirementSnapshot struct {
-	ID               int64   `json:"id"`
-	TaskID           int64   `json"task_id"`
-	RequirementID    int64   `json:"requirement_id"`
-	ParentID         *int64  `json:"parent_id"`
-	Title            string  `json:"title"`
-	Type             string  `json:"type"`
-	DataType         *string `json:"data_type"`
-	Operator         *string `json:"operator"`
-	TargetValue      *string `json:"target_value"`
-	Value            *string `json:"value"`
-	SortOrder        int     `json:"sort_order"`
-	ParentSnapshotID int64   `json:"parent_snapshot_id"`
+	RevisionUUID     uuid.UUID      `db:"revision_uuid"`
+	SkeletonID       int64          `db:"skeleton_id"`
+	ParentID         sql.NullInt64  `db:"parent_id"`
+	Title            string         `db:"title"`
+	Type             string         `db:"type"`         // atom or condition
+	DataType         sql.NullString `db:"data_type"`    // int, time, bool, none, etc.
+	Operator         sql.NullString `db:"operator"`     // or, not, and, ==, >=, <=, !=, >, < and etc.
+	TargetValue      sql.NullString `db:"target_value"` // any value that needs to be parsed using DataType field
+	SortOrder        int            `db:"sort_order"`
+	ParentSnapshotID int64          `db:"parent_snapshot_id"`
 }
 
 type RequirementEntry struct {
-	ID            int64     `json:"id"`
-	RequirementID int64     `json:"requirement_id"`
-	EntryDate     time.Time `json:"entry_date"`
-	Value         string    `json:"value"`
+	ID            int64     `db:"id"`
+	RequirementID int64     `db:"requirement_id"`
+	EntryDate     time.Time `db:"entry_date"`
+	Value         string    `db:"value"` // any value that needs to be parsed using DataType field of RequirementSnapshot
 }
