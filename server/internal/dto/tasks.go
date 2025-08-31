@@ -12,10 +12,10 @@ type CreateTaskRequest struct {
 
 type CreateRequirementRequest struct {
 	Title       string                     `json:"title" binding:"required"`
-	Type        string                     `json:"type" binding:"required"` // atom or condition
-	DataType    *string                    `json:"data_type,omitempty"`     // int, time, bool, none, etc.
-	Operator    *string                    `json:"operator,omitempty"`      // or, not, and, ==, >=, <=, !=, >, < and etc.
-	TargetValue *string                    `json:"target_value,omitempty"`  // any value that needs to be parsed using DataType field
+	Type        string                     `json:"type" binding:"required"`         // atom or condition
+	DataType    *string                    `json:"data_type,omitempty"`             // int, time, bool, none, etc.
+	Operator    *string                    `json:"operator,omitempty"`              // or, not, and, ==, >=, <=, !=, >, < and etc.
+	TargetValue string                     `json:"target_value" binding:"required"` // any value that needs to be parsed using DataType field
 	Operands    []CreateRequirementRequest `json:"operands,omitempty"`
 	SortOrder   int                        `json:"sort_order"`
 }
@@ -37,7 +37,7 @@ type RequirementResponse struct {
 	Type        string                `json:"type"`
 	DataType    *string               `json:"data_type,omitempty"`
 	Operator    *string               `json:"operator,omitempty"`
-	TargetValue *string               `json:"target_value,omitempty"`
+	TargetValue string                `json:"target_value"`
 	Operands    []RequirementResponse `json:"operands,omitempty"`
 	SortOrder   int                   `json:"sort_order"`
 }

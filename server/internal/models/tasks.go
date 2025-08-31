@@ -49,7 +49,7 @@ type RequirementSnapshot struct {
 	Type         string         `db:"type"`         // atom or condition
 	DataType     sql.NullString `db:"data_type"`    // int, time, bool, none, etc.
 	Operator     sql.NullString `db:"operator"`     // or, not, and, ==, >=, <=, !=, >, < and etc.
-	TargetValue  sql.NullString `db:"target_value"` // any value that needs to be parsed using DataType field
+	TargetValue  string         `db:"target_value"` // any value that needs to be parsed using DataType field
 	SortOrder    int            `db:"sort_order"`
 }
 

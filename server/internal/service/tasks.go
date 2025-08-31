@@ -136,7 +136,7 @@ func (s *TaskService) createRequirementTx(
 		Type:         req.Type,
 		DataType:     utils.ToNullString(req.DataType),
 		Operator:     utils.ToNullString(req.Operator),
-		TargetValue:  utils.ToNullString(req.TargetValue),
+		TargetValue:  req.TargetValue,
 		SortOrder:    req.SortOrder,
 	}
 
@@ -163,7 +163,7 @@ func (s *TaskService) createRequirementTx(
 		Type:        createdRequirementSnapshot.Type,
 		DataType:    req.DataType,
 		Operator:    &createdRequirementSnapshot.Operator.String,
-		TargetValue: &createdRequirementSnapshot.TargetValue.String,
+		TargetValue: createdRequirementSnapshot.TargetValue,
 		Operands:    requirementOperands,
 		SortOrder:   createdRequirementSnapshot.SortOrder,
 	}

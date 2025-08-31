@@ -45,7 +45,7 @@ func (r *requirementSnapshots) CreateTable() error {
 		type TEXT NOT NULL CHECK (type IN ('atom', 'condition')),
 		data_type TEXT CHECK (data_type IN ('bool', 'int', 'float', 'duration', 'none')),
 		operator TEXT CHECK (operator IN ('or', 'not', 'and', '==', '>=', '<=', '!=', '>', '<')),
-		target_value TEXT,
+		target_value TEXT NOT NULL,
 		sort_order INTEGER NOT NULL DEFAULT 0,
 		PRIMARY KEY (revision_uuid, skeleton_id)
   )`
@@ -112,7 +112,7 @@ func (r *requirementSnapshots) CreateTx(ctx context.Context, tx *sql.Tx, require
 		return nil, fmt.Errorf("no rows affected during insert")
 	}
 
-	createdRequirementSnapshot, err := r.getByRevisionUUIDTx(ctx, tx, revision_uuid)
+	createdRequirementSnapshot, err := r.getByCompositeKeyTx(ctx, tx, revision_uuid, requirementSnapshot.SkeletonID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,27 +127,22 @@ func (r *requirementSnapshots) CreateTx(ctx context.Context, tx *sql.Tx, require
 	return createdRequirementSnapshot, nil
 }
 
-func (r *requirementSnapshots) getByRevisionUUIDTx(ctx context.Context, tx *sql.Tx, revision_uuid uuid.UUID) (*models.RequirementSnapshot, error) {
-	logger.Log.Debug().
-		Str("revision_uuid", revision_uuid.String()).
-		Msg("Trying to find the requirement snapshot in the db via ctx")
-
+func (r *requirementSnapshots) getByCompositeKeyTx(ctx context.Context, tx *sql.Tx, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error) {
 	query := `SELECT
-		revision_uuid,
-		skeleton_id,
-		parent_id,
-		title,
-		type,
-		data_type,
-		operator,
-		target_value,
-		sort_order
-	FROM requirement_snapshots
-	WHERE revision_uuid = ?`
+        revision_uuid,
+        skeleton_id,
+        parent_id,
+        title,
+        type,
+        data_type,
+        operator,
+        target_value,
+        sort_order
+    FROM requirement_snapshots
+    WHERE revision_uuid = ? AND skeleton_id = ?`
 
 	var requirementSnapshot models.RequirementSnapshot
-
-	err := tx.QueryRowContext(ctx, query, revision_uuid).Scan(
+	err := tx.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
 		&requirementSnapshot.RevisionUUID,
 		&requirementSnapshot.SkeletonID,
 		&requirementSnapshot.ParentID,
@@ -155,14 +150,12 @@ func (r *requirementSnapshots) getByRevisionUUIDTx(ctx context.Context, tx *sql.
 		&requirementSnapshot.Type,
 		&requirementSnapshot.DataType,
 		&requirementSnapshot.Operator,
-		// FIXME: Returns "" for some reason
 		&requirementSnapshot.TargetValue,
 		&requirementSnapshot.SortOrder,
 	)
 	if err != nil {
 		return nil, err
 	}
-	spew.Dump(requirementSnapshot)
 
 	return &requirementSnapshot, nil
 }
