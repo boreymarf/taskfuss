@@ -5,16 +5,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog"
 )
 
 type RequirementSkeletons interface {
 	CreateTx(ctx context.Context, tx *sql.Tx, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error)
 	GetByID(id int64) (*models.TaskSkeleton, error)
+	GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error)
 }
 
 type requirementSkeletons struct {
@@ -140,4 +143,59 @@ func (r *requirementSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
 	}
 
 	return &task, nil
+}
+
+func (r *requirementSkeletons) GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error) {
+	if len(task_ids) > 0 {
+		arr := zerolog.Arr()
+		for _, id := range task_ids {
+			arr.Int64(id)
+		}
+		logger.Log.Debug().
+			Array("task_ids", arr).
+			Msg("Trying to get all requirement skeletons from the db")
+	} else {
+		logger.Log.Debug().
+			Msg("Task ids list is empty, skipping database query")
+	}
+
+	if len(task_ids) == 0 {
+		return []*models.RequirementSkeleton{}, nil
+	}
+
+	query := `SELECT
+		id,
+		task_id
+	FROM requirement_skeletons
+	WHERE task_id IN (` + strings.Repeat("?,", len(task_ids)-1) + "?)"
+
+	args := make([]any, len(task_ids))
+	for i, id := range task_ids {
+		args[i] = id
+	}
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requirements []*models.RequirementSkeleton
+	for rows.Next() {
+		var req models.RequirementSkeleton
+		err := rows.Scan(
+			&req.ID,
+			&req.TaskID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		requirements = append(requirements, &req)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return requirements, nil
 }

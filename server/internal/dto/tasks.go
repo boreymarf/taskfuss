@@ -1,6 +1,10 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type CreateTaskRequest struct {
 	Title       string                    `json:"title" binding:"required"`
@@ -21,14 +25,15 @@ type CreateRequirementRequest struct {
 }
 
 type TaskResponse struct {
-	ID          int64                `json:"id"`
-	Title       string               `json:"title"`
-	Requirement *RequirementResponse `json:"requirement"`
-	Description *string              `json:"description,omitempty"`
-	CreatedAt   *time.Time           `json:"created_at,omitempty"`
-	UpdatedAt   *time.Time           `json:"updated_at,omitempty"`
-	StartDate   *time.Time           `json:"start_date,omitempty"`
-	EndDate     *time.Time           `json:"end_date,omitempty"`
+	ID           int64                `json:"id"`
+	Title        string               `json:"title"`
+	RevisionUUID uuid.UUID            `json:"revision_uuid"`
+	Requirement  *RequirementResponse `json:"requirement"`
+	Description  *string              `json:"description,omitempty"`
+	CreatedAt    *time.Time           `json:"created_at,omitempty"`
+	UpdatedAt    *time.Time           `json:"updated_at,omitempty"`
+	StartDate    *time.Time           `json:"start_date,omitempty"`
+	EndDate      *time.Time           `json:"end_date,omitempty"`
 }
 
 type RequirementResponse struct {

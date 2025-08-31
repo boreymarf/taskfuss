@@ -9,13 +9,13 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/mattn/go-sqlite3"
 )
 
 type RequirementSnapshots interface {
 	CreateTx(ctx context.Context, tx *sql.Tx, requirementSnapshot *models.RequirementSnapshot, revision_uuid uuid.UUID) (*models.RequirementSnapshot, error)
+	GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error)
 }
 
 type requirementSnapshots struct {
@@ -43,7 +43,7 @@ func (r *requirementSnapshots) CreateTable() error {
 		parent_id INTEGER DEFAULT NULL REFERENCES requirement_skeletons(id) ON DELETE CASCADE,
 		title TEXT NOT NULL,
 		type TEXT NOT NULL CHECK (type IN ('atom', 'condition')),
-		data_type TEXT CHECK (data_type IN ('bool', 'int', 'float', 'duration', 'none')),
+		data_type TEXT NOT NULL CHECK (data_type IN ('bool', 'int', 'float', 'duration', 'none')),
 		operator TEXT CHECK (operator IN ('or', 'not', 'and', '==', '>=', '<=', '!=', '>', '<')),
 		target_value TEXT NOT NULL,
 		sort_order INTEGER NOT NULL DEFAULT 0,
@@ -74,8 +74,6 @@ func (r *requirementSnapshots) CreateTx(ctx context.Context, tx *sql.Tx, require
 		target_value,
 		sort_order
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-
-	spew.Dump(requirementSnapshot)
 
 	result, err := tx.ExecContext(
 		ctx,
@@ -143,6 +141,39 @@ func (r *requirementSnapshots) getByCompositeKeyTx(ctx context.Context, tx *sql.
 
 	var requirementSnapshot models.RequirementSnapshot
 	err := tx.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
+		&requirementSnapshot.RevisionUUID,
+		&requirementSnapshot.SkeletonID,
+		&requirementSnapshot.ParentID,
+		&requirementSnapshot.Title,
+		&requirementSnapshot.Type,
+		&requirementSnapshot.DataType,
+		&requirementSnapshot.Operator,
+		&requirementSnapshot.TargetValue,
+		&requirementSnapshot.SortOrder,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &requirementSnapshot, nil
+}
+
+func (r *requirementSnapshots) GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error) {
+	query := `SELECT
+        revision_uuid,
+        skeleton_id,
+        parent_id,
+        title,
+        type,
+        data_type,
+        operator,
+        target_value,
+        sort_order
+    FROM requirement_snapshots
+    WHERE revision_uuid = ? AND skeleton_id = ?`
+
+	var requirementSnapshot models.RequirementSnapshot
+	err := r.db.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
 		&requirementSnapshot.RevisionUUID,
 		&requirementSnapshot.SkeletonID,
 		&requirementSnapshot.ParentID,

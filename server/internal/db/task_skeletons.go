@@ -15,6 +15,7 @@ import (
 type TaskSkeletons interface {
 	CreateTx(ctx context.Context, tx *sql.Tx, task *models.TaskSkeleton) (*models.TaskSkeleton, error)
 	GetByID(id int64) (*models.TaskSkeleton, error)
+	GetAll(showActive, showArchived bool) ([]*models.TaskSkeleton, error)
 }
 
 type taskSkeletons struct {
@@ -136,4 +137,53 @@ func (r *taskSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
 	}
 
 	return &task, nil
+}
+
+func (r *taskSkeletons) GetAll(showActive, showArchived bool) ([]*models.TaskSkeleton, error) {
+	logger.Log.Debug().
+		Bool("show_active", showActive).
+		Bool("show_archived", showArchived).
+		Msg("Trying to get all task skeletons from the db")
+
+	query := `SELECT id, owner_id, status
+	FROM task_skeletons
+	WHERE 1=1`
+
+	args := []any{}
+
+	if showActive {
+		query += " AND status = ?"
+		args = append(args, "active")
+	}
+
+	if showArchived {
+		query += " AND status = ?"
+		args = append(args, "archived")
+	}
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []*models.TaskSkeleton
+	for rows.Next() {
+		var task models.TaskSkeleton
+		err := rows.Scan(
+			&task.ID,
+			&task.OwnerID,
+			&task.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, &task)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }

@@ -62,68 +62,69 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	api.Accepted(c, createdTask)
 }
 
-//
-// type GetAllTasksQuery struct {
-// 	DetailLevel   string `form:"detail" binding:"omitempty,oneof=minimal basic full"`
-// 	ShowActive    string `form:"active" binding:"omitempty,oneof=true false"`
-// 	ShowArchived  string `form:"archived" binding:"omitempty,oneof=true false"`
-// 	ShowCompleted string `form:"completed" binding:"omitempty,oneof=true false"`
-// }
-//
-// // GetAllTasks godoc
-// // @Summary Get all tasks with filtering options
-// // @Description Retrieves tasks based on filter criteria (active/archived/completed) and detail level
-// // @Tags tasks
-// // @Security ApiKeyAuth
-// // @Produce json
-// // @Param Authorization header string true "Bearer token"
-// // @Param detailLevel query string false "Detail level" Enums(minimal, standard, full)
-// // @Param showActive query boolean false "Include active tasks (default: true)"
-// // @Param showArchived query boolean false "Include archived tasks (default: false)"
-// // @Param showCompleted query boolean false "Include completed tasks (default: true)"
-// // @Success 200 {object} dto.GetAllTasksResponse "List of tasks"
-// // @Failure 400 {object} api.Error "Invalid query parameters"
-// // @Failure 401 {object} api.Error "Unauthorized"
-// // @Failure 500 {object} api.Error "Internal server error"
-// // @Router /tasks [get]
-// func (h *TaskHandler) GetAllTasks(c *gin.Context) {
-//
-// 	// var queryParams GetAllTasksQuery
-// 	// if err := c.ShouldBindQuery(&queryParams); err != nil {
-// 	// 	api.InvalidQuery.SendAndAbort(c)
-// 	// }
-// 	//
-// 	// opts := service.GetAllTasksOptions{
-// 	// 	DetailLevel: queryParams.DetailLevel,
-// 	// }
-// 	//
-// 	// opts.ShowActive = true
-// 	// opts.ShowArchived = false
-// 	// opts.ShowCompleted = true
-// 	//
-// 	// if queryParams.ShowActive != "" {
-// 	// 	opts.ShowActive = queryParams.ShowActive == "true"
-// 	// }
-// 	// if queryParams.ShowArchived != "" {
-// 	// 	opts.ShowArchived = queryParams.ShowArchived == "true"
-// 	// }
-// 	// if queryParams.ShowCompleted != "" {
-// 	// 	opts.ShowCompleted = queryParams.ShowCompleted == "true"
-// 	// }
-// 	//
-// 	// claims := security.GetClaimsFromContext(c)
-// 	//
-// 	// tasks, err := h.taskService.GetAllTasks(&opts, claims.UserID)
-// 	// if err != nil {
-// 	// 	logger.Log.Err(err).Msg("Failed to get all tasks")
-// 	// 	api.InternalServerError.SendAndAbort(c)
-// 	// }
-// 	//
-// 	// api.Success(c, dto.GetAllTasksResponse{
-// 	// 	Tasks: tasks,
-// 	// })
-// }
-//
+type GetAllTasksQuery struct {
+	DetailLevel   string `form:"detail" binding:"omitempty,oneof=minimal basic full"`
+	ShowActive    string `form:"active" binding:"omitempty,oneof=true false"`
+	ShowArchived  string `form:"archived" binding:"omitempty,oneof=true false"`
+	ShowCompleted string `form:"completed" binding:"omitempty,oneof=true false"`
+}
+
+// GetAllTasks godoc
+// @Summary Get all tasks with filtering options
+// @Description Retrieves tasks based on filter criteria (active/archived/completed) and detail level
+// @Tags tasks
+// @Security ApiKeyAuth
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param detailLevel query string false "Detail level" Enums(minimal, standard, full)
+// @Param showActive query boolean false "Include active tasks (default: true)"
+// @Param showArchived query boolean false "Include archived tasks (default: false)"
+// @Param showCompleted query boolean false "Include completed tasks (default: true)"
+// @Success 200 {object} dto.GetAllTasksResponse "List of tasks"
+// @Failure 400 {object} api.Error "Invalid query parameters"
+// @Failure 401 {object} api.Error "Unauthorized"
+// @Failure 500 {object} api.Error "Internal server error"
+// @Router /tasks [get]
+func (h *TaskHandler) GetAllTasks(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	var queryParams GetAllTasksQuery
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		api.InvalidQuery.SendAndAbort(c)
+	}
+
+	opts := service.GetAllTasksQueryParams{
+		DetailLevel: queryParams.DetailLevel,
+	}
+
+	opts.ShowActive = true
+	opts.ShowArchived = false
+	opts.ShowCompleted = true
+
+	if queryParams.ShowActive != "" {
+		opts.ShowActive = queryParams.ShowActive == "true"
+	}
+	if queryParams.ShowArchived != "" {
+		opts.ShowArchived = queryParams.ShowArchived == "true"
+	}
+	if queryParams.ShowCompleted != "" {
+		opts.ShowCompleted = queryParams.ShowCompleted == "true"
+	}
+
+	claims := security.GetClaimsFromContext(c)
+
+	tasks, err := h.taskService.GetAllTasks(ctx, &opts, claims.UserID)
+	if err != nil {
+		logger.Log.Err(err).Msg("Failed to get all tasks")
+		api.InternalServerError.SendAndAbort(c)
+	}
+
+	api.Success(c, dto.GetAllTasksResponse{
+		Tasks: *tasks,
+	})
+}
+
 // // GetTaskByID godoc
 // // @Summary Get a task by ID
 // // @Description Retrieves a single task by its unique identifier

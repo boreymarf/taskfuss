@@ -14,7 +14,7 @@ type TaskSkeleton struct {
 
 type TaskSnapshot struct {
 	RevisionUUID uuid.UUID      `db:"revision_uuid"`
-	TaskID       int64          `db:"task_id"`
+	SkeletonID   int64          `db:"task_id"`
 	Title        string         `db:"title"`
 	Description  sql.NullString `db:"description"`
 	CreatedAt    sql.NullTime   `db:"created_at"`
