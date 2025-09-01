@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"strconv"
 	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/api"
@@ -125,71 +128,74 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	})
 }
 
-// // GetTaskByID godoc
-// // @Summary Get a task by ID
-// // @Description Retrieves a single task by its unique identifier
-// // @Tags tasks
-// // @Security ApiKeyAuth
-// // @Produce json
-// // @Param Authorization header string true "Bearer token"
-// // @Param task_id path string true "Task ID" Format(uuid)
-// // @Success 200 {object} dto.GetTaskByIDResponse "Task details"
-// // @Failure 400 {object} api.Error "Invalid task ID format"
-// // @Failure 401 {object} api.Error "Unauthorized"
-// // @Failure 404 {object} api.Error "Task not found"
-// // @Failure 500 {object} api.Error "Internal server error"
-// // @Router /tasks/{task_id} [get]
-// func (h *TaskHandler) GetTaskByID(c *gin.Context) {
+// GetTaskByID godoc
+// @Summary Get a task by ID
+// @Description Retrieves a single task by its unique identifier
+// @Tags tasks
+// @Security ApiKeyAuth
+// @Produce json
+// @Param Authorization header string true "Bearer token"
+// @Param task_id path string true "Task ID" Format(uuid)
+// @Success 200 {object} dto.GetTaskByIDResponse "Task details"
+// @Failure 400 {object} api.Error "Invalid task ID format"
+// @Failure 401 {object} api.Error "Unauthorized"
+// @Failure 404 {object} api.Error "Task not found"
+// @Failure 500 {object} api.Error "Internal server error"
+// @Router /tasks/{task_id} [get]
+func (h *TaskHandler) GetTask(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	idParam := c.Param("task_id")
+
+	taskId, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		logger.Log.Warn().Str("task_id", idParam).Msg("Tried to parse bad task id")
+		api.BadRequest.SendAndAbort(c)
+		return
+	}
+
+	claims := security.GetClaimsFromContext(c)
+
+	dtoTask, err := h.taskService.GetTask(ctx, taskId, claims.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
+		} else {
+			api.InternalServerError.SendAndAbort(c)
+		}
+		return
+	}
+
+	data := dto.GetTaskByIDResponse{
+		Task: *dtoTask,
+	}
+
+	api.Success(c, data)
+}
+
+// func (h *TaskHandler) DeleteTaskByID(c *gin.Context) {
 //
-// 	// idParam := c.Param("task_id")
-// 	//
-// 	// taskId, err := strconv.ParseInt(idParam, 10, 64)
-// 	// if err != nil {
-// 	// 	logger.Log.Warn().Str("task_id", idParam).Msg("Tried to parse bad task id")
-// 	// 	api.BadRequest.SendAndAbort(c)
-// 	// }
-// 	//
-// 	// claims := security.GetClaimsFromContext(c)
-// 	//
-// 	// dtoTask, err := h.taskService.GetTaskByID(taskId, claims.UserID)
-// 	// if err != nil {
-// 	// 	if errors.Is(err, sql.ErrNoRows) {
-// 	// 		api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
-// 	// 	} else {
-// 	// 		api.InternalServerError.SendAndAbort(c)
-// 	// 	}
-// 	// 	return
-// 	// }
-// 	//
-// 	// data := dto.GetTaskByIDResponse{
-// 	// 	Task: dtoTask,
-// 	// }
-// 	//
-// 	// api.Success(c, data)
+// 	idParam := c.Param("task_id")
+//
+// 	taskId, err := strconv.ParseInt(idParam, 10, 64)
+// 	if err != nil {
+// 		logger.Log.Warn().Str("task_id", idParam).Msg("Tried to parse bad task id")
+// 		api.BadRequest.SendAndAbort(c)
+// 	}
+//
+// 	claims := security.GetClaimsFromContext(c)
+//
+// 	dtoTask, err := h.taskService.GetTaskByID(taskId, claims.UserID)
+// 	if err != nil {
+// 		if errors.Is(err, sql.ErrNoRows) {
+// 			api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
+// 		} else {
+// 			api.InternalServerError.SendAndAbort(c)
+// 		}
+// 		return
+// 	}
+//
+// 	api.Success(c, d)
+//
 // }
-//
-// // func (h *TaskHandler) DeleteTaskByID(c *gin.Context) {
-// //
-// // 	idParam := c.Param("task_id")
-// //
-// // 	taskId, err := strconv.ParseInt(idParam, 10, 64)
-// // 	if err != nil {
-// // 		logger.Log.Warn().Str("task_id", idParam).Msg("Tried to parse bad task id")
-// // 		api.BadRequest.SendAndAbort(c)
-// // 	}
-// //
-// // 	claims := security.GetClaimsFromContext(c)
-// //
-// // 	dtoTask, err := h.taskService.GetTaskByID(taskId, claims.UserID)
-// // 	if err != nil {
-// // 		if errors.Is(err, sql.ErrNoRows) {
-// // 			api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
-// // 		} else {
-// // 			api.InternalServerError.SendAndAbort(c)
-// // 		}
-// // 		return
-// // 	}
-// //
-// // 	api.Success(c, d)
-// //
-// // }

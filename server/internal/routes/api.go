@@ -34,7 +34,7 @@ func SetupAPIRoutes(
 			protected.GET("/profile", profileHandler.GetProfile)
 
 			protected.GET("/tasks", taskHandler.GetAllTasks)
-			// protected.GET("/tasks/:task_id", taskHandler.GetTaskByID) // Get other info of the task like description
+			protected.GET("/tasks/:task_id", taskHandler.GetTask) // Get other info of the task like description
 			// protected.PUT("/tasks/:task_id")                          // Update task
 			protected.POST("/tasks", taskHandler.CreateTask) // Create a task
 			//

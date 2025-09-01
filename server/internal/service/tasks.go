@@ -290,6 +290,62 @@ func (s *TaskService) GetAllTasks(ctx context.Context, params *GetAllTasksQueryP
 	return &tasks, nil
 }
 
+func (s *TaskService) GetTask(ctx context.Context, taskID int64, user_id int64) (*dto.TaskResponse, error) {
+	// Get specific task skeleton
+	taskSkeleton, err := s.taskSkeletons.GetByID(taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get latest snapshot for this task
+	taskSnapshot, err := s.taskSnapshots.GetLatest(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get requirement skeletons for this task
+	requirementSkeletons, err := s.requirementSkeletons.GetByTaskID(taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get requirement snapshots
+	reqSnapshots := make([]*models.RequirementSnapshot, 0, len(requirementSkeletons))
+	if len(requirementSkeletons) > 0 {
+		for _, rs := range requirementSkeletons {
+			snapshot, err := s.requirementSnapshots.GetByCompositeKey(ctx, taskSnapshot.RevisionUUID, rs.ID)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					continue
+				}
+				return nil, err
+			}
+			reqSnapshots = append(reqSnapshots, snapshot)
+		}
+	}
+
+	// Build response
+	taskResponse := dto.TaskResponse{
+		ID:           taskSkeleton.ID,
+		Title:        taskSnapshot.Title,
+		RevisionUUID: taskSnapshot.RevisionUUID,
+		Description:  &taskSnapshot.Description.String,
+	}
+
+	// Build requirements tree if they exist
+	if len(requirementSkeletons) > 0 {
+		requirementResponses, err := s.buildRequirementsTree(requirementSkeletons, reqSnapshots)
+		if err != nil {
+			return nil, err
+		}
+		if len(requirementResponses) > 0 {
+			taskResponse.Requirement = &requirementResponses[0]
+		}
+	}
+
+	return &taskResponse, nil
+}
+
 func (s *TaskService) buildRequirementsTree(
 	skeletons []*models.RequirementSkeleton,
 	snapshots []*models.RequirementSnapshot,

@@ -17,6 +17,7 @@ import (
 type RequirementSkeletons interface {
 	CreateTx(ctx context.Context, tx *sql.Tx, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error)
 	GetByID(id int64) (*models.TaskSkeleton, error)
+	GetByTaskID(task_id int64) ([]*models.RequirementSkeleton, error)
 	GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error)
 }
 
@@ -143,6 +144,43 @@ func (r *requirementSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
 	}
 
 	return &task, nil
+}
+
+func (r *requirementSkeletons) GetByTaskID(task_id int64) ([]*models.RequirementSkeleton, error) {
+	logger.Log.Debug().
+		Int64("task_id", task_id).
+		Msg("Trying to get requirement skeletons from the db")
+
+	query := `SELECT
+        id,
+        task_id
+    FROM requirement_skeletons
+    WHERE task_id = ?`
+
+	rows, err := r.db.Query(query, task_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requirements []*models.RequirementSkeleton
+	for rows.Next() {
+		var req models.RequirementSkeleton
+		err := rows.Scan(
+			&req.ID,
+			&req.TaskID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		requirements = append(requirements, &req)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return requirements, nil
 }
 
 func (r *requirementSkeletons) GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error) {
