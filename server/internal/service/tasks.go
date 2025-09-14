@@ -21,7 +21,7 @@ type TaskService struct {
 	taskEntries          *db.TaskEntries
 	requirementSkeletons db.RequirementSkeletons
 	requirementSnapshots db.RequirementSnapshots
-	requirementEntries   *db.RequirementEntries
+	requirementEntries   db.RequirementEntries
 }
 
 func InitTaskService(
@@ -33,7 +33,7 @@ func InitTaskService(
 	taskEntries *db.TaskEntries,
 	requirementSkeletons db.RequirementSkeletons,
 	requirementSnapshots db.RequirementSnapshots,
-	requirementEntries *db.RequirementEntries,
+	requirementEntries db.RequirementEntries,
 
 ) (*TaskService, error) {
 	return &TaskService{
@@ -49,8 +49,8 @@ func InitTaskService(
 	}, nil
 }
 
-func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest, user_id int64) (*dto.TaskResponse, error) {
-	revision_uuid := uuid.New()
+func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest, userID int64) (*dto.TaskResponse, error) {
+	revisionUUID := uuid.New()
 
 	logger.Log.Debug().Msg("Trying to Create new task")
 
@@ -63,7 +63,7 @@ func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest
 
 	// TaskSkeleton
 	taskSkeleton := models.TaskSkeleton{
-		OwnerID: user_id,
+		OwnerID: userID,
 	}
 	createdTaskSkeleton, err := s.taskSkeletons.CreateTx(ctx, tx, &taskSkeleton)
 	if err != nil {
@@ -75,11 +75,11 @@ func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest
 		Title:       req.Title,
 		Description: utils.ToNullString(req.Description),
 	}
-	createdTaskSnapshot, err := s.taskSnapshots.CreateTx(ctx, tx, &taskSnapshot, revision_uuid, createdTaskSkeleton.ID)
+	createdTaskSnapshot, err := s.taskSnapshots.CreateTx(ctx, tx, &taskSnapshot, revisionUUID, createdTaskSkeleton.ID)
 	if err != nil {
 		return nil, err
 	}
-	err = s.taskSnapshots.SetCurrentRevisionTx(ctx, tx, createdTaskSkeleton.ID, revision_uuid)
+	err = s.taskSnapshots.SetCurrentRevisionTx(ctx, tx, createdTaskSkeleton.ID, revisionUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest
 		req.Requirement,
 		createdTaskSkeleton.ID,
 		nil,
-		revision_uuid,
+		revisionUUID,
 	)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest
 	createdTask := dto.TaskResponse{
 		ID:           createdTaskSkeleton.ID,
 		Title:        createdTaskSnapshot.Title,
-		RevisionUUID: revision_uuid,
+		RevisionUUID: revisionUUID,
 		Description:  &createdTaskSnapshot.Description.String,
 		Requirement:  createdRequirement,
 	}
@@ -118,13 +118,13 @@ func (s *TaskService) createRequirementTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	req *dto.CreateRequirementRequest,
-	task_id int64,
-	parent_id *int64,
-	revision_uuid uuid.UUID,
+	taskID int64,
+	parentID *int64,
+	revisionUUID uuid.UUID,
 ) (*dto.RequirementResponse, error) {
 
 	requirementSkeleton := models.RequirementSkeleton{
-		TaskID: task_id,
+		TaskID: taskID,
 	}
 
 	createdRequirementSkeleton, err := s.requirementSkeletons.CreateTx(ctx, tx, &requirementSkeleton)
@@ -133,9 +133,9 @@ func (s *TaskService) createRequirementTx(
 	}
 
 	requirementSnapshot := models.RequirementSnapshot{
-		RevisionUUID: revision_uuid,
+		RevisionUUID: revisionUUID,
 		SkeletonID:   createdRequirementSkeleton.ID,
-		ParentID:     utils.ToNullInt64(parent_id),
+		ParentID:     utils.ToNullInt64(parentID),
 		Title:        req.Title,
 		Type:         req.Type,
 		DataType:     utils.ToNullString(req.DataType),
@@ -144,7 +144,7 @@ func (s *TaskService) createRequirementTx(
 		SortOrder:    req.SortOrder,
 	}
 
-	createdRequirementSnapshot, err := s.requirementSnapshots.CreateTx(ctx, tx, &requirementSnapshot, revision_uuid)
+	createdRequirementSnapshot, err := s.requirementSnapshots.CreateTx(ctx, tx, &requirementSnapshot, revisionUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *TaskService) createRequirementTx(
 
 	if req.Type == "condition" {
 		for _, operand := range req.Operands {
-			createdOp, err := s.createRequirementTx(ctx, tx, &operand, task_id, &createdRequirementSkeleton.ID, revision_uuid)
+			createdOp, err := s.createRequirementTx(ctx, tx, &operand, taskID, &createdRequirementSkeleton.ID, revisionUUID)
 			if err != nil {
 				return nil, err
 			}
@@ -182,7 +182,7 @@ type GetAllTasksQueryParams struct {
 	ShowCompleted bool
 }
 
-func (s *TaskService) GetAllTasks(ctx context.Context, params *GetAllTasksQueryParams, user_id int64) (*[]dto.TaskResponse, error) {
+func (s *TaskService) GetAllTasks(ctx context.Context, params *GetAllTasksQueryParams, userID int64) (*[]dto.TaskResponse, error) {
 
 	taskSkeletons, err := s.taskSkeletons.GetAll(params.ShowActive, params.ShowArchived)
 	if err != nil {
@@ -290,7 +290,7 @@ func (s *TaskService) GetAllTasks(ctx context.Context, params *GetAllTasksQueryP
 	return &tasks, nil
 }
 
-func (s *TaskService) GetTask(ctx context.Context, taskID int64, user_id int64) (*dto.TaskResponse, error) {
+func (s *TaskService) GetTask(ctx context.Context, taskID int64, userID int64) (*dto.TaskResponse, error) {
 	// Get specific task skeleton
 	taskSkeleton, err := s.taskSkeletons.GetByID(taskID)
 	if err != nil {

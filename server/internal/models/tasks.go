@@ -55,7 +55,8 @@ type RequirementSnapshot struct {
 
 type RequirementEntry struct {
 	ID            int64     `db:"id"`
+	RevisionUUID  uuid.UUID `db:"revision_uuid"`
 	RequirementID int64     `db:"requirement_id"`
 	EntryDate     time.Time `db:"entry_date"`
-	Value         string    `db:"value"` // any value that needs to be parsed using DataType field of RequirementSnapshot
+	Value         string    `db:"value"`
 }

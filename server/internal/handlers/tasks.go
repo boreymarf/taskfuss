@@ -95,6 +95,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	var queryParams GetAllTasksQuery
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
 		api.InvalidQuery.SendAndAbort(c)
+		return
 	}
 
 	opts := service.GetAllTasksQueryParams{
@@ -121,6 +122,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	if err != nil {
 		logger.Log.Err(err).Msg("Failed to get all tasks")
 		api.InternalServerError.SendAndAbort(c)
+		return
 	}
 
 	api.Success(c, dto.GetAllTasksResponse{
@@ -161,10 +163,11 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			api.NotFound.SendWithDetailsAndAbort(c, gin.H{"error": "Task not found"})
+			return
 		} else {
 			api.InternalServerError.SendAndAbort(c)
+			return
 		}
-		return
 	}
 
 	data := dto.GetTaskByIDResponse{

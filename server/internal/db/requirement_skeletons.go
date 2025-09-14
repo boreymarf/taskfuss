@@ -25,7 +25,7 @@ type requirementSkeletons struct {
 	db *sql.DB
 }
 
-var _ TaskSkeletons = (*taskSkeletons)(nil)
+var _ RequirementSkeletons = (*requirementSkeletons)(nil)
 
 func InitRequirementSkeletons(db *sql.DB) (RequirementSkeletons, error) {
 
