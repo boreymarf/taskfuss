@@ -134,6 +134,19 @@ func main() {
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize task service repository")
 	}
+
+	entriesService, err := service.InitEntriesService(
+		database,
+		taskSkeletonsRepository,
+		taskSnapshotsRepository,
+		requirementSkeletonsRepository,
+		requirementSnapshotsRepository,
+		requirementEntriesRepository,
+	)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize entries service repository")
+	}
+
 	// Handlers
 	authHandler, err := handlers.InitAuthHandler(usersRepository)
 	if err != nil {
@@ -152,12 +165,20 @@ func main() {
 		logger.Log.Fatal().Err(err).Msg("Unable to initialize task handler")
 	}
 
+	entriesHandler, err := handlers.InitEntriesHandler(
+		entriesService,
+	)
+	if err != nil {
+		logger.Log.Fatal().Err(err).Msg("Unable to initialize entries handler")
+	}
+
 	routes.SetupAPIRoutes(
 		r,
 		usersRepository,
 		authHandler,
 		profileHandler,
 		taskHandler,
+		entriesHandler,
 	)
 
 	// Initializing

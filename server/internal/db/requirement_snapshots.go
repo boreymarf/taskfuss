@@ -15,7 +15,9 @@ import (
 
 type RequirementSnapshots interface {
 	CreateTx(ctx context.Context, tx *sql.Tx, requirementSnapshot *models.RequirementSnapshot, revision_uuid uuid.UUID) (*models.RequirementSnapshot, error)
+
 	GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error)
+	GetChildren(ctx context.Context, revisionUUID uuid.UUID, parentID int64) ([]models.RequirementSnapshot, error)
 }
 
 type requirementSnapshots struct {
@@ -158,7 +160,17 @@ func (r *requirementSnapshots) getByCompositeKeyTx(ctx context.Context, tx *sql.
 	return &requirementSnapshot, nil
 }
 
-func (r *requirementSnapshots) GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error) {
+func (r *requirementSnapshots) GetByCompositeKey(ctx context.Context, revisionUUID uuid.UUID, skeletonID int64) (*models.RequirementSnapshot, error) {
+
+	logger.Log.Debug().
+		Str("revisionUUID", revisionUUID.String()).
+		Int64("skeletonID", skeletonID).
+		Msg("Trying to get requirement snapshot in db")
+
+	if skeletonID == 0 {
+		return nil, fmt.Errorf("zero was passed as ID")
+	}
+
 	query := `SELECT
         revision_uuid,
         skeleton_id,
@@ -173,7 +185,7 @@ func (r *requirementSnapshots) GetByCompositeKey(ctx context.Context, revision_u
     WHERE revision_uuid = ? AND skeleton_id = ?`
 
 	var requirementSnapshot models.RequirementSnapshot
-	err := r.db.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
+	err := r.db.QueryRowContext(ctx, query, revisionUUID, skeletonID).Scan(
 		&requirementSnapshot.RevisionUUID,
 		&requirementSnapshot.SkeletonID,
 		&requirementSnapshot.ParentID,
@@ -189,4 +201,66 @@ func (r *requirementSnapshots) GetByCompositeKey(ctx context.Context, revision_u
 	}
 
 	return &requirementSnapshot, nil
+}
+
+func (r *requirementSnapshots) GetChildren(ctx context.Context, revisionUUID uuid.UUID, parentID int64) ([]models.RequirementSnapshot, error) {
+
+	logger.Log.Debug().
+		Str("revisionUUID", revisionUUID.String()).
+		Int64("parentID", parentID).
+		Msg("Trying to get requirement snapshot's children in db")
+
+	if parentID <= 0 {
+		logger.Log.Error().Int64("parentID", parentID).Msg("incorrect ID was passed to GetChildren!")
+		return nil, fmt.Errorf("incorrect ID was passed to GetChildren!")
+	}
+
+	query := `SELECT
+        revision_uuid,
+        skeleton_id,
+        parent_id,
+        title,
+        type,
+        data_type,
+        operator,
+        target_value,
+        sort_order
+    FROM requirement_snapshots
+    WHERE revision_uuid = ? AND parent_id = ?
+    ORDER BY sort_order`
+
+	rows, err := r.db.QueryContext(ctx, query, revisionUUID, parentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requirementSnapshots []models.RequirementSnapshot
+
+	for rows.Next() {
+		var requirementSnapshot models.RequirementSnapshot
+		err := rows.Scan(
+			&requirementSnapshot.RevisionUUID,
+			&requirementSnapshot.SkeletonID,
+			&requirementSnapshot.ParentID,
+			&requirementSnapshot.Title,
+			&requirementSnapshot.Type,
+			&requirementSnapshot.DataType,
+			&requirementSnapshot.Operator,
+			&requirementSnapshot.TargetValue,
+			&requirementSnapshot.SortOrder,
+		)
+		if err != nil {
+			return nil, err
+		}
+		requirementSnapshots = append(requirementSnapshots, requirementSnapshot)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	logger.Log.Debug().Interface("requirementSnapshots", requirementSnapshots).Send()
+
+	return requirementSnapshots, nil
 }

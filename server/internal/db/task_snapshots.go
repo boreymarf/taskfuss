@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -20,6 +21,7 @@ type TaskSnapshots interface {
 	GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.TaskSnapshot, error)
 	GetLatest(ctx context.Context, skeleton_id int64) (*models.TaskSnapshot, error)
 	GetAllLatest(ctx context.Context, skeleton_ids []int64) ([]*models.TaskSnapshot, error)
+	GetEarliestFromDate(ctx context.Context, skeleton_id int64, fromDate time.Time) (*models.TaskSnapshot, error)
 
 	SetCurrentRevisionTx(ctx context.Context, tx *sql.Tx, taskID int64, revisionUUID uuid.UUID) error
 }
@@ -47,7 +49,7 @@ func (r *taskSnapshots) CreateTable() error {
 		skeleton_id INTEGER  NOT NULL REFERENCES task_skeletons(id) ON DELETE CASCADE,
 		title TEXT NOT NULL,
 		description TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		is_current BOOLEAN DEFAULT FALSE,
 	PRIMARY KEY (revision_uuid, skeleton_id)
 	)`
@@ -274,6 +276,8 @@ func (r *taskSnapshots) GetAllLatest(ctx context.Context, skeleton_ids []int64) 
 		return nil, fmt.Errorf("no latest task snapshots found for provided skeleton_ids")
 	}
 
+	logger.Log.Debug().Interface("tasks", tasks).Send()
+
 	return tasks, nil
 }
 
@@ -300,4 +304,42 @@ func (r *taskSnapshots) SetCurrentRevisionTx(ctx context.Context, tx *sql.Tx, ta
 
 	_, err = tx.ExecContext(ctx, setQuery, taskID, revisionUUID)
 	return err
+}
+
+func (r *taskSnapshots) GetEarliestFromDate(ctx context.Context, skeleton_id int64, fromDate time.Time) (*models.TaskSnapshot, error) {
+	logger.Log.Debug().
+		Int64("skeleton_id", skeleton_id).
+		Time("from_date", fromDate).
+		Msg("Trying to find the earliest task snapshot from date in the db")
+
+	query := `SELECT
+		revision_uuid,
+		skeleton_id,
+		title,
+		description,
+		created_at,
+		is_current
+	FROM task_snapshots
+	WHERE skeleton_id = ? AND created_at <= ?
+	ORDER BY created_at ASC
+	LIMIT 1`
+
+	var task models.TaskSnapshot
+
+	err := r.db.QueryRowContext(ctx, query, skeleton_id, fromDate).Scan(
+		&task.RevisionUUID,
+		&task.SkeletonID,
+		&task.Title,
+		&task.Description,
+		&task.CreatedAt,
+		&task.IsCurrent,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		logger.Log.Err(err).Time("fromDate", fromDate).Msg("failed to get the latest task snapshot")
+		return nil, fmt.Errorf("earliest task snapshot for skeleton_id %d from date %v not found", skeleton_id, fromDate)
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &task, nil
 }

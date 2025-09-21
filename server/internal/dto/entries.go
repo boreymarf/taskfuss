@@ -1,9 +1,21 @@
 package dto
 
-import "time"
+import (
+	"time"
 
-type RequirementEntryRequest struct {
-	RequirementID int64     `json:"requirement_id" binding:"required"`
-	Date          time.Time `json:"date" binding:"required"`
-	Value         string    `json:"value" binding:"required"`
+	"github.com/google/uuid"
+)
+
+type UpsertRequirementEntryRequest struct {
+	Date  time.Time `json:"date" binding:"required"`
+	Value any       `json:"value" binding:"required"`
+}
+
+type RequirementEntryResponse struct {
+	ID            int64                      `json:"id"`
+	RevisionUUID  uuid.UUID                  `json:"revision_uuid"`
+	Children      []RequirementEntryResponse `json:"children"`
+	RequirementID int64                      `json:"requirement_id" `
+	Date          time.Time                  `json:"date" binding:"required"`
+	Value         string                     `json:"value" binding:"required"`
 }

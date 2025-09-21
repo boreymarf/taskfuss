@@ -3,7 +3,6 @@ package models
 import (
 	"database/sql"
 	"github.com/google/uuid"
-	"time"
 )
 
 type TaskSkeleton struct {
@@ -18,7 +17,6 @@ type TaskSnapshot struct {
 	Title        string         `db:"title"`
 	Description  sql.NullString `db:"description"`
 	CreatedAt    sql.NullTime   `db:"created_at"`
-	UpdatedAt    sql.NullTime   `db:"updated_at"`
 	IsCurrent    bool           `db:"is_current"`
 }
 
@@ -27,13 +25,6 @@ type TaskPeriod struct {
 	TaskID    int64        `db:"task_id"`
 	StartDate sql.NullTime `db:"start_date"`
 	EndDate   sql.NullTime `db:"end_date"`
-}
-
-type TaskEntry struct {
-	ID        int64     `db:"id"`
-	TaskID    int64     `db:"task_id"`
-	EntryDate time.Time `db:"entry_date"`
-	Completed bool      `db:"completed"`
 }
 
 type RequirementSkeleton struct {
@@ -51,12 +42,4 @@ type RequirementSnapshot struct {
 	Operator     sql.NullString `db:"operator"`     // or, not, and, ==, >=, <=, !=, >, < and etc.
 	TargetValue  string         `db:"target_value"` // any value that needs to be parsed using DataType field
 	SortOrder    int            `db:"sort_order"`
-}
-
-type RequirementEntry struct {
-	ID            int64     `db:"id"`
-	RevisionUUID  uuid.UUID `db:"revision_uuid"`
-	RequirementID int64     `db:"requirement_id"`
-	EntryDate     time.Time `db:"entry_date"`
-	Value         string    `db:"value"`
 }

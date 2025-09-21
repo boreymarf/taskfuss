@@ -16,7 +16,7 @@ import (
 
 type RequirementSkeletons interface {
 	CreateTx(ctx context.Context, tx *sql.Tx, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error)
-	GetByID(id int64) (*models.TaskSkeleton, error)
+	GetByID(id int64) (*models.RequirementSkeleton, error)
 	GetByTaskID(task_id int64) ([]*models.RequirementSkeleton, error)
 	GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error)
 }
@@ -92,7 +92,7 @@ func (r *requirementSkeletons) CreateTx(ctx context.Context, tx *sql.Tx, require
 func (r *requirementSkeletons) getByIDTx(ctx context.Context, tx *sql.Tx, id int64) (*models.RequirementSkeleton, error) {
 	logger.Log.Debug().
 		Int64("id", id).
-		Msg("Trying to find the task skeleton in the db via ctx")
+		Msg("Trying to find the requirement skeleton in the db via ctx")
 
 	query := `SELECT 
 		id,
@@ -113,12 +113,12 @@ func (r *requirementSkeletons) getByIDTx(ctx context.Context, tx *sql.Tx, id int
 	return &requirementSkeleton, nil
 }
 
-func (r *requirementSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
+func (r *requirementSkeletons) GetByID(id int64) (*models.RequirementSkeleton, error) {
 
-	var task models.TaskSkeleton
+	var requirement models.RequirementSkeleton
 	logger.Log.Debug().
 		Int64("id", id).
-		Msg("Trying to find the task skeleton in the db")
+		Msg("Trying to find the requirement skeleton in the db")
 
 	query := `SELECT
 		id,
@@ -129,21 +129,20 @@ func (r *requirementSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
 	row := r.db.QueryRow(query, id)
 
 	err := row.Scan(
-		&task.ID,
-		&task.OwnerID,
-		&task.Status,
+		&requirement.ID,
+		&requirement.TaskID,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		logger.Log.Warn().
 			Int64("taskID", id).
-			Msg("No task was found")
-		return nil, fmt.Errorf("task %d not found: %w", id, err)
+			Msg("No requirement was found")
+		return nil, fmt.Errorf("requirement %d not found: %w", id, err)
 	} else if err != nil {
 		return nil, err
 	}
 
-	return &task, nil
+	return &requirement, nil
 }
 
 func (r *requirementSkeletons) GetByTaskID(task_id int64) ([]*models.RequirementSkeleton, error) {
