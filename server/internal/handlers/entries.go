@@ -64,18 +64,25 @@ func (h *EntriesHandler) AddRequirementEntry(c *gin.Context) {
 		Value:         strValue,
 	}
 
-	createdEntry, err := h.entriesService.UpsertRequirementEntry(ctx, modelsEntry, claims.UserID)
+	nodes, err := h.entriesService.UpsertRequirementEntry(ctx, modelsEntry, claims.UserID)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("Service failed to upsert a requirement entry!")
 		api.InternalServerError.SendAndAbort(c)
 	}
 
-	res := dto.RequirementEntryResponse{
-		ID:            createdEntry.ID,
-		RevisionUUID:  createdEntry.RevisionUUID,
-		RequirementID: createdEntry.RequirementID,
-		Date:          createdEntry.EntryDate,
-		Value:         createdEntry.Value,
+	// I decided to just return a slice of entries instead of a tree lmao
+	res := make([]dto.RequirementEntryResponse, 0, len(nodes))
+
+	for _, node := range nodes {
+		content := node.Content.(*models.RequirementEntry)
+		res = append(res, dto.RequirementEntryResponse{
+			ID:            content.ID,
+			RevisionUUID:  content.RevisionUUID,
+			RequirementID: content.RequirementID,
+			Date:          content.EntryDate,
+			Value:         content.Value,
+			Children:      []dto.RequirementEntryResponse{},
+		})
 	}
 
 	api.Accepted(c, res)

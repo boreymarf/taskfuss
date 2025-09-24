@@ -20,16 +20,3 @@ type RequirementEntry struct {
 	EntryDate     time.Time `db:"entry_date"`
 	Value         string    `db:"value"`
 }
-
-type Node struct {
-	Content any
-	ID      int64
-	Parent  int64
-}
-
-type SignedRequirementEntry struct {
-	Entry         RequirementEntry
-	RequirementID int64
-	ParentID      int64
-	RevisionUUID  uuid.UUID
-}
