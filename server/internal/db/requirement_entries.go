@@ -2,39 +2,31 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/jmoiron/sqlx"
 )
 
 type RequirementEntries interface {
-	WithTx(tx *sql.Tx) RequirementEntries
+	WithTx(tx *sqlx.Tx) RequirementEntries
 
 	Upsert(ctx context.Context, entry *models.RequirementEntry) (*models.RequirementEntry, error)
 
-	GetByEntryID(ctx context.Context, entryID int64) (*models.RequirementEntry, error)
-	GetByEntryIDs(ctx context.Context, entryIDs []int64) (map[int64]models.RequirementEntry, error)
-
-	GetByRequirementID(ctx context.Context, requirementID int64, entryDate time.Time) (*models.RequirementEntry, error)
-	GetByRequirementIDs(ctx context.Context, requirementIDs []int64, entryDates []time.Time) (map[int64]models.RequirementEntry, error)
-
-	GetByRequirementIDInDateRange(ctx context.Context, requirementID int64, startDate, endDate time.Time) (*models.RequirementEntry, error)
-	GetByRequirementIDsInDateRange(ctx context.Context, requirementIDs []int64, startDate, endDate time.Time) (map[int64]models.RequirementEntry, error)
+	Find(ctx context.Context, user *models.UserContext, opts ...QueryOption) ([]models.RequirementEntry, error)
 }
 
 type requirementEntries struct {
-	db  *sql.DB
-	tx  *sql.Tx
-	ctx context.Context
+	db *sqlx.DB
+	tx *sqlx.Tx
 }
 
 var _ RequirementEntries = (*requirementEntries)(nil)
 
-func InitRequirementEntries(db *sql.DB) (RequirementEntries, error) {
+func InitRequirementEntries(db *sqlx.DB) (RequirementEntries, error) {
 
 	repo := &requirementEntries{db: db, tx: nil}
 
@@ -64,11 +56,10 @@ func (r *requirementEntries) CreateTable() error {
 	return nil
 }
 
-func (r *requirementEntries) WithTx(tx *sql.Tx) RequirementEntries {
+func (r *requirementEntries) WithTx(tx *sqlx.Tx) RequirementEntries {
 	return &requirementEntries{
-		db:  r.db,
-		tx:  tx,
-		ctx: r.ctx,
+		db: r.db,
+		tx: tx,
 	}
 }
 
@@ -85,7 +76,6 @@ func (r *requirementEntries) Upsert(ctx context.Context, entry *models.Requireme
 		Int64("requirementID", entry.RequirementID).
 		Msg("Trying to upsert a requirement entry in db")
 
-	// Use getExecutor() instead of hardcoded r.db
 	executor := r.getExecutor()
 
 	query := `
@@ -102,22 +92,15 @@ func (r *requirementEntries) Upsert(ctx context.Context, entry *models.Requireme
             value = excluded.value
         RETURNING id, requirement_id, revision_uuid, entry_date, value`
 
-	row := executor.QueryRowContext(
+	var updatedEntry models.RequirementEntry
+	err := executor.GetContext(
 		ctx,
+		&updatedEntry,
 		query,
 		entry.RequirementID,
 		entry.RevisionUUID,
 		entry.EntryDate,
 		entry.Value,
-	)
-
-	var updatedEntry models.RequirementEntry
-	err := row.Scan(
-		&updatedEntry.ID,
-		&updatedEntry.RequirementID,
-		&updatedEntry.RevisionUUID,
-		&updatedEntry.EntryDate,
-		&updatedEntry.Value,
 	)
 	if err != nil {
 		return nil, err
@@ -126,316 +109,150 @@ func (r *requirementEntries) Upsert(ctx context.Context, entry *models.Requireme
 	return &updatedEntry, nil
 }
 
-func (r *requirementEntries) GetByEntryID(ctx context.Context, entryID int64) (*models.RequirementEntry, error) {
-	if entryID == 0 {
-		return nil, fmt.Errorf("entry ID cannot be zero")
+// ------------- //
+// GET FUNCTIONS //
+// ------------- //
+type queryParams struct {
+	entryIDs       []int64
+	requirementIDs []int64
+	dates          []time.Time
+	startDate      *time.Time
+	endDate        *time.Time
+}
+
+type QueryOption func(*queryParams)
+
+func WithEntryIDs(ids ...any) QueryOption {
+	return func(q *queryParams) {
+		for _, id := range ids {
+			switch v := id.(type) {
+			case int64:
+				q.entryIDs = append(q.entryIDs, v)
+			case []int64:
+				q.entryIDs = append(q.entryIDs, v...)
+			}
+		}
+	}
+}
+
+func WithRequirementIDs(ids ...any) QueryOption {
+	return func(q *queryParams) {
+		for _, id := range ids {
+			switch v := id.(type) {
+			case int64:
+				q.requirementIDs = append(q.requirementIDs, v)
+			case []int64:
+				q.requirementIDs = append(q.requirementIDs, v...)
+			}
+		}
+	}
+}
+
+func WithDates(dates ...any) QueryOption {
+	return func(q *queryParams) {
+		for _, d := range dates {
+			switch v := d.(type) {
+			case time.Time:
+				q.dates = append(q.dates, v)
+			case []time.Time:
+				q.dates = append(q.dates, v...)
+			}
+		}
+	}
+}
+
+func WithStartDate(start time.Time) QueryOption {
+	return func(q *queryParams) {
+		q.startDate = &start
+	}
+}
+
+func WithEndDate(end time.Time) QueryOption {
+	return func(q *queryParams) {
+		q.endDate = &end
+	}
+}
+
+func (r *requirementEntries) buildQuery(params *queryParams, user *models.UserContext) (string, []any, error) {
+	var whereClauses []string
+	var args []any
+	var err error
+
+	switch user.Role {
+	case models.RoleAdmin:
+		// no filter
+	case models.RoleUser:
+		// no filter
 	}
 
-	entries, err := r.internalGetByEntryIDs(ctx, []int64{entryID})
+	// Defaults
+	if params.startDate == nil {
+		today := time.Now().Truncate(24 * time.Hour)
+		params.startDate = &today
+	}
+	if params.endDate == nil {
+		today := time.Now().Truncate(24 * time.Hour)
+		params.endDate = &today
+	}
+
+	// IN clauses
+	whereClauses, args, err = InQuery(whereClauses, args, "entry_id", toAnySlice(params.entryIDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "requirement_id", toAnySlice(params.requirementIDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "entry_date", toAnySlice(params.dates))
+	if err != nil {
+		return "", nil, err
+	}
+
+	// BETWEEN clause
+	whereClauses, args = BetweenQuery(whereClauses, args, "entry_date", params.startDate, params.endDate)
+
+	// Build final query
+	query := "SELECT * FROM requirement_entries"
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	return query, args, nil
+}
+
+func (r *requirementEntries) DebugBuildQuery(params *queryParams, user *models.UserContext) (string, []interface{}, error) {
+	query, args, err := r.buildQuery(params, user)
+	return query, args, err
+}
+
+func (r *requirementEntries) Find(ctx context.Context, user *models.UserContext, opts ...QueryOption) ([]models.RequirementEntry, error) {
+	// Start with empty params
+	params := &queryParams{}
+
+	// Apply all options
+	for _, opt := range opts {
+		opt(params)
+	}
+
+	// Build and execute query
+	query, args, err := r.buildQuery(params, user)
 	if err != nil {
 		return nil, err
 	}
-
-	if entry, exists := entries[entryID]; exists {
-		return &entry, nil
-	}
-
-	return nil, fmt.Errorf("requirement entry not found for entry ID %d", entryID)
-}
-
-func (r *requirementEntries) GetByEntryIDs(ctx context.Context, entryIDs []int64) (map[int64]models.RequirementEntry, error) {
-	return r.internalGetByEntryIDs(ctx, entryIDs)
-}
-
-func (r *requirementEntries) internalGetByEntryIDs(
-	ctx context.Context,
-	entryIDs []int64,
-) (map[int64]models.RequirementEntry, error) {
 
 	logger.Log.Debug().
-		Interface("entryIDs", entryIDs).
-		Msg("Trying to get requirement entries by entry IDs")
+		Interface("query", query).
+		Interface("args", args).
+		Msg("Executing requirement entries query")
 
-	if len(entryIDs) == 0 {
-		logger.Log.Warn().Msg("empty entry IDs slice passed to GetByEntryIDs")
-		return map[int64]models.RequirementEntry{}, nil
-	}
-
-	executor := r.getExecutor()
-
-	placeholders := make([]string, len(entryIDs))
-	params := make([]any, len(entryIDs))
-
-	for i, id := range entryIDs {
-		placeholders[i] = "?"
-		params[i] = id
-	}
-
-	query := fmt.Sprintf(`
-        SELECT 
-            id,
-            requirement_id,
-            revision_uuid,
-            entry_date,
-            value
-        FROM requirement_entries
-        WHERE id IN (%s)`,
-		strings.Join(placeholders, ","))
-
-	rows, err := executor.QueryContext(ctx, query, params...)
+	var entries []models.RequirementEntry
+	err = r.db.SelectContext(ctx, &entries, query, args...)
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	requirementEntriesMap := make(map[int64]models.RequirementEntry)
-
-	for rows.Next() {
-		var requirementEntry models.RequirementEntry
-		err := rows.Scan(
-			&requirementEntry.ID,
-			&requirementEntry.RequirementID,
-			&requirementEntry.RevisionUUID,
-			&requirementEntry.EntryDate,
-			&requirementEntry.Value,
-		)
-		if err != nil {
-			return nil, err
-		}
-		requirementEntriesMap[requirementEntry.ID] = requirementEntry
+		return nil, fmt.Errorf("failed to query requirement entries: %w", err)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(requirementEntriesMap) == 0 {
-		logger.Log.Warn().Msg("Retrieved 0 requirement entries by entry IDs")
-	} else {
-		logger.Log.Debug().
-			Int("count", len(requirementEntriesMap)).
-			Msg("Successfully retrieved requirement entries by entry IDs")
-	}
-
-	return requirementEntriesMap, nil
-}
-
-func (r *requirementEntries) GetByRequirementIDs(ctx context.Context, requirementIDs []int64, entryDates []time.Time) (map[int64]models.RequirementEntry, error) {
-	return r.internalGetByRequirementIDs(ctx, requirementIDs, entryDates)
-}
-
-func (r *requirementEntries) GetByRequirementID(ctx context.Context, requirementID int64, entryDate time.Time) (*models.RequirementEntry, error) {
-	if requirementID == 0 {
-		return nil, fmt.Errorf("requirement ID cannot be zero")
-	}
-
-	entries, err := r.internalGetByRequirementIDs(ctx, []int64{requirementID}, []time.Time{entryDate})
-	if err != nil {
-		return nil, err
-	}
-
-	if entry, exists := entries[requirementID]; exists {
-		return &entry, nil
-	}
-
-	return nil, fmt.Errorf("requirement entry not found for ID %d and date %s", requirementID, entryDate.Format("2006-01-02"))
-}
-
-func (r *requirementEntries) internalGetByRequirementIDs(
-	ctx context.Context,
-	requirementIDs []int64,
-	entryDates []time.Time,
-) (map[int64]models.RequirementEntry, error) {
-
-	logger.Log.Debug().
-		Interface("requirementIDs", requirementIDs).
-		Interface("entryDates", entryDates).
-		Msg("Trying to get requirement entries by requirement IDs and entry dates")
-
-	if len(requirementIDs) == 0 {
-		logger.Log.Warn().Msg("empty requirement IDs slice passed to GetByRequirementIDsAndEntryDates")
-		return map[int64]models.RequirementEntry{}, nil
-	}
-
-	if len(entryDates) == 0 {
-		logger.Log.Warn().Msg("empty entry dates slice passed to GetByRequirementIDsAndEntryDates")
-		return map[int64]models.RequirementEntry{}, nil
-	}
-
-	// Use getExecutor() instead of hardcoded executor parameter
-	executor := r.getExecutor()
-
-	// Create placeholders and parameters for requirement IDs
-	reqPlaceholders := make([]string, len(requirementIDs))
-	params := make([]any, 0, len(requirementIDs)+len(entryDates))
-
-	for i, id := range requirementIDs {
-		reqPlaceholders[i] = "?"
-		params = append(params, id)
-	}
-
-	// Create placeholders and parameters for entry dates
-	datePlaceholders := make([]string, len(entryDates))
-	for i, date := range entryDates {
-		datePlaceholders[i] = "?"
-		params = append(params, date)
-	}
-
-	query := fmt.Sprintf(`
-        SELECT 
-            id,
-            requirement_id,
-            revision_uuid,
-            entry_date,
-            value
-        FROM requirement_entries
-        WHERE requirement_id IN (%s) AND entry_date IN (%s)`,
-		strings.Join(reqPlaceholders, ","),
-		strings.Join(datePlaceholders, ","))
-
-	rows, err := executor.QueryContext(ctx, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	requirementEntriesMap := make(map[int64]models.RequirementEntry)
-
-	for rows.Next() {
-		var requirementEntry models.RequirementEntry
-		err := rows.Scan(
-			&requirementEntry.ID,
-			&requirementEntry.RequirementID,
-			&requirementEntry.RevisionUUID,
-			&requirementEntry.EntryDate,
-			&requirementEntry.Value,
-		)
-		if err != nil {
-			return nil, err
-		}
-		requirementEntriesMap[requirementEntry.RequirementID] = requirementEntry
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(requirementEntriesMap) == 0 {
-		logger.Log.Warn().Msg("Retrieved 0 requirement entries")
-	} else {
-		logger.Log.Debug().
-			Int("count", len(requirementEntriesMap)).
-			Msg("Successfully retrieved requirement entries")
-	}
-
-	return requirementEntriesMap, nil
-}
-
-func (r *requirementEntries) GetByRequirementIDsInDateRange(ctx context.Context, requirementIDs []int64, startDate, endDate time.Time) (map[int64]models.RequirementEntry, error) {
-	return r.internalGetByRequirementIDsInDateRange(ctx, requirementIDs, startDate, endDate)
-}
-
-func (r *requirementEntries) GetByRequirementIDInDateRange(ctx context.Context, requirementID int64, startDate, endDate time.Time) (*models.RequirementEntry, error) {
-	if requirementID == 0 {
-		return nil, fmt.Errorf("requirement ID cannot be zero")
-	}
-
-	entries, err := r.internalGetByRequirementIDsInDateRange(ctx, []int64{requirementID}, startDate, endDate)
-	if err != nil {
-		return nil, err
-	}
-
-	if entry, exists := entries[requirementID]; exists {
-		return &entry, nil
-	}
-
-	return nil, fmt.Errorf("requirement entry not found for ID %d and date range %s to %s",
-		requirementID,
-		startDate.Format("2006-01-02"),
-		endDate.Format("2006-01-02"))
-}
-
-func (r *requirementEntries) internalGetByRequirementIDsInDateRange(
-	ctx context.Context,
-	requirementIDs []int64,
-	startDate, endDate time.Time,
-) (map[int64]models.RequirementEntry, error) {
-
-	logger.Log.Debug().
-		Interface("requirementIDs", requirementIDs).
-		Time("startDate", startDate).
-		Time("endDate", endDate).
-		Msg("Trying to get requirement entries by requirement IDs and date range")
-
-	if len(requirementIDs) == 0 {
-		logger.Log.Warn().Msg("empty requirement IDs slice passed to GetByRequirementIDsInDateRange")
-		return map[int64]models.RequirementEntry{}, nil
-	}
-
-	if startDate.After(endDate) {
-		return nil, fmt.Errorf("start date cannot be after end date")
-	}
-
-	// Use getExecutor() instead of hardcoded executor parameter
-	executor := r.getExecutor()
-
-	// Create placeholders and parameters for requirement IDs
-	reqPlaceholders := make([]string, len(requirementIDs))
-	params := make([]any, 0, len(requirementIDs)+2)
-
-	for i, id := range requirementIDs {
-		reqPlaceholders[i] = "?"
-		params = append(params, id)
-	}
-
-	// Add date range parameters
-	params = append(params, startDate, endDate)
-
-	query := fmt.Sprintf(`
-        SELECT 
-            id,
-            requirement_id,
-            revision_uuid,
-            entry_date,
-            value
-        FROM requirement_entries
-        WHERE requirement_id IN (%s) AND entry_date BETWEEN ? AND ?`,
-		strings.Join(reqPlaceholders, ","))
-
-	rows, err := executor.QueryContext(ctx, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	requirementEntriesMap := make(map[int64]models.RequirementEntry)
-
-	for rows.Next() {
-		var requirementEntry models.RequirementEntry
-		err := rows.Scan(
-			&requirementEntry.ID,
-			&requirementEntry.RequirementID,
-			&requirementEntry.RevisionUUID,
-			&requirementEntry.EntryDate,
-			&requirementEntry.Value,
-		)
-		if err != nil {
-			return nil, err
-		}
-		requirementEntriesMap[requirementEntry.RequirementID] = requirementEntry
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(requirementEntriesMap) == 0 {
-		logger.Log.Warn().Msg("Retrieved 0 requirement entries")
-	} else {
-		logger.Log.Debug().
-			Int("count", len(requirementEntriesMap)).
-			Msg("Successfully retrieved requirement entries")
-	}
-
-	return requirementEntriesMap, nil
+	return entries, nil
 }
