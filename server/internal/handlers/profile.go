@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"context"
+	"time"
+
 	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
@@ -11,10 +14,10 @@ import (
 )
 
 type ProfileHandler struct {
-	userRepo *db.Users
+	userRepo db.Users
 }
 
-func InitProfileHandler(userRepo *db.Users) (*ProfileHandler, error) {
+func InitProfileHandler(userRepo db.Users) (*ProfileHandler, error) {
 	return &ProfileHandler{userRepo: userRepo}, nil
 }
 
@@ -31,6 +34,8 @@ func InitProfileHandler(userRepo *db.Users) (*ProfileHandler, error) {
 // @Failure 500 {object} api.Error "Internal server error (code: INTERNAL_ERROR)"
 // @Router /profile [get]
 func (h *ProfileHandler) GetProfile(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
 
 	rawClaims, exists := c.Get("userClaims")
 	if !exists {
@@ -47,7 +52,7 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 	}
 
 	var modelsUser models.User
-	h.userRepo.GetUserByID(claims.UserID, &modelsUser)
+	h.userRepo.GetUserByID(ctx, claims.UserID, &modelsUser)
 
 	dtoUser := dto.User{
 		Id:        modelsUser.ID,

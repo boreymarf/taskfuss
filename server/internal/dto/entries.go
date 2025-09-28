@@ -12,10 +12,9 @@ type UpsertRequirementEntryRequest struct {
 }
 
 type RequirementEntryResponse struct {
-	ID            int64                      `json:"id"`
-	RevisionUUID  uuid.UUID                  `json:"revision_uuid"`
-	Children      []RequirementEntryResponse `json:"children"`
-	RequirementID int64                      `json:"requirement_id" `
-	Date          time.Time                  `json:"date" binding:"required"`
-	Value         string                     `json:"value" binding:"required"`
+	ID            int64     `json:"id"`
+	RevisionUUID  uuid.UUID `json:"revision_uuid"`
+	RequirementID int64     `json:"requirement_id" `
+	Date          time.Time `json:"date" binding:"required"`
+	Value         string    `json:"value" binding:"required"`
 }

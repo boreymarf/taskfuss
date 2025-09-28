@@ -14,7 +14,7 @@ import (
 
 func SetupAPIRoutes(
 	router *gin.Engine,
-	userRepo *db.Users,
+	userRepo db.Users,
 	authHandler *handlers.AuthHandler,
 	profileHandler *handlers.ProfileHandler,
 	taskHandler *handlers.TaskHandler,
@@ -38,11 +38,11 @@ func SetupAPIRoutes(
 			protected.GET("/tasks/:task_id", taskHandler.GetTask) // Get other info of the task like description
 			// protected.PUT("/tasks/:task_id")                          // Update task
 			protected.POST("/tasks", taskHandler.CreateTask) // Create a task
-			//
-			// // protected.GET("/requirements/entries", taskHandler.GetRequirements) // GET /requirements/entries?start=2024-01-01T00:00:00&end=2024-01-31T23:59:59
+
 			protected.POST("/requirements/:requirement_id/entries", entriesHandler.AddRequirementEntry) // Create an entry for any requirement
-			// protected.GET("/requirements/:requirement_id/entries")  // Get all entries, make it with date start and end
-			// protected.GET("/entries/:entry_id")                     // Get specific entry
+			protected.GET("/entries/")                                                                  // Get all entries for all archived and/or active tasks and requirements by query range
+			protected.GET("/entries/:entry_id", entriesHandler.GetRequirementEntryByID)                 // Get specific entry by id
+			protected.GET("/requirements/:requirement_id/entries")                                      // Get entries for specific requirement by query range
 			// protected.PUT("/entries/:entry_id")                     // Update entry
 			// protected.DELETE("/entries/:entry_id")                  //
 		}

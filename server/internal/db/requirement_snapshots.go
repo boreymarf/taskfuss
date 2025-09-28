@@ -260,7 +260,5 @@ func (r *requirementSnapshots) GetChildren(ctx context.Context, revisionUUID uui
 		return nil, err
 	}
 
-	logger.Log.Debug().Interface("requirementSnapshots", requirementSnapshots).Send()
-
 	return requirementSnapshots, nil
 }

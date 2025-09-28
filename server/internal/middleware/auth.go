@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/api"
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
@@ -13,8 +15,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Auth(userRepo *db.Users) gin.HandlerFunc {
+func Auth(userRepo db.Users) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		defer cancel()
 
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -62,7 +66,7 @@ func Auth(userRepo *db.Users) gin.HandlerFunc {
 			return
 		}
 
-		exists, err := userRepo.Exists(claims.UserID)
+		exists, err := userRepo.Exists(ctx, claims.UserID)
 		if err != nil {
 			logger.Log.Error().Err(err).Send()
 			api.InternalServerError.SendAndAbort(c)

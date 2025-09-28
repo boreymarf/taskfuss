@@ -14,7 +14,7 @@ import (
 
 type TaskService struct {
 	db                   *sql.DB
-	userRepo             *db.Users
+	userRepo             db.Users
 	taskSkeletons        db.TaskSkeletons
 	taskSnapshots        db.TaskSnapshots
 	taskPeriods          *db.TaskPeriods
@@ -26,7 +26,7 @@ type TaskService struct {
 
 func InitTaskService(
 	db *sql.DB,
-	userRepo *db.Users,
+	userRepo db.Users,
 	taskSkeletons db.TaskSkeletons,
 	taskSnapshots db.TaskSnapshots,
 	taskPeriods *db.TaskPeriods,
@@ -65,7 +65,7 @@ func (s *TaskService) CreateTask(ctx context.Context, req *dto.CreateTaskRequest
 	taskSkeleton := models.TaskSkeleton{
 		OwnerID: userID,
 	}
-	createdTaskSkeleton, err := s.taskSkeletons.CreateTx(ctx, tx, &taskSkeleton)
+	createdTaskSkeleton, err := s.taskSkeletons.WithTx(tx).Create(ctx, &taskSkeleton)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ type GetAllTasksQueryParams struct {
 
 func (s *TaskService) GetAllTasks(ctx context.Context, params *GetAllTasksQueryParams, userID int64) (*[]dto.TaskResponse, error) {
 
-	taskSkeletons, err := s.taskSkeletons.GetAll(params.ShowActive, params.ShowArchived)
+	taskSkeletons, err := s.taskSkeletons.GetAll(ctx, params.ShowActive, params.ShowArchived)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (s *TaskService) GetAllTasks(ctx context.Context, params *GetAllTasksQueryP
 
 func (s *TaskService) GetTask(ctx context.Context, taskID int64, userID int64) (*dto.TaskResponse, error) {
 	// Get specific task skeleton
-	taskSkeleton, err := s.taskSkeletons.GetByID(taskID)
+	taskSkeleton, err := s.taskSkeletons.GetByID(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}

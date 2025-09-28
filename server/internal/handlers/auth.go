@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,10 +21,10 @@ import (
 )
 
 type AuthHandler struct {
-	userRepo *db.Users
+	userRepo db.Users
 }
 
-func InitAuthHandler(userRepo *db.Users) (*AuthHandler, error) {
+func InitAuthHandler(userRepo db.Users) (*AuthHandler, error) {
 	return &AuthHandler{userRepo: userRepo}, nil
 }
 
@@ -39,6 +40,9 @@ func InitAuthHandler(userRepo *db.Users) (*AuthHandler, error) {
 // @Failure 500 {object} api.Error "Internal server error (code: INTERNAL_ERROR)
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
 	var req dto.RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -67,7 +71,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user.Email = req.Email
 	user.PasswordHash = passwordHash
 
-	err = h.userRepo.CreateUser(&user)
+	err = h.userRepo.CreateUser(ctx, &user)
 
 	if err != nil {
 
@@ -128,6 +132,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req dto.LoginRequest
 
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 
 		var syntaxErr *json.SyntaxError
@@ -159,7 +166,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	var user models.User
 
-	err := h.userRepo.GetUserByEmail(req.Email, &user)
+	err := h.userRepo.GetUserByEmail(ctx, req.Email, &user)
 
 	logger.Log.Debug().Str("email", user.Email).Str("hash", user.PasswordHash).Send()
 

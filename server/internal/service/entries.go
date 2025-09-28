@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -50,7 +51,7 @@ func (s *EntriesService) UpsertRequirementEntry(ctx context.Context, entry *mode
 		return nil, fmt.Errorf("requirement not found: %w", err)
 	}
 
-	taskSkeleton, err := s.taskSkeletons.GetByID(requirementSkeleton.TaskID)
+	taskSkeleton, err := s.taskSkeletons.GetByID(ctx, requirementSkeleton.TaskID)
 	if err != nil {
 		return nil, fmt.Errorf("task not found: %w", err)
 	}
@@ -94,7 +95,7 @@ func (s *EntriesService) UpsertRequirementEntry(ctx context.Context, entry *mode
 	}
 	defer tx.Rollback()
 
-	createdEntry, err := s.requirementEntries.UpsertTx(ctx, tx, entry)
+	createdEntry, err := s.requirementEntries.WithTx(tx).Upsert(ctx, entry)
 	if err != nil {
 		return nil, err
 	}
@@ -158,8 +159,6 @@ func (s *EntriesService) updateConditionChain(
 	nodes []models.Node,
 ) ([]models.Node, error) {
 
-	logger.Log.Debug().Msg("WORKING ON IT BOSS")
-
 	if requirementSnapshot.Type != "condition" {
 		logger.Log.Error().Str("requirementSnapshot.Type", requirementSnapshot.Type).Msg("Unexpected not condition at updateConditionRequirement!")
 		return nil, fmt.Errorf("unexpected not condition at updateConditionRequirement!")
@@ -175,7 +174,7 @@ func (s *EntriesService) updateConditionChain(
 		childrenIDs[i] = child.SkeletonID
 	}
 
-	childrenEntries, err := s.requirementEntries.GetByRequirementIDsTx(ctx, tx, childrenIDs, requirementSnapshot.RevisionUUID)
+	childrenEntries, err := s.requirementEntries.WithTx(tx).GetByRequirementIDs(ctx, childrenIDs, []time.Time{entry.EntryDate})
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +207,7 @@ func (s *EntriesService) updateConditionChain(
 		Value:         strconv.FormatBool(parentResult),
 	}
 
-	createdEntry, err := s.requirementEntries.UpsertTx(ctx, tx, &parentEntry)
+	createdEntry, err := s.requirementEntries.WithTx(tx).Upsert(ctx, &parentEntry)
 	if err != nil {
 		return nil, err
 	}
@@ -239,4 +238,100 @@ func (s *EntriesService) updateConditionChain(
 	}
 
 	return nodes, nil
+}
+
+type GetRequirementEntriesQueryParams struct {
+	ShowActive   bool
+	ShowArchived bool
+	StartDate    time.Time
+	EndDate      time.Time
+}
+
+func (s *EntriesService) GetRequirementEntries(ctx context.Context, params GetRequirementEntriesQueryParams, userID int64) (map[int64]models.RequirementEntry, error) {
+
+	// TODO: Add a check if user can access it
+
+	taskSkeletons, err := s.taskSkeletons.GetAll(ctx, params.ShowActive, params.ShowArchived)
+	if err != nil {
+		return nil, err
+	}
+
+	taskIDs := make([]int64, 0, len(taskSkeletons))
+	for _, skeleton := range taskSkeletons {
+		taskIDs = append(taskIDs, skeleton.ID)
+	}
+
+	requirementSkeletons, err := s.requirementSkeletons.GetByTaskIDs(taskIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	requirementIDs := make([]int64, 0, len(requirementSkeletons))
+	for _, skeleton := range requirementSkeletons {
+		requirementIDs = append(requirementIDs, skeleton.ID)
+	}
+
+	entries, err := s.requirementEntries.GetByRequirementIDsInDateRange(ctx, requirementIDs, params.StartDate, params.EndDate)
+	if err != nil {
+		return nil, err
+	}
+
+	return entries, nil
+
+}
+
+func (s *EntriesService) GetRequirementEntryByID(ctx context.Context, entryID int64, userID int64) (*models.RequirementEntry, error) {
+
+	entry, err := s.requirementEntries.GetByEntryID(ctx, entryID)
+	if err != nil {
+		return nil, err
+	}
+
+	requirementSkeleton, err := s.requirementSkeletons.GetByID(entry.RequirementID)
+	if err != nil {
+		return nil, fmt.Errorf("requirement not found: %w", err)
+	}
+
+	taskSkeleton, err := s.taskSkeletons.GetByID(ctx, requirementSkeleton.TaskID)
+	if err != nil {
+		return nil, fmt.Errorf("task not found: %w", err)
+	}
+
+	// Checking if user can access the requirement
+	if taskSkeleton.OwnerID != userID {
+		return nil, fmt.Errorf("access denied: user doesn't own this task")
+	}
+
+	return entry, nil
+
+}
+
+func (s *EntriesService) GetRequirementEntry(ctx context.Context, date time.Time, requirementID int64, userID int64) (*models.RequirementEntry, error) {
+
+	requirementSkeleton, err := s.requirementSkeletons.GetByID(requirementID)
+	if err != nil {
+		return nil, fmt.Errorf("requirement not found: %w", err)
+	}
+
+	taskSkeleton, err := s.taskSkeletons.GetByID(ctx, requirementSkeleton.TaskID)
+	if err != nil {
+		return nil, fmt.Errorf("task not found: %w", err)
+	}
+
+	// Checking if user can access the requirement
+	if taskSkeleton.OwnerID != userID {
+		return nil, fmt.Errorf("access denied: user doesn't own this task")
+	}
+
+	requirementEntries, err := s.requirementEntries.GetByRequirementIDs(ctx, []int64{requirementID}, []time.Time{date})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(requirementEntries) == 0 {
+		return nil, fmt.Errorf("requirement entry not found")
+	}
+
+	entry := requirementEntries[0]
+	return &entry, nil
 }

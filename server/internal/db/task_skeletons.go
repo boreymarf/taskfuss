@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
@@ -13,13 +14,19 @@ import (
 )
 
 type TaskSkeletons interface {
-	CreateTx(ctx context.Context, tx *sql.Tx, task *models.TaskSkeleton) (*models.TaskSkeleton, error)
-	GetByID(id int64) (*models.TaskSkeleton, error)
-	GetAll(showActive, showArchived bool) ([]*models.TaskSkeleton, error)
+	WithTx(tx *sql.Tx) TaskSkeletons
+
+	Create(ctx context.Context, task *models.TaskSkeleton) (*models.TaskSkeleton, error)
+
+	GetByID(ctx context.Context, id int64) (*models.TaskSkeleton, error)
+	GetByIDs(ctx context.Context, ids []int64) (map[int64]models.TaskSkeleton, error)
+	GetAll(ctx context.Context, showActive, showArchived bool) ([]*models.TaskSkeleton, error)
 }
 
 type taskSkeletons struct {
-	db *sql.DB
+	db  *sql.DB
+	tx  *sql.Tx
+	ctx context.Context
 }
 
 var _ TaskSkeletons = (*taskSkeletons)(nil)
@@ -50,14 +57,31 @@ func (r *taskSkeletons) CreateTable() error {
 	return nil
 }
 
-func (r *taskSkeletons) CreateTx(ctx context.Context, tx *sql.Tx, taskSkeleton *models.TaskSkeleton) (*models.TaskSkeleton, error) {
+func (r *taskSkeletons) WithTx(tx *sql.Tx) TaskSkeletons {
+	return &taskSkeletons{
+		db:  r.db,
+		tx:  tx,
+		ctx: r.ctx,
+	}
+}
+
+func (r *taskSkeletons) getExecutor() SQLExecutor {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
+}
+
+func (r *taskSkeletons) Create(ctx context.Context, taskSkeleton *models.TaskSkeleton) (*models.TaskSkeleton, error) {
 	logger.Log.Debug().
 		Int64("owner_id", taskSkeleton.OwnerID).
-		Msg("Trying to create new task in db via ctx")
+		Msg("Trying to create new task skeleton in db")
 
-	query := `INSERT INTO task_skeletons (owner_id) VALUES (?)`
+	query := `INSERT INTO task_skeletons (owner_id, status) VALUES (?, ?)`
 
-	result, err := tx.ExecContext(ctx, query, taskSkeleton.OwnerID)
+	executor := r.getExecutor()
+
+	result, err := executor.ExecContext(ctx, query, taskSkeleton.OwnerID, taskSkeleton.Status)
 	if err != nil {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
@@ -73,73 +97,107 @@ func (r *taskSkeletons) CreateTx(ctx context.Context, tx *sql.Tx, taskSkeleton *
 		return nil, err
 	}
 
-	createdTaskSkeleton, err := r.getByIDTx(ctx, tx, id)
+	// Use the same instance to get the created task skeleton
+	createdTaskSkeleton, err := r.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.Log.Info().
 		Int64("task_skeleton_id", createdTaskSkeleton.ID).
-		Int64("owner_id", createdTaskSkeleton.OwnerID).
+		Int64("owner_id", createdTaskSkeleton.ID).
 		Msg("Created new task skeleton successfully")
 	return createdTaskSkeleton, nil
 }
 
-func (r *taskSkeletons) getByIDTx(ctx context.Context, tx *sql.Tx, id int64) (*models.TaskSkeleton, error) {
-	logger.Log.Debug().
-		Int64("id", id).
-		Msg("Trying to find the task skeleton in the db via ctx")
+func (r *taskSkeletons) GetByID(ctx context.Context, id int64) (*models.TaskSkeleton, error) {
+	if id == 0 {
+		return nil, fmt.Errorf("task ID cannot be zero")
+	}
 
-	query := `SELECT id, owner_id, status 
-	FROM task_skeletons 
-	WHERE id = ?`
-
-	var task models.TaskSkeleton
-
-	err := tx.QueryRowContext(ctx, query, id).Scan(
-		&task.ID,
-		&task.OwnerID,
-		&task.Status,
-	)
+	tasks, err := r.internalGetByIDs(ctx, []int64{id})
 	if err != nil {
 		return nil, err
 	}
 
-	return &task, nil
+	if task, exists := tasks[id]; exists {
+		return &task, nil
+	}
+
+	return nil, fmt.Errorf("task skeleton not found for ID %d", id)
 }
 
-func (r *taskSkeletons) GetByID(id int64) (*models.TaskSkeleton, error) {
+func (r *taskSkeletons) GetByIDs(ctx context.Context, ids []int64) (map[int64]models.TaskSkeleton, error) {
+	return r.internalGetByIDs(ctx, ids)
+}
 
-	var task models.TaskSkeleton
+func (r *taskSkeletons) internalGetByIDs(
+	ctx context.Context,
+	ids []int64,
+) (map[int64]models.TaskSkeleton, error) {
+
 	logger.Log.Debug().
-		Int64("id", id).
-		Msg("Trying to find the task skeleton in the db")
+		Interface("ids", ids).
+		Msg("Trying to get task skeletons by IDs")
 
-	query := `SELECT id, owner_id, status
-	FROM task_skeletons
-	WHERE id = ?`
+	if len(ids) == 0 {
+		logger.Log.Warn().Msg("empty IDs slice passed to GetByIDs")
+		return map[int64]models.TaskSkeleton{}, nil
+	}
 
-	row := r.db.QueryRow(query, id)
+	executor := r.getExecutor()
 
-	err := row.Scan(
-		&task.ID,
-		&task.OwnerID,
-		&task.Status,
-	)
+	placeholders := make([]string, len(ids))
+	params := make([]any, len(ids))
 
-	if errors.Is(err, sql.ErrNoRows) {
-		logger.Log.Warn().
-			Int64("taskID", id).
-			Msg("No task was found")
-		return nil, fmt.Errorf("task %d not found: %w", id, err)
-	} else if err != nil {
+	for i, id := range ids {
+		placeholders[i] = "?"
+		params[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, owner_id, status
+		FROM task_skeletons
+		WHERE id IN (%s)`,
+		strings.Join(placeholders, ","))
+
+	rows, err := executor.QueryContext(ctx, query, params...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	taskSkeletonsMap := make(map[int64]models.TaskSkeleton)
+
+	for rows.Next() {
+		var task models.TaskSkeleton
+		err := rows.Scan(
+			&task.ID,
+			&task.OwnerID,
+			&task.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+		taskSkeletonsMap[task.ID] = task
+	}
+
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return &task, nil
+	if len(taskSkeletonsMap) == 0 {
+		logger.Log.Warn().Msg("Retrieved 0 task skeletons by IDs")
+	} else {
+		logger.Log.Debug().
+			Int("count", len(taskSkeletonsMap)).
+			Msg("Successfully retrieved task skeletons by IDs")
+	}
+
+	return taskSkeletonsMap, nil
 }
 
-func (r *taskSkeletons) GetAll(showActive, showArchived bool) ([]*models.TaskSkeleton, error) {
+func (r *taskSkeletons) GetAll(ctx context.Context, showActive, showArchived bool) ([]*models.TaskSkeleton, error) {
 	logger.Log.Debug().
 		Bool("show_active", showActive).
 		Bool("show_archived", showArchived).
@@ -161,7 +219,9 @@ func (r *taskSkeletons) GetAll(showActive, showArchived bool) ([]*models.TaskSke
 		args = append(args, "archived")
 	}
 
-	rows, err := r.db.Query(query, args...)
+	executor := r.getExecutor()
+
+	rows, err := executor.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +244,10 @@ func (r *taskSkeletons) GetAll(showActive, showArchived bool) ([]*models.TaskSke
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
+
+	logger.Log.Debug().
+		Int("count", len(tasks)).
+		Msg("Successfully retrieved task skeletons")
 
 	return tasks, nil
 }
