@@ -160,8 +160,9 @@ func (h *EntriesHandler) GetRequirementEntries(c *gin.Context) {
 
 	filter := service.GetRequirementEntriesQueryParams{
 		ShowArchived: showArchived,
-		StartDate:    startDate,
-		EndDate:      endDate,
+		// TODO:
+		// StartDate:    startDate,
+		// EndDate:      endDate,
 	}
 
 	// Get entries from service
