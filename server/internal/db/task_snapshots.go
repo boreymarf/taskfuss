@@ -12,6 +12,7 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
 )
 
@@ -27,12 +28,13 @@ type TaskSnapshots interface {
 }
 
 type taskSnapshots struct {
-	db *sql.DB
+	db *sqlx.DB
+	tx *sqlx.Tx
 }
 
 var _ TaskSnapshots = (*taskSnapshots)(nil)
 
-func InitTaskSnapshots(db *sql.DB) (TaskSnapshots, error) {
+func InitTaskSnapshots(db *sqlx.DB) (TaskSnapshots, error) {
 	repo := &taskSnapshots{db: db}
 
 	if err := repo.CreateTable(); err != nil {
@@ -62,26 +64,51 @@ func (r *taskSnapshots) CreateTable() error {
 	return nil
 }
 
-func (r *taskSnapshots) CreateTx(
+func (r *taskSnapshots) WithTx(tx *sqlx.Tx) RequirementEntries {
+	return &requirementEntries{
+		db: r.db,
+		tx: tx,
+	}
+}
+
+func (r *taskSnapshots) getExecutor() SQLExecutor {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
+}
+
+// ---------------- //
+// INSERT FUNCTIONS //
+// ---------------- //
+
+func (r *taskSnapshots) Create(
 	ctx context.Context,
-	tx *sql.Tx,
 	taskSnapshot *models.TaskSnapshot,
 	revisionUUID uuid.UUID,
 	taskID int64,
 ) (*models.TaskSnapshot, error) {
 	logger.Log.Debug().
+		Str("revision_uuid", revisionUUID.String()).
 		Int64("skeleton_id", taskSnapshot.SkeletonID).
-		Msg("Trying to create new task snapshot in db via ctx")
+		Msg("Trying to create new task snapshot in db")
 
-	query := `INSERT INTO task_snapshots (
-		revision_uuid,
-		skeleton_id,
-		title,
-		description
-	) VALUES (?, ?, ?, ?)`
+	executor := r.getExecutor()
 
-	result, err := tx.ExecContext(
+	query := `
+        INSERT INTO task_snapshots (
+            revision_uuid,
+            skeleton_id,
+            title,
+            description
+        )
+        VALUES (?, ?, ?, ?)
+        RETURNING revision_uuid, skeleton_id, title, description`
+
+	var createdTaskSnapshot models.TaskSnapshot
+	err := executor.GetContext(
 		ctx,
+		&createdTaskSnapshot,
 		query,
 		revisionUUID,
 		taskID,
@@ -90,256 +117,150 @@ func (r *taskSnapshots) CreateTx(
 	)
 	if err != nil {
 		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-				logger.Log.Error().
-					Str("revision_uuid", revisionUUID.String()).
-					Msg("For some reason there's duplicate of the task snapshot!")
-				return nil, apperrors.ErrDuplicate
-			}
+		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+			logger.Log.Error().
+				Str("revision_uuid", revisionUUID.String()).
+				Msg("Duplicate task snapshot detected")
+			return nil, apperrors.ErrDuplicate
 		}
 		return nil, err
-	}
-
-	// General checks
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-	if rowsAffected == 0 {
-		return nil, fmt.Errorf("no rows affected during insert")
-	}
-
-	createdTaskSnapshot, err := r.getByCompositeKeyTx(ctx, tx, revisionUUID, taskID)
-	if err != nil {
-		return nil, err
-	}
-	if createdTaskSnapshot == nil {
-		return nil, fmt.Errorf("failed to retrieve created task snapshot")
 	}
 
 	logger.Log.Debug().
 		Str("revision_uuid", createdTaskSnapshot.RevisionUUID.String()).
 		Int64("skeleton_id", createdTaskSnapshot.SkeletonID).
 		Msg("Created new task snapshot successfully")
-	return createdTaskSnapshot, nil
+
+	return &createdTaskSnapshot, nil
 }
 
-func (r *taskSnapshots) getByCompositeKeyTx(ctx context.Context, tx *sql.Tx, revision_uuid uuid.UUID, skeleton_id int64) (*models.TaskSnapshot, error) {
-	logger.Log.Debug().
-		Str("revision_uuid", revision_uuid.String()).
-		Int64("skeleton_id", skeleton_id).
-		Msg("Trying to find the task snapshot in the db via ctx")
+// ------------- //
+// GET FUNCTIONS //
+// ------------- //
 
-	query := `SELECT
-		revision_uuid,
-		skeleton_id,
-		title,
-		description,
-		created_at,
-		is_current
-	FROM task_snapshots
-	WHERE revision_uuid = ? AND skeleton_id = ?`
-
-	var task models.TaskSnapshot
-
-	err := tx.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
-		&task.RevisionUUID,
-		&task.SkeletonID,
-		&task.Title,
-		&task.Description,
-		&task.CreatedAt,
-		&task.IsCurrent,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &task, nil
+type TaskSnapshotsParams struct {
+	RevisionUUIDs []uuid.UUID
+	SkeletonIDs   []int64
+	CreatedAts    []time.Time
+	IsCurrents    []bool
 }
 
-func (r *taskSnapshots) GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.TaskSnapshot, error) {
-	logger.Log.Debug().
-		Str("revision_uuid", revision_uuid.String()).
-		Int64("skeleton_id", skeleton_id).
-		Msg("Trying to find the task snapshot in the db")
-
-	query := `SELECT
-		revision_uuid,
-		skeleton_id,
-		title,
-		description,
-		created_at,
-		is_current
-	FROM task_snapshots
-	WHERE revision_uuid = ? AND skeleton_id = ?`
-
-	var task models.TaskSnapshot
-
-	err := r.db.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
-		&task.RevisionUUID,
-		&task.SkeletonID,
-		&task.Title,
-		&task.Description,
-		&task.CreatedAt,
-		&task.IsCurrent,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &task, nil
+type TaskSnapshotsQuery struct {
+	repo   *taskSnapshots
+	user   *models.UserContext
+	params *TaskSnapshotsParams
 }
 
-func (r *taskSnapshots) GetLatest(ctx context.Context, skeleton_id int64) (*models.TaskSnapshot, error) {
-	logger.Log.Debug().
-		Int64("skeleton_id", skeleton_id).
-		Msg("Trying to find the latest task snapshot in the db")
-
-	query := `SELECT
-		revision_uuid,
-		skeleton_id,
-		title,
-		description,
-		created_at,
-		is_current
-	FROM task_snapshots
-	WHERE skeleton_id = ? AND is_current = TRUE`
-
-	var task models.TaskSnapshot
-
-	err := r.db.QueryRowContext(ctx, query, skeleton_id).Scan(
-		&task.RevisionUUID,
-		&task.SkeletonID,
-		&task.Title,
-		&task.Description,
-		&task.CreatedAt,
-		&task.IsCurrent,
-	)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("latest task snapshot for skeleton_id %d not found", skeleton_id)
-	} else if err != nil {
-		return nil, err
+func (r *taskSnapshots) Get(user *models.UserContext) *TaskSnapshotsQuery {
+	return &TaskSnapshotsQuery{
+		repo:   r,
+		user:   user,
+		params: &TaskSnapshotsParams{},
 	}
-
-	return &task, nil
 }
 
-func (r *taskSnapshots) GetAllLatest(ctx context.Context, skeleton_ids []int64) ([]*models.TaskSnapshot, error) {
-	logger.Log.Debug().
-		Interface("skeleton_ids", skeleton_ids).
-		Msg("Trying to find all latest task snapshots in the db")
-
-	query := `SELECT
-		revision_uuid,
-		skeleton_id,
-		title,
-		description,
-		created_at,
-		is_current
-	FROM task_snapshots
-	WHERE skeleton_id IN (` + strings.Repeat("?,", len(skeleton_ids)-1) + "?) AND is_current = TRUE"
-
-	args := make([]any, len(skeleton_ids))
-	for i, id := range skeleton_ids {
-		args[i] = id
-	}
-
-	rows, err := r.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tasks []*models.TaskSnapshot
-	for rows.Next() {
-		var task models.TaskSnapshot
-		err := rows.Scan(
-			&task.RevisionUUID,
-			&task.SkeletonID,
-			&task.Title,
-			&task.Description,
-			&task.CreatedAt,
-			&task.IsCurrent,
-		)
-		if err != nil {
-			return nil, err
+func (q *TaskSnapshotsQuery) WithRevisionUUIDs(ids ...any) *TaskSnapshotsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case uuid.UUID:
+			q.params.RevisionUUIDs = append(q.params.RevisionUUIDs, v)
+		case []uuid.UUID:
+			q.params.RevisionUUIDs = append(q.params.RevisionUUIDs, v...)
 		}
-		tasks = append(tasks, &task)
 	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(tasks) == 0 {
-		return nil, fmt.Errorf("no latest task snapshots found for provided skeleton_ids")
-	}
-
-	logger.Log.Debug().Interface("tasks", tasks).Send()
-
-	return tasks, nil
+	return q
 }
 
-func (r *taskSnapshots) SetCurrentRevisionTx(ctx context.Context, tx *sql.Tx, taskID int64, revisionUUID uuid.UUID) error {
-	logger.Log.Debug().
-		Int64("skeleton_id", taskID).
-		Str("revision_uuid", revisionUUID.String()).
-		Msg("Trying to set current revision")
+func (q *TaskSnapshotsQuery) WithSkeletonIDs(ids ...any) *TaskSnapshotsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.SkeletonIDs = append(q.params.SkeletonIDs, v)
+		case []int64:
+			q.params.SkeletonIDs = append(q.params.SkeletonIDs, v...)
+		}
+	}
+	return q
+}
 
-	resetQuery := `
-		UPDATE task_snapshots 
-		SET is_current = FALSE 
-		WHERE skeleton_id = ? AND is_current = TRUE`
+func (q *TaskSnapshotsQuery) WithCreatedAts(times ...any) *TaskSnapshotsQuery {
+	for _, t := range times {
+		switch v := t.(type) {
+		case time.Time:
+			q.params.CreatedAts = append(q.params.CreatedAts, v)
+		case []time.Time:
+			q.params.CreatedAts = append(q.params.CreatedAts, v...)
+		}
+	}
+	return q
+}
 
-	_, err := tx.ExecContext(ctx, resetQuery, taskID)
+func (q *TaskSnapshotsQuery) WithIsCurrents(flags ...any) *TaskSnapshotsQuery {
+	for _, f := range flags {
+		switch v := f.(type) {
+		case bool:
+			q.params.IsCurrents = append(q.params.IsCurrents, v)
+		case []bool:
+			q.params.IsCurrents = append(q.params.IsCurrents, v...)
+		}
+	}
+	return q
+}
+
+func (r *taskSnapshots) BuildQuery(params *TaskSnapshotsParams, user *models.UserContext) (string, []any, error) {
+	var whereClauses []string
+	var args []any
+	var err error
+
+	switch user.Role {
+	case models.RoleAdmin:
+		// no filter
+	case models.RoleUser:
+		// no filter
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "revision_uuid", toAnySlice(params.RevisionUUIDs))
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
-	setQuery := `
-		UPDATE task_snapshots 
-		SET is_current = TRUE 
-		WHERE skeleton_id = ? AND revision_uuid = ?`
+	whereClauses, args, err = InQuery(whereClauses, args, "skeleton_id", toAnySlice(params.SkeletonIDs))
+	if err != nil {
+		return "", nil, err
+	}
 
-	_, err = tx.ExecContext(ctx, setQuery, taskID, revisionUUID)
-	return err
+	whereClauses, args, err = InQuery(whereClauses, args, "created_at", toAnySlice(params.CreatedAts))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "is_current", toAnySlice(params.IsCurrents))
+	if err != nil {
+		return "", nil, err
+	}
+
+	query := "SELECT revision_uuid, skeleton_id, title, description, created_at, is_current FROM task_snapshots"
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	return query, args, nil
 }
 
-func (r *taskSnapshots) GetEarliestFromDate(ctx context.Context, skeleton_id int64, fromDate time.Time) (*models.TaskSnapshot, error) {
-	logger.Log.Debug().
-		Int64("skeleton_id", skeleton_id).
-		Time("from_date", fromDate).
-		Msg("Trying to find the earliest task snapshot from date in the db")
-
-	query := `SELECT
-		revision_uuid,
-		skeleton_id,
-		title,
-		description,
-		created_at,
-		is_current
-	FROM task_snapshots
-	WHERE skeleton_id = ? AND created_at <= ?
-	ORDER BY created_at ASC
-	LIMIT 1`
-
-	var task models.TaskSnapshot
-
-	err := r.db.QueryRowContext(ctx, query, skeleton_id, fromDate).Scan(
-		&task.RevisionUUID,
-		&task.SkeletonID,
-		&task.Title,
-		&task.Description,
-		&task.CreatedAt,
-		&task.IsCurrent,
-	)
-	if errors.Is(err, sql.ErrNoRows) {
-		logger.Log.Err(err).Time("fromDate", fromDate).Msg("failed to get the latest task snapshot")
-		return nil, fmt.Errorf("earliest task snapshot for skeleton_id %d from date %v not found", skeleton_id, fromDate)
-	} else if err != nil {
+func (q *TaskSnapshotsQuery) Send(ctx context.Context) ([]models.TaskSnapshot, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.user)
+	if err != nil {
 		return nil, err
 	}
 
-	return &task, nil
+	logger.Log.Debug().
+		Interface("query", query).
+		Interface("args", args).
+		Msg("Executing task snapshots query")
+
+	var snapshots []models.TaskSnapshot
+	if err := q.repo.db.SelectContext(ctx, &snapshots, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to query task snapshots: %w", err)
+	}
+	return snapshots, nil
 }

@@ -2,9 +2,21 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
+
+type queryParams struct {
+	IDs            []int64
+	entryIDs       []int64
+	requirementIDs []int64
+	dates          []time.Time
+	startDate      *time.Time
+	endDate        *time.Time
+}
+
+type QueryOption func(*queryParams)
 
 // Helper function
 func toAnySlice[T any](s []T) []any {

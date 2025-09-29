@@ -9,15 +9,16 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
 )
 
 type Users interface {
-	WithTx(tx *sql.Tx) Users
+	WithTx(tx *sqlx.Tx) Users
 
 	CreateTable() error
 
-	CreateUser(ctx context.Context, user *models.User) error
+	Create(ctx context.Context, user *models.User) error
 	GetUserByID(ctx context.Context, id int64, user *models.User) error
 	GetUserByEmail(ctx context.Context, email string, user *models.User) error
 	GetAllUsers(ctx context.Context) ([]models.User, error)
@@ -25,13 +26,13 @@ type Users interface {
 }
 
 type users struct {
-	db *sql.DB
-	tx *sql.Tx
+	db *sqlx.DB
+	tx *sqlx.Tx
 }
 
 var _ Users = (*users)(nil)
 
-func InitUsers(db *sql.DB) (Users, error) {
+func InitUsers(db *sqlx.DB) (Users, error) {
 	repo := &users{db: db}
 
 	if err := repo.CreateTable(); err != nil {
@@ -60,7 +61,7 @@ func (r *users) CreateTable() error {
 	return nil
 }
 
-func (r *users) WithTx(tx *sql.Tx) Users {
+func (r *users) WithTx(tx *sqlx.Tx) Users {
 	return &users{
 		db: r.db,
 		tx: tx,
@@ -74,10 +75,13 @@ func (r *users) getExecutor() SQLExecutor {
 	return r.db
 }
 
-func (r *users) CreateUser(ctx context.Context, user *models.User) error {
+// ---------------- //
+// INSERT FUNCTIONS //
+// ---------------- //
+
+func (r *users) Create(ctx context.Context, user *models.User) error {
 	logger.Log.Info().Str("email", user.Email).Msg("Users tries to create new user")
 
-	// Use getExecutor() to support transactions
 	executor := r.getExecutor()
 
 	query := `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`

@@ -16,7 +16,7 @@ type RequirementEntries interface {
 
 	Upsert(ctx context.Context, entry *models.RequirementEntry) (*models.RequirementEntry, error)
 
-	Find(ctx context.Context, user *models.UserContext, opts ...QueryOption) ([]models.RequirementEntry, error)
+	Get(user *models.UserContext) *RequirementEntriesQuery
 }
 
 type requirementEntries struct {
@@ -70,6 +70,10 @@ func (r *requirementEntries) getExecutor() SQLExecutor {
 	return r.db
 }
 
+// ---------------- //
+// INSERT FUNCTIONS //
+// ---------------- //
+
 func (r *requirementEntries) Upsert(ctx context.Context, entry *models.RequirementEntry) (*models.RequirementEntry, error) {
 	logger.Log.Debug().
 		Str("revisionUUID", entry.RevisionUUID.String()).
@@ -112,65 +116,65 @@ func (r *requirementEntries) Upsert(ctx context.Context, entry *models.Requireme
 // ------------- //
 // GET FUNCTIONS //
 // ------------- //
-type queryParams struct {
-	entryIDs       []int64
-	requirementIDs []int64
-	dates          []time.Time
-	startDate      *time.Time
-	endDate        *time.Time
+
+type RequirementEntriesQuery struct {
+	repo   *requirementEntries
+	user   *models.UserContext
+	params *queryParams
 }
 
-type QueryOption func(*queryParams)
+func (r *requirementEntries) Get(user *models.UserContext) *RequirementEntriesQuery {
+	return &RequirementEntriesQuery{
+		repo:   r,
+		user:   user,
+		params: &queryParams{},
+	}
+}
 
-func WithEntryIDs(ids ...any) QueryOption {
-	return func(q *queryParams) {
-		for _, id := range ids {
-			switch v := id.(type) {
-			case int64:
-				q.entryIDs = append(q.entryIDs, v)
-			case []int64:
-				q.entryIDs = append(q.entryIDs, v...)
-			}
+func (q *RequirementEntriesQuery) WithEntryIDs(ids ...any) *RequirementEntriesQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.entryIDs = append(q.params.entryIDs, v)
+		case []int64:
+			q.params.entryIDs = append(q.params.entryIDs, v...)
 		}
 	}
+	return q
 }
 
-func WithRequirementIDs(ids ...any) QueryOption {
-	return func(q *queryParams) {
-		for _, id := range ids {
-			switch v := id.(type) {
-			case int64:
-				q.requirementIDs = append(q.requirementIDs, v)
-			case []int64:
-				q.requirementIDs = append(q.requirementIDs, v...)
-			}
+func (q *RequirementEntriesQuery) WithRequirementIDs(ids ...any) *RequirementEntriesQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.requirementIDs = append(q.params.requirementIDs, v)
+		case []int64:
+			q.params.requirementIDs = append(q.params.requirementIDs, v...)
 		}
 	}
+	return q
 }
 
-func WithDates(dates ...any) QueryOption {
-	return func(q *queryParams) {
-		for _, d := range dates {
-			switch v := d.(type) {
-			case time.Time:
-				q.dates = append(q.dates, v)
-			case []time.Time:
-				q.dates = append(q.dates, v...)
-			}
+func (q *RequirementEntriesQuery) WithDates(dates ...any) *RequirementEntriesQuery {
+	for _, d := range dates {
+		switch v := d.(type) {
+		case time.Time:
+			q.params.dates = append(q.params.dates, v)
+		case []time.Time:
+			q.params.dates = append(q.params.dates, v...)
 		}
 	}
+	return q
 }
 
-func WithStartDate(start time.Time) QueryOption {
-	return func(q *queryParams) {
-		q.startDate = &start
-	}
+func (q *RequirementEntriesQuery) WithStartDate(start time.Time) *RequirementEntriesQuery {
+	q.params.startDate = &start
+	return q
 }
 
-func WithEndDate(end time.Time) QueryOption {
-	return func(q *queryParams) {
-		q.endDate = &end
-	}
+func (q *RequirementEntriesQuery) WithEndDate(end time.Time) *RequirementEntriesQuery {
+	q.params.endDate = &end
+	return q
 }
 
 func (r *requirementEntries) buildQuery(params *queryParams, user *models.UserContext) (string, []any, error) {
@@ -228,17 +232,8 @@ func (r *requirementEntries) DebugBuildQuery(params *queryParams, user *models.U
 	return query, args, err
 }
 
-func (r *requirementEntries) Find(ctx context.Context, user *models.UserContext, opts ...QueryOption) ([]models.RequirementEntry, error) {
-	// Start with empty params
-	params := &queryParams{}
-
-	// Apply all options
-	for _, opt := range opts {
-		opt(params)
-	}
-
-	// Build and execute query
-	query, args, err := r.buildQuery(params, user)
+func (q *RequirementEntriesQuery) Send(ctx context.Context) ([]models.RequirementEntry, error) {
+	query, args, err := q.repo.buildQuery(q.params, q.user)
 	if err != nil {
 		return nil, err
 	}
@@ -249,10 +244,8 @@ func (r *requirementEntries) Find(ctx context.Context, user *models.UserContext,
 		Msg("Executing requirement entries query")
 
 	var entries []models.RequirementEntry
-	err = r.db.SelectContext(ctx, &entries, query, args...)
-	if err != nil {
+	if err := q.repo.db.SelectContext(ctx, &entries, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to query requirement entries: %w", err)
 	}
-
 	return entries, nil
 }

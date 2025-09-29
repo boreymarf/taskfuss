@@ -2,31 +2,34 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
 )
 
 type RequirementSnapshots interface {
-	CreateTx(ctx context.Context, tx *sql.Tx, requirementSnapshot *models.RequirementSnapshot, revision_uuid uuid.UUID) (*models.RequirementSnapshot, error)
+	WithTx(tx *sqlx.Tx) RequirementEntries
 
-	GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error)
-	GetChildren(ctx context.Context, revisionUUID uuid.UUID, parentID int64) ([]models.RequirementSnapshot, error)
+	Create(ctx context.Context, requirementSnapshot *models.RequirementSnapshot, revisionUUID uuid.UUID) (*models.RequirementSnapshot, error)
+
+	Get(user *models.UserContext) *RequirementSnapshotsQuery
 }
 
 type requirementSnapshots struct {
-	db *sql.DB
+	db *sqlx.DB
+	tx *sqlx.Tx
 }
 
 var _ RequirementSnapshots = (*requirementSnapshots)(nil)
 
-func InitRequirementSnapshots(db *sql.DB) (*requirementSnapshots, error) {
+func InitRequirementSnapshots(db *sqlx.DB) (*requirementSnapshots, error) {
 
 	repo := &requirementSnapshots{db: db}
 
@@ -60,27 +63,53 @@ func (r *requirementSnapshots) CreateTable() error {
 	return nil
 }
 
-func (r *requirementSnapshots) CreateTx(ctx context.Context, tx *sql.Tx, requirementSnapshot *models.RequirementSnapshot, revision_uuid uuid.UUID) (*models.RequirementSnapshot, error) {
+func (r *requirementSnapshots) WithTx(tx *sqlx.Tx) RequirementEntries {
+	return &requirementEntries{
+		db: r.db,
+		tx: tx,
+	}
+}
+
+func (r *requirementSnapshots) getExecutor() SQLExecutor {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
+}
+
+// ---------------- //
+// INSERT FUNCTIONS //
+// ---------------- //
+
+func (r *requirementSnapshots) Create(ctx context.Context, requirementSnapshot *models.RequirementSnapshot, revisionUUID uuid.UUID) (*models.RequirementSnapshot, error) {
 	logger.Log.Debug().
 		Int64("skeleton_id", requirementSnapshot.SkeletonID).
-		Msg("Trying to create new requirement snapshot in db via ctx")
+		Msg("Trying to create new requirement snapshot in db")
 
-	query := `INSERT INTO requirement_snapshots (
-		revision_uuid,
-		skeleton_id,
-		parent_id,
-		title,
-		type,
-		data_type,
-		operator,
-		target_value,
-		sort_order
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	executor := r.getExecutor()
 
-	result, err := tx.ExecContext(
+	query := `
+        INSERT INTO requirement_snapshots (
+            revision_uuid,
+            skeleton_id,
+            parent_id,
+            title,
+            type,
+            data_type,
+            operator,
+            target_value,
+            sort_order
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id, revision_uuid, skeleton_id, parent_id, title, type, data_type, operator, target_value, sort_order
+    `
+
+	var createdRequirementSnapshot models.RequirementSnapshot
+	err := executor.GetContext(
 		ctx,
+		&createdRequirementSnapshot,
 		query,
-		revision_uuid,
+		revisionUUID,
 		requirementSnapshot.SkeletonID,
 		requirementSnapshot.ParentID,
 		requirementSnapshot.Title,
@@ -92,173 +121,186 @@ func (r *requirementSnapshots) CreateTx(ctx context.Context, tx *sql.Tx, require
 	)
 	if err != nil {
 		var sqliteErr sqlite3.Error
-		if errors.As(err, &sqliteErr) {
-			if sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-				logger.Log.Error().
-					Str("revision_uuid", revision_uuid.String()).
-					Msg("For some reason there's duplicate of the requirement snapshot!")
-				return nil, apperrors.ErrDuplicate
-			}
+		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+			logger.Log.Error().
+				Str("revision_uuid", revisionUUID.String()).
+				Msg("Duplicate requirement snapshot detected")
+			return nil, apperrors.ErrDuplicate
 		}
 		return nil, err
-	}
-
-	// General checks
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-	if rowsAffected == 0 {
-		return nil, fmt.Errorf("no rows affected during insert")
-	}
-
-	createdRequirementSnapshot, err := r.getByCompositeKeyTx(ctx, tx, revision_uuid, requirementSnapshot.SkeletonID)
-	if err != nil {
-		return nil, err
-	}
-	if createdRequirementSnapshot == nil {
-		return nil, fmt.Errorf("failed to retrieve created requirement snapshot")
 	}
 
 	logger.Log.Debug().
 		Str("revision_uuid", createdRequirementSnapshot.RevisionUUID.String()).
 		Int64("skeleton_id", createdRequirementSnapshot.SkeletonID).
-		Msg("Created new task snapshot successfully")
-	return createdRequirementSnapshot, nil
+		Msg("Created new requirement snapshot successfully")
+
+	return &createdRequirementSnapshot, nil
 }
 
-func (r *requirementSnapshots) getByCompositeKeyTx(ctx context.Context, tx *sql.Tx, revision_uuid uuid.UUID, skeleton_id int64) (*models.RequirementSnapshot, error) {
-	query := `SELECT
-        revision_uuid,
-        skeleton_id,
-        parent_id,
-        title,
-        type,
-        data_type,
-        operator,
-        target_value,
-        sort_order
-    FROM requirement_snapshots
-    WHERE revision_uuid = ? AND skeleton_id = ?`
+// ------------- //
+// GET FUNCTIONS //
+// ------------- //
 
-	var requirementSnapshot models.RequirementSnapshot
-	err := tx.QueryRowContext(ctx, query, revision_uuid, skeleton_id).Scan(
-		&requirementSnapshot.RevisionUUID,
-		&requirementSnapshot.SkeletonID,
-		&requirementSnapshot.ParentID,
-		&requirementSnapshot.Title,
-		&requirementSnapshot.Type,
-		&requirementSnapshot.DataType,
-		&requirementSnapshot.Operator,
-		&requirementSnapshot.TargetValue,
-		&requirementSnapshot.SortOrder,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &requirementSnapshot, nil
+type RequirementSnapshotsParams struct {
+	RevisionUUIDs []uuid.UUID
+	SkeletonIDs   []int64
+	ParentIDs     []int64
+	Types         []string
+	DataTypes     []string
+	Operators     []string
 }
 
-func (r *requirementSnapshots) GetByCompositeKey(ctx context.Context, revisionUUID uuid.UUID, skeletonID int64) (*models.RequirementSnapshot, error) {
-
-	logger.Log.Debug().
-		Str("revisionUUID", revisionUUID.String()).
-		Int64("skeletonID", skeletonID).
-		Msg("Trying to get requirement snapshot in db")
-
-	if skeletonID == 0 {
-		return nil, fmt.Errorf("zero was passed as ID")
-	}
-
-	query := `SELECT
-        revision_uuid,
-        skeleton_id,
-        parent_id,
-        title,
-        type,
-        data_type,
-        operator,
-        target_value,
-        sort_order
-    FROM requirement_snapshots
-    WHERE revision_uuid = ? AND skeleton_id = ?`
-
-	var requirementSnapshot models.RequirementSnapshot
-	err := r.db.QueryRowContext(ctx, query, revisionUUID, skeletonID).Scan(
-		&requirementSnapshot.RevisionUUID,
-		&requirementSnapshot.SkeletonID,
-		&requirementSnapshot.ParentID,
-		&requirementSnapshot.Title,
-		&requirementSnapshot.Type,
-		&requirementSnapshot.DataType,
-		&requirementSnapshot.Operator,
-		&requirementSnapshot.TargetValue,
-		&requirementSnapshot.SortOrder,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &requirementSnapshot, nil
+type RequirementSnapshotsQuery struct {
+	repo   *requirementSnapshots
+	user   *models.UserContext
+	params *RequirementSnapshotsParams
 }
 
-func (r *requirementSnapshots) GetChildren(ctx context.Context, revisionUUID uuid.UUID, parentID int64) ([]models.RequirementSnapshot, error) {
-
-	logger.Log.Debug().
-		Str("revisionUUID", revisionUUID.String()).
-		Int64("parentID", parentID).
-		Msg("Trying to get requirement snapshot's children in db")
-
-	if parentID <= 0 {
-		logger.Log.Error().Int64("parentID", parentID).Msg("incorrect ID was passed to GetChildren!")
-		return nil, fmt.Errorf("incorrect ID was passed to GetChildren!")
+func (r *requirementSnapshots) Get(user *models.UserContext) *RequirementSnapshotsQuery {
+	return &RequirementSnapshotsQuery{
+		repo:   r,
+		user:   user,
+		params: &RequirementSnapshotsParams{},
 	}
+}
 
-	query := `SELECT
-        revision_uuid,
-        skeleton_id,
-        parent_id,
-        title,
-        type,
-        data_type,
-        operator,
-        target_value,
-        sort_order
-    FROM requirement_snapshots
-    WHERE revision_uuid = ? AND parent_id = ?
-    ORDER BY sort_order`
-
-	rows, err := r.db.QueryContext(ctx, query, revisionUUID, parentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var requirementSnapshots []models.RequirementSnapshot
-
-	for rows.Next() {
-		var requirementSnapshot models.RequirementSnapshot
-		err := rows.Scan(
-			&requirementSnapshot.RevisionUUID,
-			&requirementSnapshot.SkeletonID,
-			&requirementSnapshot.ParentID,
-			&requirementSnapshot.Title,
-			&requirementSnapshot.Type,
-			&requirementSnapshot.DataType,
-			&requirementSnapshot.Operator,
-			&requirementSnapshot.TargetValue,
-			&requirementSnapshot.SortOrder,
-		)
-		if err != nil {
-			return nil, err
+func (q *RequirementSnapshotsQuery) WithRevisionUUIDs(ids ...any) *RequirementSnapshotsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case uuid.UUID:
+			q.params.RevisionUUIDs = append(q.params.RevisionUUIDs, v)
+		case []uuid.UUID:
+			q.params.RevisionUUIDs = append(q.params.RevisionUUIDs, v...)
 		}
-		requirementSnapshots = append(requirementSnapshots, requirementSnapshot)
+	}
+	return q
+}
+
+func (q *RequirementSnapshotsQuery) WithSkeletonIDs(ids ...any) *RequirementSnapshotsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.SkeletonIDs = append(q.params.SkeletonIDs, v)
+		case []int64:
+			q.params.SkeletonIDs = append(q.params.SkeletonIDs, v...)
+		}
+	}
+	return q
+}
+
+func (q *RequirementSnapshotsQuery) WithParentIDs(ids ...any) *RequirementSnapshotsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.ParentIDs = append(q.params.ParentIDs, v)
+		case []int64:
+			q.params.ParentIDs = append(q.params.ParentIDs, v...)
+		}
+	}
+	return q
+}
+
+func (q *RequirementSnapshotsQuery) WithTypes(types ...any) *RequirementSnapshotsQuery {
+	for _, t := range types {
+		switch v := t.(type) {
+		case string:
+			q.params.Types = append(q.params.Types, v)
+		case []string:
+			q.params.Types = append(q.params.Types, v...)
+		}
+	}
+	return q
+}
+
+func (q *RequirementSnapshotsQuery) WithDataTypes(dataTypes ...any) *RequirementSnapshotsQuery {
+	for _, dt := range dataTypes {
+		switch v := dt.(type) {
+		case string:
+			q.params.DataTypes = append(q.params.DataTypes, v)
+		case []string:
+			q.params.DataTypes = append(q.params.DataTypes, v...)
+		}
+	}
+	return q
+}
+
+func (q *RequirementSnapshotsQuery) WithOperators(operators ...any) *RequirementSnapshotsQuery {
+	for _, op := range operators {
+		switch v := op.(type) {
+		case string:
+			q.params.Operators = append(q.params.Operators, v)
+		case []string:
+			q.params.Operators = append(q.params.Operators, v...)
+		}
+	}
+	return q
+}
+
+func (r *requirementSnapshots) BuildQuery(params *RequirementSnapshotsParams, user *models.UserContext) (string, []any, error) {
+	var whereClauses []string
+	var args []any
+	var err error
+
+	switch user.Role {
+	case models.RoleAdmin:
+		// no filter
+	case models.RoleUser:
+		// no filter
 	}
 
-	if err = rows.Err(); err != nil {
+	whereClauses, args, err = InQuery(whereClauses, args, "revision_uuid", toAnySlice(params.RevisionUUIDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "skeleton_id", toAnySlice(params.SkeletonIDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "parent_id", toAnySlice(params.ParentIDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "type", toAnySlice(params.Types))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "data_type", toAnySlice(params.DataTypes))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "operator", toAnySlice(params.Operators))
+	if err != nil {
+		return "", nil, err
+	}
+
+	query := "SELECT revision_uuid, skeleton_id, parent_id, title, type, data_type, operator, target_value, sort_order FROM requirement_snapshots"
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	return query, args, nil
+}
+
+func (q *RequirementSnapshotsQuery) Send(ctx context.Context) ([]models.RequirementSnapshot, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.user)
+	if err != nil {
 		return nil, err
 	}
 
-	return requirementSnapshots, nil
+	logger.Log.Debug().
+		Interface("query", query).
+		Interface("args", args).
+		Msg("Executing requirement snapshots query")
+
+	var snapshots []models.RequirementSnapshot
+	if err := q.repo.db.SelectContext(ctx, &snapshots, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to query requirement snapshots: %w", err)
+	}
+	return snapshots, nil
 }

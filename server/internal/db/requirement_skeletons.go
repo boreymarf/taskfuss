@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,24 +9,24 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/apperrors"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/jmoiron/sqlx"
 	"github.com/mattn/go-sqlite3"
-	"github.com/rs/zerolog"
 )
 
 type RequirementSkeletons interface {
-	CreateTx(ctx context.Context, tx *sql.Tx, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error)
-	GetByID(id int64) (*models.RequirementSkeleton, error)
-	GetByTaskID(task_id int64) ([]*models.RequirementSkeleton, error)
-	GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error)
+	WithTx(tx *sqlx.Tx) RequirementEntries
+	Create(ctx context.Context, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error)
+	Get(user *models.UserContext) *RequirementSkeletonsQuery
 }
 
 type requirementSkeletons struct {
-	db *sql.DB
+	db *sqlx.DB
+	tx *sqlx.Tx
 }
 
 var _ RequirementSkeletons = (*requirementSkeletons)(nil)
 
-func InitRequirementSkeletons(db *sql.DB) (RequirementSkeletons, error) {
+func InitRequirementSkeletons(db *sqlx.DB) (RequirementSkeletons, error) {
 
 	repo := &requirementSkeletons{db: db}
 
@@ -53,16 +52,45 @@ func (r *requirementSkeletons) CreateTable() error {
 	return nil
 }
 
-func (r *requirementSkeletons) CreateTx(ctx context.Context, tx *sql.Tx, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error) {
+func (r *requirementSkeletons) WithTx(tx *sqlx.Tx) RequirementEntries {
+	return &requirementEntries{
+		db: r.db,
+		tx: tx,
+	}
+}
+
+func (r *requirementSkeletons) getExecutor() SQLExecutor {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
+}
+
+// ---------------- //
+// INSERT FUNCTIONS //
+// ---------------- //
+
+func (r *requirementSkeletons) Create(ctx context.Context, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error) {
 	logger.Log.Debug().
 		Int64("task_id", requirementSkeleton.TaskID).
-		Msg("Trying to create new requirement skeleton in db via ctx")
+		Msg("Trying to create new requirement skeleton in db")
 
-	query := `INSERT INTO requirement_skeletons (
-		task_id
-	) VALUES (?)`
+	executor := r.getExecutor()
 
-	result, err := tx.ExecContext(ctx, query, requirementSkeleton.TaskID)
+	query := `
+        INSERT INTO requirement_skeletons (
+            task_id
+        )
+        VALUES (?)
+        RETURNING id, task_id`
+
+	var createdRequirementSkeleton models.RequirementSkeleton
+	err := executor.GetContext(
+		ctx,
+		&createdRequirementSkeleton,
+		query,
+		requirementSkeleton.TaskID,
+	)
 	if err != nil {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) {
@@ -73,166 +101,104 @@ func (r *requirementSkeletons) CreateTx(ctx context.Context, tx *sql.Tx, require
 		return nil, err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	createdRequirementSkeleton, err := r.getByIDTx(ctx, tx, id)
-	if err != nil {
-		return nil, err
-	}
-
 	logger.Log.Info().
 		Int64("requirement_skeleton_id", createdRequirementSkeleton.ID).
 		Msg("Created new requirement skeleton successfully")
-	return createdRequirementSkeleton, nil
+
+	return &createdRequirementSkeleton, nil
 }
 
-func (r *requirementSkeletons) getByIDTx(ctx context.Context, tx *sql.Tx, id int64) (*models.RequirementSkeleton, error) {
-	logger.Log.Debug().
-		Int64("id", id).
-		Msg("Trying to find the requirement skeleton in the db via ctx")
+// ------------- //
+// GET FUNCTIONS //
+// ------------- //
 
-	query := `SELECT 
-		id,
-		task_id
-	FROM requirement_skeletons 
-	WHERE id = ?`
+type RequirementSkeletonsParams struct {
+	IDs     []int64
+	TaskIDs []int64
+}
 
-	var requirementSkeleton models.RequirementSkeleton
+type RequirementSkeletonsQuery struct {
+	repo   *requirementSkeletons
+	user   *models.UserContext
+	params *RequirementSkeletonsParams
+}
 
-	err := tx.QueryRowContext(ctx, query, id).Scan(
-		&requirementSkeleton.ID,
-		&requirementSkeleton.TaskID,
-	)
+func (r *requirementSkeletons) Get(user *models.UserContext) *RequirementSkeletonsQuery {
+	return &RequirementSkeletonsQuery{
+		repo:   r,
+		user:   user,
+		params: &RequirementSkeletonsParams{},
+	}
+}
+
+func (q *RequirementSkeletonsQuery) WithIDs(ids ...any) *RequirementSkeletonsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.IDs = append(q.params.IDs, v)
+		case []int64:
+			q.params.IDs = append(q.params.IDs, v...)
+		}
+	}
+	return q
+}
+
+func (q *RequirementSkeletonsQuery) WithTaskIDs(ids ...any) *RequirementSkeletonsQuery {
+	for _, id := range ids {
+		switch v := id.(type) {
+		case int64:
+			q.params.TaskIDs = append(q.params.TaskIDs, v)
+		case []int64:
+			q.params.TaskIDs = append(q.params.TaskIDs, v...)
+		}
+	}
+	return q
+}
+
+func (r *requirementSkeletons) BuildQuery(params *RequirementSkeletonsParams, user *models.UserContext) (string, []any, error) {
+	var whereClauses []string
+	var args []any
+	var err error
+
+	switch user.Role {
+	case models.RoleAdmin:
+		// no filter
+	case models.RoleUser:
+		// no filter
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "id", toAnySlice(params.IDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	whereClauses, args, err = InQuery(whereClauses, args, "task_id", toAnySlice(params.TaskIDs))
+	if err != nil {
+		return "", nil, err
+	}
+
+	query := "SELECT id, task_id FROM requirement_skeletons"
+	if len(whereClauses) > 0 {
+		query += " WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	return query, args, nil
+}
+
+func (q *RequirementSkeletonsQuery) Send(ctx context.Context) ([]models.RequirementSkeleton, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.user)
 	if err != nil {
 		return nil, err
 	}
 
-	return &requirementSkeleton, nil
-}
-
-func (r *requirementSkeletons) GetByID(id int64) (*models.RequirementSkeleton, error) {
-
-	var requirement models.RequirementSkeleton
 	logger.Log.Debug().
-		Int64("id", id).
-		Msg("Trying to find the requirement skeleton in the db")
+		Interface("query", query).
+		Interface("args", args).
+		Msg("Executing requirement skeletons query")
 
-	query := `SELECT
-		id,
-		task_id
-	FROM requirement_skeletons
-	WHERE id = ?`
-
-	row := r.db.QueryRow(query, id)
-
-	err := row.Scan(
-		&requirement.ID,
-		&requirement.TaskID,
-	)
-
-	if errors.Is(err, sql.ErrNoRows) {
-		logger.Log.Warn().
-			Int64("taskID", id).
-			Msg("No requirement was found")
-		return nil, fmt.Errorf("requirement %d not found: %w", id, err)
-	} else if err != nil {
-		return nil, err
+	var skeletons []models.RequirementSkeleton
+	if err := q.repo.db.SelectContext(ctx, &skeletons, query, args...); err != nil {
+		return nil, fmt.Errorf("failed to query requirement skeletons: %w", err)
 	}
-
-	return &requirement, nil
-}
-
-func (r *requirementSkeletons) GetByTaskID(task_id int64) ([]*models.RequirementSkeleton, error) {
-	logger.Log.Debug().
-		Int64("task_id", task_id).
-		Msg("Trying to get requirement skeletons from the db")
-
-	query := `SELECT
-        id,
-        task_id
-    FROM requirement_skeletons
-    WHERE task_id = ?`
-
-	rows, err := r.db.Query(query, task_id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var requirements []*models.RequirementSkeleton
-	for rows.Next() {
-		var req models.RequirementSkeleton
-		err := rows.Scan(
-			&req.ID,
-			&req.TaskID,
-		)
-		if err != nil {
-			return nil, err
-		}
-		requirements = append(requirements, &req)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return requirements, nil
-}
-
-func (r *requirementSkeletons) GetByTaskIDs(task_ids []int64) ([]*models.RequirementSkeleton, error) {
-	if len(task_ids) > 0 {
-		arr := zerolog.Arr()
-		for _, id := range task_ids {
-			arr.Int64(id)
-		}
-		logger.Log.Debug().
-			Array("task_ids", arr).
-			Msg("Trying to get all requirement skeletons from the db")
-	} else {
-		logger.Log.Debug().
-			Msg("Task ids list is empty, skipping database query")
-	}
-
-	if len(task_ids) == 0 {
-		return []*models.RequirementSkeleton{}, nil
-	}
-
-	query := `SELECT
-		id,
-		task_id
-	FROM requirement_skeletons
-	WHERE task_id IN (` + strings.Repeat("?,", len(task_ids)-1) + "?)"
-
-	args := make([]any, len(task_ids))
-	for i, id := range task_ids {
-		args[i] = id
-	}
-
-	rows, err := r.db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var requirements []*models.RequirementSkeleton
-	for rows.Next() {
-		var req models.RequirementSkeleton
-		err := rows.Scan(
-			&req.ID,
-			&req.TaskID,
-		)
-		if err != nil {
-			return nil, err
-		}
-		requirements = append(requirements, &req)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return requirements, nil
+	return skeletons, nil
 }
