@@ -18,7 +18,7 @@ type TaskSkeletons interface {
 
 	Create(ctx context.Context, task *models.TaskSkeleton) (*models.TaskSkeleton, error)
 
-	Get(user *models.UserContext) *TaskSkeletonsQuery
+	Get(ctx context.Context, uc *models.UserContext) *TaskSkeletonsQuery
 }
 
 type taskSkeletons struct {
@@ -114,15 +114,17 @@ type TaskSkeletonsParams struct {
 
 type TaskSkeletonsQuery struct {
 	repo   *taskSkeletons
-	user   *models.UserContext
+	uc     *models.UserContext
 	params *TaskSkeletonsParams
+	ctx    context.Context
 }
 
-func (r *taskSkeletons) Get(user *models.UserContext) *TaskSkeletonsQuery {
+func (r *taskSkeletons) Get(ctx context.Context, uc *models.UserContext) *TaskSkeletonsQuery {
 	return &TaskSkeletonsQuery{
 		repo:   r,
-		user:   user,
+		uc:     uc,
 		params: &TaskSkeletonsParams{},
+		ctx:    ctx,
 	}
 }
 
@@ -196,7 +198,7 @@ func (r *taskSkeletons) BuildQuery(params *TaskSkeletonsParams, user *models.Use
 }
 
 func (q *TaskSkeletonsQuery) Send(ctx context.Context) ([]models.TaskSkeleton, error) {
-	query, args, err := q.repo.BuildQuery(q.params, q.user)
+	query, args, err := q.repo.BuildQuery(q.params, q.uc)
 	if err != nil {
 		return nil, err
 	}

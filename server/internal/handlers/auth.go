@@ -71,7 +71,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user.Email = req.Email
 	user.PasswordHash = passwordHash
 
-	err = h.userRepo.CreateUser(ctx, &user)
+	err = h.userRepo.Create(ctx, &user)
 
 	if err != nil {
 
@@ -164,9 +164,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		}
 	}
 
-	var user models.User
-
-	err := h.userRepo.GetUserByEmail(ctx, req.Email, &user)
+	user, err := h.userRepo.Get(ctx, nil).WithEmails(req.Email).First()
 
 	logger.Log.Debug().Str("email", user.Email).Str("hash", user.PasswordHash).Send()
 

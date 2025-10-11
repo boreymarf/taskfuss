@@ -15,8 +15,10 @@ import (
 
 type RequirementSkeletons interface {
 	WithTx(tx *sqlx.Tx) RequirementEntries
+
 	Create(ctx context.Context, requirementSkeleton *models.RequirementSkeleton) (*models.RequirementSkeleton, error)
-	Get(user *models.UserContext) *RequirementSkeletonsQuery
+
+	Get(ctx context.Context, uc *models.UserContext) *RequirementSkeletonsQuery
 }
 
 type requirementSkeletons struct {
@@ -119,15 +121,17 @@ type RequirementSkeletonsParams struct {
 
 type RequirementSkeletonsQuery struct {
 	repo   *requirementSkeletons
-	user   *models.UserContext
+	uc     *models.UserContext
 	params *RequirementSkeletonsParams
+	ctx    context.Context
 }
 
-func (r *requirementSkeletons) Get(user *models.UserContext) *RequirementSkeletonsQuery {
+func (r *requirementSkeletons) Get(ctx context.Context, uc *models.UserContext) *RequirementSkeletonsQuery {
 	return &RequirementSkeletonsQuery{
 		repo:   r,
-		user:   user,
+		uc:     uc,
 		params: &RequirementSkeletonsParams{},
+		ctx:    ctx,
 	}
 }
 
@@ -185,8 +189,8 @@ func (r *requirementSkeletons) BuildQuery(params *RequirementSkeletonsParams, us
 	return query, args, nil
 }
 
-func (q *RequirementSkeletonsQuery) Send(ctx context.Context) ([]models.RequirementSkeleton, error) {
-	query, args, err := q.repo.BuildQuery(q.params, q.user)
+func (q *RequirementSkeletonsQuery) All() ([]models.RequirementSkeleton, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.uc)
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +201,23 @@ func (q *RequirementSkeletonsQuery) Send(ctx context.Context) ([]models.Requirem
 		Msg("Executing requirement skeletons query")
 
 	var skeletons []models.RequirementSkeleton
-	if err := q.repo.db.SelectContext(ctx, &skeletons, query, args...); err != nil {
+	if err := q.repo.db.SelectContext(q.ctx, &skeletons, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to query requirement skeletons: %w", err)
 	}
 	return skeletons, nil
+}
+
+func (q *RequirementSkeletonsQuery) First() (*models.RequirementSkeleton, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.uc)
+	if err != nil {
+		return nil, err
+	}
+
+	query += " LIMIT 1"
+
+	var skeleton models.RequirementSkeleton
+	if err := q.repo.db.GetContext(q.ctx, &skeleton, query, args...); err != nil {
+		return nil, err
+	}
+	return &skeleton, nil
 }

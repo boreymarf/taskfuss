@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -11,26 +12,22 @@ import (
 var Log zerolog.Logger
 
 func init() {
-
 	logLevel := os.Getenv("LOG_LEVEL")
-	fmt.Println(logLevel)
 	if logLevel == "" {
 		logLevel = "info"
 	}
-
 	level, err := zerolog.ParseLevel(logLevel)
 	if err != nil {
 		level = zerolog.InfoLevel
 	}
 
-	output := zerolog.ConsoleWriter{
+	consoleWriter := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		TimeFormat: "2006/01/02 15:04:05",
 		NoColor:    false,
 		PartsOrder: []string{"level", "time", "caller", "message"},
 	}
-
-	output.FormatLevel = func(i any) string {
+	consoleWriter.FormatLevel = func(i any) string {
 		var level string
 		if l, ok := i.(string); ok {
 			switch strings.ToLower(l) {
@@ -55,21 +52,21 @@ func init() {
 		return level
 	}
 
-	output.FormatCaller = func(i any) string {
+	consoleWriter.FormatCaller = func(i any) string {
 		if caller, ok := i.(string); ok {
-			// Находим последний слеш в пути
+			// Find the last slash in the path
 			lastSlash := strings.LastIndex(caller, "/")
 			if lastSlash != -1 {
-				// Ищем предыдущий слеш (для выделения папки)
+				// Look for the previous slash (to extract the folder)
 				prevSlash := -1
 				if lastSlash > 0 {
 					prevSlash = strings.LastIndex(caller[:lastSlash], "/")
 				}
-				// Обрезаем до последней папки (если есть)
+				// Trim to the last folder (if present)
 				if prevSlash != -1 {
 					caller = caller[prevSlash+1:]
 				}
-				// Удаляем ведущий слеш (если остался)
+				// Remove leading slash (if still present)
 				if len(caller) > 0 && caller[0] == '/' {
 					caller = caller[1:]
 				}
@@ -79,7 +76,14 @@ func init() {
 		return ""
 	}
 
-	Log = zerolog.New(output).
+	file, err := os.OpenFile("app.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		panic(err)
+	}
+
+	multi := io.MultiWriter(consoleWriter, file)
+
+	Log = zerolog.New(multi).
 		Level(level).
 		With().
 		Timestamp().

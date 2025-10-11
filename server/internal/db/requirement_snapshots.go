@@ -19,7 +19,7 @@ type RequirementSnapshots interface {
 
 	Create(ctx context.Context, requirementSnapshot *models.RequirementSnapshot, revisionUUID uuid.UUID) (*models.RequirementSnapshot, error)
 
-	Get(user *models.UserContext) *RequirementSnapshotsQuery
+	Get(ctx context.Context, uc *models.UserContext) *RequirementSnapshotsQuery
 }
 
 type requirementSnapshots struct {
@@ -153,14 +153,15 @@ type RequirementSnapshotsParams struct {
 
 type RequirementSnapshotsQuery struct {
 	repo   *requirementSnapshots
-	user   *models.UserContext
+	uc     *models.UserContext
 	params *RequirementSnapshotsParams
+	ctx    context.Context
 }
 
-func (r *requirementSnapshots) Get(user *models.UserContext) *RequirementSnapshotsQuery {
+func (r *requirementSnapshots) Get(ctx context.Context, uc *models.UserContext) *RequirementSnapshotsQuery {
 	return &RequirementSnapshotsQuery{
 		repo:   r,
-		user:   user,
+		uc:     uc,
 		params: &RequirementSnapshotsParams{},
 	}
 }
@@ -288,7 +289,7 @@ func (r *requirementSnapshots) BuildQuery(params *RequirementSnapshotsParams, us
 }
 
 func (q *RequirementSnapshotsQuery) Send(ctx context.Context) ([]models.RequirementSnapshot, error) {
-	query, args, err := q.repo.BuildQuery(q.params, q.user)
+	query, args, err := q.repo.BuildQuery(q.params, q.uc)
 	if err != nil {
 		return nil, err
 	}

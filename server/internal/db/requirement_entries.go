@@ -16,7 +16,7 @@ type RequirementEntries interface {
 
 	Upsert(ctx context.Context, entry *models.RequirementEntry) (*models.RequirementEntry, error)
 
-	Get(user *models.UserContext) *RequirementEntriesQuery
+	Get(ctx context.Context, user *models.UserContext) *RequirementEntriesQuery
 }
 
 type requirementEntries struct {
@@ -121,13 +121,15 @@ type RequirementEntriesQuery struct {
 	repo   *requirementEntries
 	user   *models.UserContext
 	params *queryParams
+	ctx    context.Context
 }
 
-func (r *requirementEntries) Get(user *models.UserContext) *RequirementEntriesQuery {
+func (r *requirementEntries) Get(ctx context.Context, user *models.UserContext) *RequirementEntriesQuery {
 	return &RequirementEntriesQuery{
 		repo:   r,
 		user:   user,
 		params: &queryParams{},
+		ctx:    ctx,
 	}
 }
 
@@ -177,7 +179,7 @@ func (q *RequirementEntriesQuery) WithEndDate(end time.Time) *RequirementEntries
 	return q
 }
 
-func (r *requirementEntries) buildQuery(params *queryParams, user *models.UserContext) (string, []any, error) {
+func (r *requirementEntries) BuildQuery(params *queryParams, user *models.UserContext) (string, []any, error) {
 	var whereClauses []string
 	var args []any
 	var err error
@@ -227,13 +229,8 @@ func (r *requirementEntries) buildQuery(params *queryParams, user *models.UserCo
 	return query, args, nil
 }
 
-func (r *requirementEntries) DebugBuildQuery(params *queryParams, user *models.UserContext) (string, []interface{}, error) {
-	query, args, err := r.buildQuery(params, user)
-	return query, args, err
-}
-
-func (q *RequirementEntriesQuery) Send(ctx context.Context) ([]models.RequirementEntry, error) {
-	query, args, err := q.repo.buildQuery(q.params, q.user)
+func (q *RequirementEntriesQuery) All() ([]models.RequirementEntry, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.user)
 	if err != nil {
 		return nil, err
 	}
@@ -244,8 +241,24 @@ func (q *RequirementEntriesQuery) Send(ctx context.Context) ([]models.Requiremen
 		Msg("Executing requirement entries query")
 
 	var entries []models.RequirementEntry
-	if err := q.repo.db.SelectContext(ctx, &entries, query, args...); err != nil {
+	if err := q.repo.db.SelectContext(q.ctx, &entries, query, args...); err != nil {
 		return nil, fmt.Errorf("failed to query requirement entries: %w", err)
 	}
 	return entries, nil
+}
+
+func (q *RequirementEntriesQuery) First() (*models.User, error) {
+	query, args, err := q.repo.BuildQuery(q.params, q.user)
+	if err != nil {
+		return nil, err
+	}
+
+	// force limit 1
+	query += " LIMIT 1"
+
+	var user models.User
+	if err := q.repo.db.GetContext(q.ctx, &user, query, args...); err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

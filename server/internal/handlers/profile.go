@@ -8,7 +8,6 @@ import (
 	"github.com/boreymarf/task-fuss/server/internal/db"
 	"github.com/boreymarf/task-fuss/server/internal/dto"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
-	"github.com/boreymarf/task-fuss/server/internal/models"
 	"github.com/boreymarf/task-fuss/server/internal/security"
 	"github.com/gin-gonic/gin"
 )
@@ -51,8 +50,13 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	var modelsUser models.User
-	h.userRepo.GetUserByID(ctx, claims.UserID, &modelsUser)
+	uc, err := h.userRepo.GetContextByID(ctx, claims.UserID)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("Failed to get user context in the profile handler")
+		api.InternalServerError.SendAndAbort(c)
+	}
+
+	modelsUser, err := h.userRepo.Get(ctx, uc).WithIDs(claims.UserID).First()
 
 	dtoUser := dto.User{
 		Id:        modelsUser.ID,

@@ -11,15 +11,16 @@ const (
 )
 
 type UserContext struct {
-	ID   int64
-	Role UserRole
+	ID   int64    `db:"id"`
+	Role UserRole `db:"role"`
 }
 
 type User struct {
-	ID           int64     `json:"id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"passwordHash,omitempty"` // TODO: Hash password later
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID           int64     `db:"id"`
+	Username     string    `db:"username"`
+	Email        string    `db:"email"`
+	PasswordHash string    `db:"password_hash"`
+	CreatedAt    time.Time `db:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at"`
+	Role         UserRole  `db:"role"`
 }

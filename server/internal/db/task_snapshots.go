@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -17,14 +16,11 @@ import (
 )
 
 type TaskSnapshots interface {
-	CreateTx(ctx context.Context, tx *sql.Tx, taskSnapshot *models.TaskSnapshot, revision_uuid uuid.UUID, skeleton_id int64) (*models.TaskSnapshot, error)
+	WithTx(tx *sqlx.Tx) RequirementEntries
 
-	GetByCompositeKey(ctx context.Context, revision_uuid uuid.UUID, skeleton_id int64) (*models.TaskSnapshot, error)
-	GetLatest(ctx context.Context, skeleton_id int64) (*models.TaskSnapshot, error)
-	GetAllLatest(ctx context.Context, skeleton_ids []int64) ([]*models.TaskSnapshot, error)
-	GetEarliestFromDate(ctx context.Context, skeleton_id int64, fromDate time.Time) (*models.TaskSnapshot, error)
+	Create(ctx context.Context, taskSnapshot *models.TaskSnapshot, revisionUUID uuid.UUID, taskID int64) (*models.TaskSnapshot, error)
 
-	SetCurrentRevisionTx(ctx context.Context, tx *sql.Tx, taskID int64, revisionUUID uuid.UUID) error
+	SetCurrentRevisionTx(ctx context.Context, taskID int64, revisionUUID uuid.UUID) error
 }
 
 type taskSnapshots struct {
@@ -82,12 +78,7 @@ func (r *taskSnapshots) getExecutor() SQLExecutor {
 // INSERT FUNCTIONS //
 // ---------------- //
 
-func (r *taskSnapshots) Create(
-	ctx context.Context,
-	taskSnapshot *models.TaskSnapshot,
-	revisionUUID uuid.UUID,
-	taskID int64,
-) (*models.TaskSnapshot, error) {
+func (r *taskSnapshots) Create(ctx context.Context, taskSnapshot *models.TaskSnapshot, revisionUUID uuid.UUID, taskID int64) (*models.TaskSnapshot, error) {
 	logger.Log.Debug().
 		Str("revision_uuid", revisionUUID.String()).
 		Int64("skeleton_id", taskSnapshot.SkeletonID).
@@ -147,15 +138,17 @@ type TaskSnapshotsParams struct {
 
 type TaskSnapshotsQuery struct {
 	repo   *taskSnapshots
-	user   *models.UserContext
+	uc     *models.UserContext
 	params *TaskSnapshotsParams
+	ctx    context.Context
 }
 
-func (r *taskSnapshots) Get(user *models.UserContext) *TaskSnapshotsQuery {
+func (r *taskSnapshots) Get(ctx context.Context, uc *models.UserContext) *TaskSnapshotsQuery {
 	return &TaskSnapshotsQuery{
 		repo:   r,
-		user:   user,
+		uc:     uc,
 		params: &TaskSnapshotsParams{},
+		ctx:    ctx,
 	}
 }
 
@@ -248,7 +241,7 @@ func (r *taskSnapshots) BuildQuery(params *TaskSnapshotsParams, user *models.Use
 }
 
 func (q *TaskSnapshotsQuery) Send(ctx context.Context) ([]models.TaskSnapshot, error) {
-	query, args, err := q.repo.BuildQuery(q.params, q.user)
+	query, args, err := q.repo.BuildQuery(q.params, q.uc)
 	if err != nil {
 		return nil, err
 	}
@@ -263,4 +256,35 @@ func (q *TaskSnapshotsQuery) Send(ctx context.Context) ([]models.TaskSnapshot, e
 		return nil, fmt.Errorf("failed to query task snapshots: %w", err)
 	}
 	return snapshots, nil
+}
+
+// ---------------- //
+// UPDATE FUNCTIONS //
+// ---------------- //
+
+func (r *taskSnapshots) SetCurrentRevisionTx(ctx context.Context, taskID int64, revisionUUID uuid.UUID) error {
+	logger.Log.Debug().
+		Int64("skeleton_id", taskID).
+		Str("revision_uuid", revisionUUID.String()).
+		Msg("Trying to set current revision")
+
+	resetQuery := `
+		UPDATE task_snapshots 
+		SET is_current = FALSE 
+		WHERE skeleton_id = ? AND is_current = TRUE`
+
+	executor := r.getExecutor()
+
+	_, err := executor.ExecContext(ctx, resetQuery, taskID)
+	if err != nil {
+		return err
+	}
+
+	setQuery := `
+		UPDATE task_snapshots 
+		SET is_current = TRUE 
+		WHERE skeleton_id = ? AND revision_uuid = ?`
+
+	_, err = executor.ExecContext(ctx, setQuery, taskID, revisionUUID)
+	return err
 }

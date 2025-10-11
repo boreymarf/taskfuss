@@ -43,13 +43,15 @@ func InitEntriesService(
 // TODO:
 // 1) Проверка пользователя и его доступ к задаче и требованию
 // 2) Проверка типа входного данного с типом требования
-func (s *EntriesService) UpsertRequirementEntry(ctx context.Context, entry *models.RequirementEntry, userID int64) ([]models.Node, error) {
+func (s *EntriesService) UpsertRequirementEntry(ctx context.Context, uc models.UserContext, entry *models.RequirementEntry) ([]models.Node, error) {
 	var nodes []models.Node
 
 	requirementSkeleton, err := s.requirementSkeletons.GetByID(entry.RequirementID)
 	if err != nil {
 		return nil, fmt.Errorf("requirement not found: %w", err)
 	}
+
+	requirementSkeleton, err := s.requirementSkeletons.Get(uc)
 
 	taskSkeleton, err := s.taskSkeletons.GetByID(ctx, requirementSkeleton.TaskID)
 	if err != nil {
