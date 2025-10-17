@@ -1,27 +1,24 @@
 package db
 
 import (
-	"database/sql"
-	"fmt"
+	"github.com/boreymarf/task-fuss/server/internal/db/core"
+	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/jmoiron/sqlx"
 )
 
-type TaskEntries struct {
-	db *sql.DB
+type taskEntries interface {
+	core.Repository[models.TaskEntry]
+	core.Creator[models.TaskEntry]
+	core.Getter[models.TaskEntry]
+	core.Updater[models.TaskEntry]
+	core.Deleter[models.TaskEntry]
 }
 
-func InitTaskEntries(db *sql.DB) (*TaskEntries, error) {
-
-	repo := &TaskEntries{db: db}
-
-	if err := repo.CreateTable(); err != nil {
-		return nil, fmt.Errorf("migration failed: %w", err)
-	}
-
-	return repo, nil
+type taskEntriesRepo struct {
+	*core.BaseRepo[models.TaskEntry]
 }
 
-func (r *TaskEntries) CreateTable() error {
-	query := `
+const taskEntriesSQL = `
 	CREATE TABLE IF NOT EXISTS task_entries (
 		id 						INTEGER NOT NULL PRIMARY KEY,
 		task_id 			INTEGER NOT NULL REFERENCES task_skeletons(id) ON DELETE CASCADE,
@@ -29,10 +26,10 @@ func (r *TaskEntries) CreateTable() error {
 		completed			BOOLEAN NOT NULL DEFAULT FALSE CHECK (completed IN (0, 1))
 	)`
 
-	_, err := r.db.Exec(query)
+func InittaskEntries(db *sqlx.DB) (taskEntries, error) {
+	repo, err := core.InitRepo[models.TaskEntry](db, "task_entries", taskEntriesSQL)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return nil
+	return &taskEntriesRepo{BaseRepo: repo}, nil
 }

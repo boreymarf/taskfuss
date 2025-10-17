@@ -1,27 +1,24 @@
 package db
 
 import (
-	"database/sql"
-	"fmt"
+	"github.com/boreymarf/task-fuss/server/internal/db/core"
+	"github.com/boreymarf/task-fuss/server/internal/models"
+	"github.com/jmoiron/sqlx"
 )
 
-type TaskPeriods struct {
-	db *sql.DB
+type taskPeriods interface {
+	core.Repository[models.TaskPeriod]
+	core.Creator[models.TaskPeriod]
+	core.Getter[models.TaskPeriod]
+	core.Updater[models.TaskPeriod]
+	core.Deleter[models.TaskPeriod]
 }
 
-func InitTaskPeriods(db *sql.DB) (*TaskPeriods, error) {
-
-	repo := &TaskPeriods{db: db}
-
-	if err := repo.CreateTable(); err != nil {
-		return nil, fmt.Errorf("migration failed: %w", err)
-	}
-
-	return repo, nil
+type taskPeriodsRepo struct {
+	*core.BaseRepo[models.TaskPeriod]
 }
 
-func (r *TaskPeriods) CreateTable() error {
-	query := `
+const taskPeriodsSQL = `
 	CREATE TABLE IF NOT EXISTS task_periods (
 		id							INTEGER NOT NULL PRIMARY KEY,
 		task_id					INTEGER NOT NULL REFERENCES task_skeletons(id) ON DELETE CASCADE,
@@ -32,10 +29,10 @@ func (r *TaskPeriods) CreateTable() error {
 		updated_at			DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`
 
-	_, err := r.db.Exec(query)
+func InittaskPeriods(db *sqlx.DB) (taskPeriods, error) {
+	repo, err := core.InitRepo[models.TaskPeriod](db, "task_periods", taskPeriodsSQL)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	return nil
+	return &taskPeriodsRepo{BaseRepo: repo}, nil
 }
