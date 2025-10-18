@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type taskPeriods interface {
+type TaskPeriods interface {
 	core.Repository[models.TaskPeriod]
 	core.Creator[models.TaskPeriod]
 	core.Getter[models.TaskPeriod]
@@ -29,7 +29,7 @@ const taskPeriodsSQL = `
 		updated_at			DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`
 
-func InittaskPeriods(db *sqlx.DB) (taskPeriods, error) {
+func InitTaskPeriods(db *sqlx.DB) (TaskPeriods, error) {
 	repo, err := core.InitRepo[models.TaskPeriod](db, "task_periods", taskPeriodsSQL)
 	if err != nil {
 		return nil, err

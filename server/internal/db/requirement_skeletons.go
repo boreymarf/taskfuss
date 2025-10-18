@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type requirementSkeletons interface {
+type RequirementSkeletons interface {
 	core.Repository[models.RequirementSkeleton]
 	core.Creator[models.RequirementSkeleton]
 	core.Getter[models.RequirementSkeleton]
@@ -24,7 +24,7 @@ const requirementSkeletonsSQL = `
 		task_id INTEGER NOT NULL
   )`
 
-func InitrequirementSkeletons(db *sqlx.DB) (requirementSkeletons, error) {
+func InitRequirementSkeletons(db *sqlx.DB) (RequirementSkeletons, error) {
 	repo, err := core.InitRepo[models.RequirementSkeleton](db, "requirement_skeletons", requirementSkeletonsSQL)
 	if err != nil {
 		return nil, err

@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type taskEntries interface {
+type TaskEntries interface {
 	core.Repository[models.TaskEntry]
 	core.Creator[models.TaskEntry]
 	core.Getter[models.TaskEntry]
@@ -26,7 +26,7 @@ const taskEntriesSQL = `
 		completed			BOOLEAN NOT NULL DEFAULT FALSE CHECK (completed IN (0, 1))
 	)`
 
-func InittaskEntries(db *sqlx.DB) (taskEntries, error) {
+func InitTaskEntries(db *sqlx.DB) (TaskEntries, error) {
 	repo, err := core.InitRepo[models.TaskEntry](db, "task_entries", taskEntriesSQL)
 	if err != nil {
 		return nil, err

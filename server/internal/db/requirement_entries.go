@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type requirementEntries interface {
+type RequirementEntries interface {
 	core.Repository[models.RequirementEntry]
 	core.Creator[models.RequirementEntry]
 	core.Getter[models.RequirementEntry]
@@ -28,7 +28,7 @@ const requirementEntriesSQL = `
 		UNIQUE(requirement_id, entry_date)
 	)`
 
-func InitrequirementEntries(db *sqlx.DB) (requirementEntries, error) {
+func InitRequirementEntries(db *sqlx.DB) (RequirementEntries, error) {
 	repo, err := core.InitRepo[models.RequirementEntry](db, "requirement_entries", requirementEntriesSQL)
 	if err != nil {
 		return nil, err

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/boreymarf/task-fuss/server/internal/db"
+	"github.com/boreymarf/task-fuss/server/internal/db/core"
 	"github.com/boreymarf/task-fuss/server/internal/handlers"
 	"github.com/boreymarf/task-fuss/server/internal/logger"
 	"github.com/boreymarf/task-fuss/server/internal/middleware"
@@ -51,7 +52,7 @@ func main() {
 	// }
 
 	// Connecting to database
-	database, err := db.InitDB()
+	database, err := core.InitDB()
 	if err != nil {
 		logger.Log.Fatal().Err(err).Msg("Failed to connect to the database")
 	} else {
@@ -79,107 +80,75 @@ func main() {
 	}))
 
 	// Repositories
-	usersRepository, err := db.InitUsers(database)
+	repositories, err := db.InitializeRepositories(database)
 	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize user repository")
+		logger.Log.Fatal().Err(err).Msg("Failed to initialize repositories!")
 	}
 
-	taskSkeletonsRepository, err := db.InitTaskSkeletons(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize task skeletons repository")
-	}
+	logger.Log.Debug().Interface("repositories", repositories).Send()
 
-	taskSnapshotsRepository, err := db.InitTaskSnapshots(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize task snapshots repository")
-	}
-
-	taskEntriesRepository, err := db.InitTaskEntries(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize task entry repository")
-	}
-
-	taskPeriodsRepository, err := db.InitTaskPeriods(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize task periods repository")
-	}
-
-	requirementSkeletonsRepository, err := db.InitRequirementSkeletons(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement repository")
-	}
-
-	requirementSnapshotsRepository, err := db.InitRequirementSnapshots(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirements snapshots repository")
-	}
-
-	requirementEntriesRepository, err := db.InitRequirementEntries(database)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize requirement entry repository")
-	}
-
-	// Services
-	taskService, err := service.InitTaskService(
-		database,
-		usersRepository,
-		taskSkeletonsRepository,
-		taskSnapshotsRepository,
-		taskPeriodsRepository,
-		taskEntriesRepository,
-		requirementSkeletonsRepository,
-		requirementSnapshotsRepository,
-		requirementEntriesRepository,
-	)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize task service repository")
-	}
-
-	entriesService, err := service.InitEntriesService(
-		database,
-		taskSkeletonsRepository,
-		taskSnapshotsRepository,
-		requirementSkeletonsRepository,
-		requirementSnapshotsRepository,
-		requirementEntriesRepository,
-	)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize entries service repository")
-	}
-
-	// Handlers
-	authHandler, err := handlers.InitAuthHandler(usersRepository)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize auth handler")
-	}
-
-	profileHandler, err := handlers.InitProfileHandler(usersRepository)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize profile handler")
-	}
-
-	taskHandler, err := handlers.InitTaskHandler(
-		taskService,
-	)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize task handler")
-	}
-
-	entriesHandler, err := handlers.InitEntriesHandler(
-		entriesService,
-	)
-	if err != nil {
-		logger.Log.Fatal().Err(err).Msg("Unable to initialize entries handler")
-	}
-
-	routes.SetupAPIRoutes(
-		r,
-		usersRepository,
-		authHandler,
-		profileHandler,
-		taskHandler,
-		entriesHandler,
-	)
+	//
+	// // Services
+	// taskService, err := service.InitTaskService(
+	// 	database,
+	// 	usersRepository,
+	// 	taskSkeletonsRepository,
+	// 	taskSnapshotsRepository,
+	// 	taskPeriodsRepository,
+	// 	taskEntriesRepository,
+	// 	requirementSkeletonsRepository,
+	// 	requirementSnapshotsRepository,
+	// 	requirementEntriesRepository,
+	// )
+	// if err != nil {
+	// 	logger.Log.Fatal().Err(err).Msg("Unable to initialize task service repository")
+	// }
+	//
+	// entriesService, err := service.InitEntriesService(
+	// 	database,
+	// 	taskSkeletonsRepository,
+	// 	taskSnapshotsRepository,
+	// 	requirementSkeletonsRepository,
+	// 	requirementSnapshotsRepository,
+	// 	requirementEntriesRepository,
+	// )
+	// if err != nil {
+	// 	logger.Log.Fatal().Err(err).Msg("Unable to initialize entries service repository")
+	// }
+	//
+	// // Handlers
+	// authHandler, err := handlers.InitAuthHandler(usersRepository)
+	// if err != nil {
+	// 	logger.Log.Fatal().Err(err).Msg("Unable to initialize auth handler")
+	// }
+	//
+	// profileHandler, err := handlers.InitProfileHandler(usersRepository)
+	// if err != nil {
+	// 	logger.Log.Fatal().Err(err).Msg("Unable to initialize profile handler")
+	// }
+	//
+	// taskHandler, err := handlers.InitTaskHandler(
+	// 	taskService,
+	// )
+	// if err != nil {
+	// 	logger.Log.Fatal().Err(err).Msg("Unable to initialize task handler")
+	// }
+	//
+	// entriesHandler, err := handlers.InitEntriesHandler(
+	// 	entriesService,
+	// )
+	// if err != nil {
+	// 	logger.Log.Fatal().Err(err).Msg("Unable to initialize entries handler")
+	// }
+	//
+	// routes.SetupAPIRoutes(
+	// 	r,
+	// 	usersRepository,
+	// 	authHandler,
+	// 	profileHandler,
+	// 	taskHandler,
+	// 	entriesHandler,
+	// )
 
 	// Initializing
 	port := os.Getenv("PORT")

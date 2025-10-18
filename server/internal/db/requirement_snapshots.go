@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type requirementSnapshots interface {
+type RequirementSnapshots interface {
 	core.Repository[models.RequirementSnapshot]
 	core.Creator[models.RequirementSnapshot]
 	core.Getter[models.RequirementSnapshot]
@@ -32,7 +32,7 @@ const requirementSnapshotsSQL = `
 		PRIMARY KEY (revision_uuid, skeleton_id)
 	)`
 
-func InitRequirementSnapshots(db *sqlx.DB) (requirementSnapshots, error) {
+func InitRequirementSnapshots(db *sqlx.DB) (RequirementSnapshots, error) {
 	repo, err := core.InitRepo[models.RequirementSnapshot](db, "requirement_snapshots", requirementSnapshotsSQL)
 	if err != nil {
 		return nil, err
