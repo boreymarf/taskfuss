@@ -17,11 +17,10 @@ func (r *BaseRepo[T]) Create(ctx context.Context, obj *T) (*T, error) {
 		strings.Join(ph, ", "),
 	)
 
-	var created T
-	err := r.GetExec().QueryRowxContext(ctx, query, obj).StructScan(&created)
+	_, err := r.GetExec().NamedExecContext(ctx, query, obj)
 	if err != nil {
 		return nil, err
 	}
 
-	return &created, nil
+	return obj, nil
 }
