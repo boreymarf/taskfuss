@@ -84,7 +84,7 @@ func TestCatRepo(t *testing.T) {
 	guestCtx := &models.UserContext{ID: 0, Role: models.RoleGuest}
 
 	t.Run("Create cat", func(t *testing.T) {
-		err := repo.Create(ctx, cat1)
+		_, err := repo.Create(ctx, cat1)
 		if err != nil {
 			t.Errorf("create failed: %v", err)
 		}
@@ -134,8 +134,8 @@ func TestCatRepo(t *testing.T) {
 
 	t.Run("Access control", func(t *testing.T) {
 		// Seed remaining cats
-		_ = repo.Create(ctx, cat2)
-		_ = repo.Create(ctx, cat3)
+		_, _ = repo.Create(ctx, cat2)
+		_, _ = repo.Create(ctx, cat3)
 
 		t.Run("admin can access all", func(t *testing.T) {
 			ok, err := repo.CheckAccess(ctx, adminCtx, cat2.ID)

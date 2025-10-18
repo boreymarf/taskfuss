@@ -13,7 +13,7 @@ type Repository[T any] interface {
 
 // Optional extensions.
 type Creator[T any] interface {
-	Create(ctx context.Context, obj *T) error
+	Create(ctx context.Context, obj *T) (*T, error)
 }
 
 type Getter[T any] interface {
