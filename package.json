@@ -1,4 +1,7 @@
 {
+  "name": "taskfuss",
+  "private": true,
+  "workspaces": ["backend", "frontend"],
   "devDependencies": {
     "@changesets/cli": "^2.31.0"
   }

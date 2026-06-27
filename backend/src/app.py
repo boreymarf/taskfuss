@@ -1,0 +1,87 @@
+from contextlib import asynccontextmanager
+import logging
+import os
+from pathlib import Path
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import uvicorn
+
+from src.config import get_config, init_config
+from src.database import create_engine
+from src.exceptions import AppException
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+
+    # The code is duplicated from main.py for a reason!
+    # Otherwise first logs from uvicorn will be ignored.
+
+    # config
+    config_path = os.environ.get("APP_CONFIG_PATH") or "config.toml"
+    init_config(Path(config_path))
+
+    # logging
+    # set_root_logger(level=get_config().logging.log_level)
+    # setup_rich_logging(level=logging.DEBUG)
+    # setup_daily_json_logger(log_dir="logs")
+    # setup_json_logger(log_file="logs/errors.jsonl", level=logging.ERROR)
+    #
+    # set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
+
+    yield
+    # Clean up
+
+
+app = FastAPI(lifespan=lifespan)
+
+# Routes
+
+# Middlewares
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_config().server.allow_origins,
+    allow_credentials=get_config().server.allow_credentials,
+    allow_methods=get_config().server.allow_methods,
+    allow_headers=get_config().server.allow_headers,
+)
+
+
+def run_app():
+
+    if get_config().app.environment == "dev":
+        reload = get_config().app.dev.reload_app
+        reload_dirs = get_config().app.dev.reload_dirs
+    else:
+        reload = False
+        reload_dirs = None
+
+    create_engine()
+
+    uvicorn.run(
+        "src.app:app",
+        log_config=None,
+        port=get_config().server.port,
+        log_level=get_config().logging.log_level,
+        reload=reload,
+        reload_dirs=reload_dirs,
+    )
+
+
+def generate_openapi_file():
+    pass
+
+
+# Exception handlers (very important yes yes)
+@app.exception_handler(AppException)
+async def app_exception_handler(_request: Request, exc: AppException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(_request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
