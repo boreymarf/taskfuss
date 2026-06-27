@@ -29,7 +29,7 @@ class UserService:
         overwrite_id: int | None = None,
         auto_commit: bool = False,
     ) -> User:
-        logger.debug("Creating user with login=%s", data.login)
+        logger.debug(f"Creating user with login={data.login}")
 
         # Build DB model
         user_data = data.model_dump(exclude={"password"})
@@ -46,14 +46,14 @@ class UserService:
             db.flush()
         except IntegrityError:
             db.rollback()
-            logger.warning("User with login=%s already exists", data.login)
+            logger.warning(f"User with login={data.login} already exists")
             raise UserAlreadyExistsError(data.login)
 
         if auto_commit:
             db.commit()
 
         logger.info(
-            "User created successfully: id=%s, login=%s", user_db.id, data.login
+            f"User created successfully: id={user_db.id}, login={data.login}"
         )
 
         # Translate to domain model
@@ -61,17 +61,17 @@ class UserService:
 
     @staticmethod
     def get_user(db: Session, user_id: int) -> User:
-        logger.debug("Fetching user with id=%s", user_id)
+        logger.debug(f"Fetching user with id={user_id}")
 
         # Fetch
         user_db = db.get(UserDB, user_id)
 
         # Checks
         if user_db is None:
-            logger.warning("User not found: id=%s", user_id)
+            logger.warning(f"User not found: id={user_id}")
             raise NotFoundError("User", user_id)
 
-        logger.info("User fetched successfully: id=%s", user_id)
+        logger.info(f"User fetched successfully: id={user_id}")
 
         # Translate to domain model
         return User.model_validate(user_db)
@@ -83,7 +83,7 @@ class UserService:
         # Fetch
         users_db = db.scalars(select(UserDB)).all()
 
-        logger.info("Fetched %d users successfully", len(users_db))
+        logger.info(f"Fetched {len(users_db)} users successfully")
 
         # Translate to domain models
         return [User.model_validate(user_db) for user_db in users_db]
@@ -95,12 +95,12 @@ class UserService:
         *,
         token_expire_minutes: int | None = None,
     ) -> Token:
-        logger.debug("Authenticating user with login=%s", data.login)
+        logger.debug(f"Authenticating user with login={data.login}")
 
         # Checks
         user_db = db.scalar(select(UserDB).where(UserDB.login == data.login))
         if not user_db:
-            logger.warning("Authentication failed: invalid login=%s", data.login)
+            logger.warning(f"Authentication failed: invalid login={data.login}")
             raise InvalidCredentialsError
 
         verify_password(data.password, user_db.password_hash)
@@ -123,12 +123,11 @@ class UserService:
             access_token = create_access_token(data=token_data)
 
         logger.info(
-            "User authenticated successfully: id=%s, login=%s", user_db.id, data.login
+            f"User authenticated successfully: id={user_db.id}, login={data.login}"
         )
 
         # Translate to domain model and return
         return Token(
             access_token=access_token,
             token_type="bearer",
-            user=User.model_validate(user_db),
         )
