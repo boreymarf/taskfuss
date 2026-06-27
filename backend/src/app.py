@@ -7,6 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
+from src.api.routers import auth, config, debug, user
+from src.logger_conf.helpers import set_modules_log_level
+from src.logger_conf.implementations import set_root_logger, setup_daily_json_logger, setup_json_logger, setup_rich_logging
 from src.config import get_config, init_config
 from src.database import create_engine
 from src.exceptions import AppException
@@ -25,12 +28,12 @@ async def lifespan(_app: FastAPI):
     init_config(Path(config_path))
 
     # logging
-    # set_root_logger(level=get_config().logging.log_level)
-    # setup_rich_logging(level=logging.DEBUG)
-    # setup_daily_json_logger(log_dir="logs")
-    # setup_json_logger(log_file="logs/errors.jsonl", level=logging.ERROR)
-    #
-    # set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
+    set_root_logger(level=get_config().logging.log_level)
+    setup_rich_logging(level=logging.DEBUG)
+    setup_daily_json_logger(log_dir="logs")
+    setup_json_logger(log_file="logs/errors.jsonl", level=logging.ERROR)
+
+    set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
 
     yield
     # Clean up
@@ -39,6 +42,10 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Routes
+app.include_router(debug.router)
+app.include_router(user.router)
+app.include_router(config.router)
+app.include_router(auth.router)
 
 # Middlewares
 app.add_middleware(

@@ -27,3 +27,19 @@ dev = [
     "pdoc>=16.0.0",
     "pytest>=9.0.2",
 ]
+
+
+[tool.pyright]
+python.analysis.importFormat = "absolute"
+reportImportCycles = false
+reportExplicitAny = false
+reportUnannotatedClassAttribute = false
+reportAny = false
+reportIncompatibleVariableOverride = false
+reportCallInDefaultInitializer = false
+reportUnusedCallResult = false
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Accessing argon2.__version__ is deprecated:DeprecationWarning:passlib"
+]
