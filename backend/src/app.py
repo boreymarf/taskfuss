@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import json
 import logging
 import os
 from pathlib import Path
@@ -9,7 +10,12 @@ import uvicorn
 
 from src.api.routers import auth, config, debug, user
 from src.logger_conf.helpers import set_modules_log_level
-from src.logger_conf.implementations import set_root_logger, setup_daily_json_logger, setup_json_logger, setup_rich_logging
+from src.logger_conf.implementations import (
+    set_root_logger,
+    setup_daily_json_logger,
+    setup_json_logger,
+    setup_rich_logging,
+)
 from src.config import get_config, init_config
 from src.database import create_engine
 from src.exceptions import AppException
@@ -68,6 +74,9 @@ def run_app():
 
     create_engine()
 
+    if get_config().app.environment == "dev":
+        generate_openapi_file(app)
+
     uvicorn.run(
         "src.app:app",
         log_config=None,
@@ -78,8 +87,14 @@ def run_app():
     )
 
 
-def generate_openapi_file():
-    pass
+def generate_openapi_file(app: FastAPI):
+    openapi_schema = app.openapi()
+    root_dir = Path(os.getcwd())
+    shared_tmp_dir = root_dir.parent / "shared" / "temp"
+    Path(shared_tmp_dir).mkdir(parents=True, exist_ok=True)
+    openapi_path = shared_tmp_dir / "openapi.json"
+    with open(openapi_path, "w", encoding="utf-8") as f:
+        json.dump(openapi_schema, f, indent=2, ensure_ascii=False)
 
 
 # Exception handlers (very important yes yes)

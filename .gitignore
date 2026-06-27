@@ -224,3 +224,4 @@ node_modules
 backend/data
 backend/logs
 backend/config.toml
+shared/temp
