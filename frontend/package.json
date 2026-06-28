@@ -14,6 +14,9 @@
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
+    "story:dev": "histoire dev",
+    "story:build": "histoire build",
+    "story:preview": "histoire preview",
     "openapi-ts": "openapi-ts"
   },
   "dependencies": {
@@ -24,6 +27,7 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.99.0",
     "@hey-api/vite-plugin": "0.3.2",
+    "@histoire/plugin-vue": "^1.0.0-beta.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
     "@types/node": "^24.13.2",
@@ -36,6 +40,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.69.0",
     "eslint-plugin-vue": "~10.9.2",
+    "histoire": "^1.0.0-beta.1",
     "jiti": "^2.7.0",
     "jsdom": "^29.1.1",
     "npm-run-all2": "^9.0.2",
