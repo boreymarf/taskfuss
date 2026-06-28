@@ -20,7 +20,10 @@
     "openapi-ts": "openapi-ts"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@tanstack/vue-query": "^5.101.2",
     "pinia": "^3.0.4",
+    "tailwindcss": "^4.3.1",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   },
