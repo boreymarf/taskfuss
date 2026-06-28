@@ -13,7 +13,8 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "openapi-ts": "openapi-ts"
   },
   "dependencies": {
     "pinia": "^3.0.4",
@@ -21,6 +22,8 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
+    "@hey-api/vite-plugin": "0.3.2",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
     "@types/node": "^24.13.2",
