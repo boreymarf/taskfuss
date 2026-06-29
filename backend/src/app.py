@@ -41,6 +41,9 @@ async def lifespan(_app: FastAPI):
 
     set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
 
+    if get_config().app.environment == "dev":
+        generate_openapi_file(app)
+
     yield
     # Clean up
 
@@ -74,9 +77,6 @@ def run_app():
 
     create_engine()
 
-    if get_config().app.environment == "dev":
-        generate_openapi_file(app)
-
     uvicorn.run(
         "src.app:app",
         log_config=None,
@@ -94,7 +94,7 @@ def generate_openapi_file(app: FastAPI):
     Path(shared_tmp_dir).mkdir(parents=True, exist_ok=True)
     openapi_path = shared_tmp_dir / "openapi.json"
     with open(openapi_path, "w", encoding="utf-8") as f:
-        json.dump(openapi_schema, f, indent=2, ensure_ascii=False)
+        json.dump(openapi_schema, f)
 
 
 # Exception handlers (very important yes yes)
