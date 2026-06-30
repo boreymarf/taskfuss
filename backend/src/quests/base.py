@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from src.quests.fields import Field
+from src.quests.fields import Field, FieldForm
 from src.quests.meta import PlanMeta
 
 
@@ -14,7 +14,7 @@ class BaseQuestPlan(ABC):
         ...
 
     @abstractmethod
-    def get_setup_form(self) -> dict[str, Field]:
+    def get_setup_form(self) -> FieldForm: 
         """Return field definitions for the creation form."""
         ...
 

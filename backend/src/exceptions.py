@@ -14,7 +14,7 @@ class AppException(Exception):
 
 
 class NotFoundError(AppException):
-    def __init__(self, resource: str, id: int | UUID):
+    def __init__(self, resource: str, id: int | UUID | str):
         super().__init__(detail=f"{resource} with id {id} not found", status_code=404)
 
 

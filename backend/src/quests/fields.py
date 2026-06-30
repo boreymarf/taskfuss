@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -35,3 +36,8 @@ class StrField(BaseModel):
 
 
 Field = StrField | ListField
+
+# This fixes recursion error in openapi docs generation
+ListField.model_rebuild()
+
+FieldForm = dict[str, Field]

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from src.api.routers import auth, config, debug, user
+from src.api.routers import auth, config, debug, quest_plan, user
 from src.logger_conf.helpers import set_modules_log_level
 from src.logger_conf.implementations import (
     set_root_logger,
@@ -19,7 +19,7 @@ from src.logger_conf.implementations import (
 from src.config import get_config, init_config
 from src.database import create_engine, get_session
 from src.exceptions import AppException
-from src.service.quest_plan import QuestService
+from src.service.quest_plan import QuestPlanService
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ async def lifespan(_app: FastAPI):
 
     plan_implementations_path = Path(os.getcwd()) / "src" / "quests" / "implementations"
     with get_session() as db:
-        QuestService.sync_plans_from_directory(db, plan_implementations_path)
+        QuestPlanService.sync_plans_from_directory(db, plan_implementations_path)
 
     yield
     # Clean up
@@ -60,6 +60,7 @@ app.include_router(debug.router)
 app.include_router(user.router)
 app.include_router(config.router)
 app.include_router(auth.router)
+app.include_router(quest_plan.router)
 
 # Middlewares
 app.add_middleware(

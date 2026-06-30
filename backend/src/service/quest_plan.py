@@ -13,17 +13,7 @@ from src.quests.registry import PlanRegistry
 logger = logging.getLogger(__name__)
 
 
-class QuestService:
-    @staticmethod
-    def build_registry(plan_class: type[BaseQuestPlan]) -> PlanRegistry:
-        instance = plan_class()
-        meta = instance.get_plan_info()
-        return PlanRegistry(
-            id=meta.id,
-            name=meta.name,
-            class_path=f"{plan_class.__module__}:{plan_class.__name__}",
-        )
-
+class QuestPlanService:
     @staticmethod
     def load_registries_from_file(path: Path) -> list[PlanRegistry]:
         if path.suffix != ".py" or path.stem == "__init__":
@@ -49,7 +39,14 @@ class QuestService:
                 and issubclass(obj, BaseQuestPlan)
                 and obj is not BaseQuestPlan
             ):
-                registries.append(QuestService.build_registry(obj))
+                instance = obj()
+                meta = instance.get_plan_info()
+                registry = PlanRegistry(
+                    id=meta.id,
+                    name=meta.name,
+                    class_path=f"{path}:{obj.__name__}",
+                )
+                registries.append(registry)
 
         if len(registries) > 0:
             logger.debug(
@@ -61,7 +58,7 @@ class QuestService:
     def load_registries_from_directory(directory: Path) -> list[PlanRegistry]:
         registries: list[PlanRegistry] = []
         for py_file in directory.rglob("*.py"):
-            registries.extend(QuestService.load_registries_from_file(py_file))
+            registries.extend(QuestPlanService.load_registries_from_file(py_file))
         return registries
 
     @staticmethod
@@ -91,13 +88,13 @@ class QuestService:
         *,
         update_existing: bool = True,
     ) -> dict[str, QuestPlanDB]:
-        registries = QuestService.load_registries_from_directory(directory)
+        registries = QuestPlanService.load_registries_from_directory(directory)
         result: dict[str, QuestPlanDB] = {}
 
         for registry in registries:
             existing = db.get(QuestPlanDB, registry.id)
             if existing is None:
-                db_plan = QuestService.add_plan_to_db(db, registry)
+                db_plan = QuestPlanService.add_plan_to_db(db, registry)
             elif update_existing:
                 for key, value in registry.model_dump().items():
                     setattr(existing, key, value)
