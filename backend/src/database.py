@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import logging
 from pathlib import Path
 import sqlalchemy
@@ -44,11 +45,14 @@ def get_engine() -> Engine:
     return _engine
 
 
+@contextmanager
 def get_session():
-    """Session generator. Only used with FastAPI dependencies!"""
     engine = get_engine()
-    with Session(engine) as session:
+    session = Session(engine)
+    try:
         yield session
+    finally:
+        session.close()
 
 
 def reset_engine():

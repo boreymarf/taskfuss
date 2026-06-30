@@ -30,7 +30,6 @@ dev = [
 
 
 [tool.pyright]
-python.analysis.importFormat = "absolute"
 reportImportCycles = false
 reportExplicitAny = false
 reportUnannotatedClassAttribute = false
@@ -43,3 +42,11 @@ reportUnusedCallResult = false
 filterwarnings = [
     "ignore:Accessing argon2.__version__ is deprecated:DeprecationWarning:passlib"
 ]
+# This somehow fixes tests
+pythonpath = ["."]
+
+# I'll use markers later mb
+# markers = [
+#     "slow: marks tests as slow",
+#     "db: tests that use database",
+# ]

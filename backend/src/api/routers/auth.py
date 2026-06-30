@@ -2,8 +2,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from src.api.dependencies.session import get_session
 from src.api.openapi_responses import BAD_REQUEST, CONFLICT, UNAUTHORIZED
-from src.database import get_session
 from src.domain.auth import Token
 from src.dto.user import UserCreate, UserLogin
 from src.service.auth import AuthService

@@ -17,8 +17,9 @@ from src.logger_conf.implementations import (
     setup_rich_logging,
 )
 from src.config import get_config, init_config
-from src.database import create_engine
+from src.database import create_engine, get_session
 from src.exceptions import AppException
+from src.service.quest_plan import QuestService
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,10 @@ async def lifespan(_app: FastAPI):
 
     if get_config().app.environment == "dev":
         generate_openapi_file(app)
+
+    plan_implementations_path = Path(os.getcwd()) / "src" / "quests" / "implementations"
+    with get_session() as db:
+        QuestService.sync_plans_from_directory(db, plan_implementations_path)
 
     yield
     # Clean up
