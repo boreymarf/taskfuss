@@ -29,7 +29,7 @@ let value = ref<any>()
 <template>
   <Story>
     <Variant>
-      <ListFieldComponent :field="example" :modelValue="value" @update:modelValue="value = $event"/>
+      <ListFieldComponent :field="example" v-model="value"/>
     </Variant>
   </Story>
 </template>

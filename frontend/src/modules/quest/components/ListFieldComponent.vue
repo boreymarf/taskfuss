@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ListField } from '@/api/generated'
 import FieldSelector from './FieldSelector.vue'
 
@@ -13,27 +14,28 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: any[]): void
 }>()
 
+const items = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+})
+
 const addItem = () => {
-  emit('update:modelValue', [...props.modelValue, null])
+  items.value = [...items.value, null]
 }
 
 const removeItem = (index: number) => {
-  const updated = [...props.modelValue]
-  updated.splice(index, 1)
-  emit('update:modelValue', updated)
+  items.value = items.value.filter((_, i) => i !== index)
 }
 
 const updateItem = (index: number, value: any) => {
-  const updated = [...props.modelValue]
-  updated[index] = value
-  emit('update:modelValue', updated)
+  items.value = items.value.map((item, i) => (i === index ? value : item))
 }
 </script>
 
 <template>
   <div class="list-field">
     <div v-if="field.label" class="font-medium mb-1">{{ field.label }}</div>
-    <div v-for="(item, idx) in modelValue" :key="idx" class="flex items-start gap-2 mb-2">
+    <div v-for="(item, idx) in items" :key="idx" class="flex items-start gap-2 mb-2">
       <FieldSelector
         :field="field.item_field"
         :model-value="item"
