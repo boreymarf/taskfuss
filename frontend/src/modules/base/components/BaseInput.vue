@@ -38,7 +38,7 @@ function handleInput(event: Event) {
 
 <template>
   <input
-    class="bg-gray-300"
+    class="bg-gray-300 w-full"
     :type="type"
     :value="modelValue"
     :placeholder="placeholder"

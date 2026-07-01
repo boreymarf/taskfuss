@@ -14,6 +14,7 @@ app.use(createPinia())
 app.use(router)
 app.mount('#app')
 
+// TODO: Later, uh, do something about this
 client.setConfig({
   baseUrl: 'http://localhost:5000',
 });
