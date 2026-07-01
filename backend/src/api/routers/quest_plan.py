@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.api.dependencies.session import get_session
+from src.api.openapi_responses import NOT_FOUND
 from src.exceptions import NotFoundError
 from src.quests.fields import FieldForm
 from src.quests.registry import PlanRegistryPublic
@@ -17,7 +18,7 @@ def get_all_quest_plans(
     return [plan.to_public() for plan in plans]
 
 
-@router.get("/{plan_id}/setup_form", response_model=FieldForm)
+@router.get("/{plan_id}/setup_form", response_model=FieldForm, responses={**NOT_FOUND})
 def get_plan_setup_form(
     plan_id: str,
     db: Session = Depends(get_session),
