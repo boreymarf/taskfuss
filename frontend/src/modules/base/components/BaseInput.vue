@@ -8,6 +8,7 @@ interface Props {
   name?: string
   id?: string
   autofocus?: boolean
+  required?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -46,6 +47,7 @@ function handleInput(event: Event) {
     :readonly="readonly"
     :name="name"
     :id="id"
+    :required="required"
     :autofocus="autofocus"
     @input="handleInput"
     @focus="emit('focus', $event)"
