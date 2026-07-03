@@ -1,15 +1,41 @@
 <script setup lang="ts">
-import type { Ref } from 'vue'
+import { computed } from 'vue'
 import type { Field } from '../types/fields'
-import StrFieldComponent from './StrFieldComponent.vue';
+import StrFieldComponent from './StrFieldComponent.vue'
+import ListFieldComponent from './ListFieldComponent.vue'
 
-defineProps<{
-  fieldRef: Ref<any>
+const props = defineProps<{
+  modelValue: any
   field: Field
 }>()
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: any): void
+}>()
+
+/**
+ * Прокси для безопасного использования v-model.
+ * Не даёт мутировать prop напрямую, а эмитит событие обновления.
+ */
+const modelProxy = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+})
 </script>
 
 <template>
-  <StrFieldComponent v-if="field.discriminator === 'str'" :field-ref="fieldRef" :field="field" />
-  <p v-else>Unknown field type!</p>
+  <!-- Выбираем компонент поля по типу, пробрасываем все $attrs (например, class) -->
+  <StrFieldComponent
+    v-if="field.discriminator === 'str'"
+    v-bind="$attrs"
+    v-model="modelProxy"
+    :field="field"
+  />
+  <ListFieldComponent
+    v-else-if="field.discriminator === 'list'"
+    v-bind="$attrs"
+    v-model="modelProxy"
+    :field="field"
+  />
+  <p v-else v-bind="$attrs">Unknown field type!</p>
 </template>
