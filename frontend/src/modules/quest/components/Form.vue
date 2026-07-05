@@ -7,47 +7,23 @@ const props = defineProps<{
   fields: Record<string, Field>
 }>()
 
-// defineModel даёт writable computed для v-model
 const model = defineModel<Record<string, any>>({ default: () => ({}) })
 
-/**
- * Инициализируем локальное состояние формы.
- * Все поля получают null — конкретный тип поля сам выставит дефолт ('' для строки, [] для списка).
- */
-const formData = reactive<Record<string, any>>(
-  Object.keys(props.fields).reduce((acc, key) => {
-    acc[key] = model.value?.[key] ?? null
-    return acc
-  }, {} as Record<string, any>)
-)
+// We fill formData with nulls, so we can reference them in children
+const formData = reactive<Record<string, any>>({})
+for (const key of Object.keys(props.fields)) {
+  formData[key] = model.value?.[key] ?? null
+}
 
-// Предыдущее значение для сравнения, чтобы не эмитить одинаковые данные повторно
-let previousModelValue = JSON.stringify(model.value)
-
-/**
- * Следим за formData и выносим изменения наверх (в родительский v-model).
- * flush: 'post' группирует мутации внутри одного тика, что предотвращает лавину апдейтов.
- * JSON-сравнение гарантирует, что emit произойдёт только при реальном изменении данных.
- */
 watch(
   formData,
   () => {
-    const newValue = { ...formData }
-    const newString = JSON.stringify(newValue)
-    if (newString !== previousModelValue) {
-      previousModelValue = newString
-      model.value = newValue
-    }
+    model.value = { ...formData }
   },
   { deep: true, flush: 'post' }
 )
 </script>
 
 <template>
-  <FieldSelector
-    v-for="(field, key) in fields"
-    :key="key"
-    v-model="formData[key]"
-    :field="field"
-  />
+  <FieldSelector v-for="(field, key) in fields" :key="key" v-model="formData[key]" :field="field" />
 </template>
