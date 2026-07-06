@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch } from "vue";
-import type { StrField } from "../types/fields";
 import BaseInput from "@/modules/base/components/BaseInput.vue";
+import type { StrField } from "../../types/fields";
 
 const props = defineProps<{
   field: StrField;
@@ -23,7 +23,7 @@ watch(
 </script>
 
 <template>
-  <div class="w-full min-h-12.5 border-2 border-gray-600 flex">
+  <div class="w-full min-h-12.5 flex">
     <div v-if="field.label" class="w-[30%] flex items-center px-2">
       {{ field.label }}
     </div>
