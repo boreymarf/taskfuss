@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { useQuestPlans } from './useQuestPlans';
+import { useQuestPlans } from "./useQuestPlans";
 
-
-const { data, error } = useQuestPlans()
+const { data, error } = useQuestPlans();
 </script>
 
 <template>

@@ -1,20 +1,19 @@
 <script setup lang="ts">
-
 interface Props {
-  type?: 'button' | 'submit' | 'reset'
-  disabled?: boolean
-  loading?: boolean
+  type?: "button" | "submit" | "reset";
+  disabled?: boolean;
+  loading?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: 'button',
+  type: "button",
   disabled: false,
   loading: false,
-})
+});
 
 const emit = defineEmits<{
-  (e: 'click', event: MouseEvent): void
-}>()
+  (e: "click", event: MouseEvent): void;
+}>();
 </script>
 
 <template>

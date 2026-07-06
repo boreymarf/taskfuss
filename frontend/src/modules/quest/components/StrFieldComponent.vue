@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { watch } from 'vue'
-import type { StrField } from '../types/fields'
-import BaseInput from '@/modules/base/components/BaseInput.vue'
+import { watch } from "vue";
+import type { StrField } from "../types/fields";
+import BaseInput from "@/modules/base/components/BaseInput.vue";
 
 const props = defineProps<{
-  field: StrField
-}>()
+  field: StrField;
+}>();
 
-const model = defineModel<string>()
+const model = defineModel<string>();
 
 // We need to use watch to set the default value because
 // list field component needs to pass a ref first
-watch(model, (newVal) => {
-  if (newVal === null || newVal === undefined) {
-    model.value = props.field.default ?? ''
-  }
-}, { immediate: true })
+watch(
+  model,
+  (newVal) => {
+    if (newVal === null || newVal === undefined) {
+      model.value = props.field.default ?? "";
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

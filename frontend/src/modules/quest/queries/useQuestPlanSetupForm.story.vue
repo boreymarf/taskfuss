@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useQuestPlanSetupForm } from './useQuestPlanSetupForm';
+import { useQuestPlanSetupForm } from "./useQuestPlanSetupForm";
 
-
-
-const { data, error } = useQuestPlanSetupForm("simple_checklist")
+const { data, error } = useQuestPlanSetupForm("simple_checklist");
 </script>
 
 <template>

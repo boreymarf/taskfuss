@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import BaseButton from './BaseButton.vue';
-import { logEvent } from 'histoire/client'
+import BaseButton from "./BaseButton.vue";
+import { logEvent } from "histoire/client";
 </script>
 
 <template>
@@ -9,7 +9,9 @@ import { logEvent } from 'histoire/client'
       <BaseButton @click="logEvent('Click', $event)"> Button </BaseButton>
     </Variant>
     <Variant title="disabled">
-      <BaseButton :disabled="true" @click="logEvent('Click', $event)"> Disabled </BaseButton>
+      <BaseButton :disabled="true" @click="logEvent('Click', $event)">
+        Disabled
+      </BaseButton>
     </Variant>
   </Story>
 </template>

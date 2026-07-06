@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import type { UserLogin } from '@/api/generated'
-import { SignInForm, useSignIn } from '@/modules/auth'
-import { ref } from 'vue'
+import type { UserLogin } from "@/api/generated";
+import { SignInForm, useSignIn } from "@/modules/auth";
+import { ref } from "vue";
 
-const { mutateAsync: signIn, isPending } = useSignIn()
-const errorMessage = ref<string | null>(null)
+const { mutateAsync: signIn, isPending } = useSignIn();
+const errorMessage = ref<string | null>(null);
 
 const onFormSubmit = async (values: UserLogin) => {
-  errorMessage.value = null
+  errorMessage.value = null;
 
   try {
-    const token = await signIn(values)
-    console.log('Успех:', token)
+    const token = await signIn(values);
+    console.log("Успех:", token);
   } catch (error: any) {
-    errorMessage.value = error?.detail || error?.message || 'Sign in failed'
+    errorMessage.value = error?.detail || error?.message || "Sign in failed";
   }
-}
+};
 </script>
 
 <template>

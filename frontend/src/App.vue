@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import Navbar from '@/modules/layout/components/Navbar.vue';
-
+import Navbar from "@/modules/layout/components/Navbar.vue";
 </script>
-
 
 <template>
   <div class="flex flex-col min-h-screen">

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { Field } from '../types/fields'
-import StrFieldComponent from './StrFieldComponent.vue'
-import ListFieldComponent from './ListFieldComponent.vue'
+import type { Field } from "../types/fields";
+import StrFieldComponent from "./StrFieldComponent.vue";
+import ListFieldComponent from "./ListFieldComponent.vue";
 
-const model = defineModel<any>({ required: true })
-const props = defineProps<{ field: Field }>()
+const model = defineModel<any>({ required: true });
+const props = defineProps<{ field: Field }>();
 </script>
 
 <template>

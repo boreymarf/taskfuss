@@ -1,5 +1,5 @@
-import type { Field } from "./fields"
+import type { Field } from "./fields";
 
 export type QuestPlanSetupForm = {
-  [key: string]: Field
-}
+  [key: string]: Field;
+};

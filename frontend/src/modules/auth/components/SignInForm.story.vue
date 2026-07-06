@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import SignInForm from './SignInForm.vue'
-import { logEvent } from 'histoire/client'
+import SignInForm from "./SignInForm.vue";
+import { logEvent } from "histoire/client";
 </script>
 
 <template>

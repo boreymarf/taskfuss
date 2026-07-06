@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import type { UserCreate } from '@/api/generated'
-import SignUpForm from '@/modules/auth/components/SignUpForm.vue'
-import { useSignUp } from '@/modules/auth/mutations/useSignUp'
-import { ref } from 'vue'
+import type { UserCreate } from "@/api/generated";
+import SignUpForm from "@/modules/auth/components/SignUpForm.vue";
+import { useSignUp } from "@/modules/auth/mutations/useSignUp";
+import { ref } from "vue";
 
-const { mutateAsync: registerUser, isPending } = useSignUp()
-const errorMessage = ref<string | null>(null)
+const { mutateAsync: registerUser, isPending } = useSignUp();
+const errorMessage = ref<string | null>(null);
 
 const onFormSubmit = async (values: UserCreate) => {
-  errorMessage.value = null
+  errorMessage.value = null;
 
   try {
-    const token = await registerUser(values)
-    console.log('Успех:', token)
+    const token = await registerUser(values);
+    console.log("Успех:", token);
   } catch (error: any) {
-    errorMessage.value = error?.detail || error?.message || 'Registration failed'
+    errorMessage.value =
+      error?.detail || error?.message || "Registration failed";
   }
-}
+};
 </script>
 
 <template>

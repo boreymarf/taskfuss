@@ -1,39 +1,38 @@
 <script setup lang="ts">
 interface Props {
-  type?: 'text' | 'password' | 'email' | 'number' | 'tel' | 'url'
-  modelValue?: string | number
-  placeholder?: string
-  disabled?: boolean
-  readonly?: boolean
-  name?: string
-  id?: string
-  autofocus?: boolean
-  required?: boolean
+  type?: "text" | "password" | "email" | "number" | "tel" | "url";
+  placeholder?: string;
+  disabled?: boolean;
+  readonly?: boolean;
+  name?: string;
+  id?: string;
+  autofocus?: boolean;
+  required?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: 'text',
-  modelValue: '',
-  placeholder: '',
+  type: "text",
+  placeholder: "",
   disabled: false,
   readonly: false,
   name: undefined,
   id: undefined,
   autofocus: false,
-})
+});
+
+const model = defineModel<string | number>({ default: "" });
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string | number): void
-  (e: 'input', event: Event): void
-  (e: 'focus', event: FocusEvent): void
-  (e: 'blur', event: FocusEvent): void
-}>()
+  (e: "input", event: Event): void;
+  (e: "focus", event: FocusEvent): void;
+  (e: "blur", event: FocusEvent): void;
+}>();
 
 function handleInput(event: Event) {
-  const target = event.target as HTMLInputElement
-  const value = props.type === 'number' ? Number(target.value) : target.value
-  emit('update:modelValue', value)
-  emit('input', event)
+  const target = event.target as HTMLInputElement;
+  const value = props.type === "number" ? Number(target.value) : target.value;
+  model.value = value;
+  emit("input", event);
 }
 </script>
 
@@ -41,7 +40,7 @@ function handleInput(event: Event) {
   <input
     class="bg-gray-300 w-full"
     :type="type"
-    :value="modelValue"
+    :value="model"
     :placeholder="placeholder"
     :disabled="disabled"
     :readonly="readonly"

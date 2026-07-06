@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/modules/auth';
-import BaseButton from '@/modules/base/components/BaseButton.vue';
-import { RouterLink } from 'vue-router';
+import { useAuthStore } from "@/modules/auth";
+import BaseButton from "@/modules/base/components/BaseButton.vue";
+import { RouterLink } from "vue-router";
 
-const authStore = useAuthStore()
+const authStore = useAuthStore();
 </script>
 
 <template>
