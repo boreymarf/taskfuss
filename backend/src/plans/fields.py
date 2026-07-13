@@ -2,17 +2,17 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
-from enum import Enum
+
+from src.plans.value_types import ValueType
 
 
-class ValueType(str, Enum):
-    STR = "str"
-    LIST_OBJECT = "list[object]"
 
 
 class ListField(BaseModel):
     discriminator: Literal["list"] = "list"
     value_type: Literal[ValueType.LIST_OBJECT] = ValueType.LIST_OBJECT
+    automatic: bool = False
+
     label: str | None = None
     description: str | None = None
     item_field: Field
@@ -25,6 +25,8 @@ class ListField(BaseModel):
 class StrField(BaseModel):
     discriminator: Literal["str"] = "str"
     value_type: Literal[ValueType.STR] = ValueType.STR
+    automatic: bool = False
+
     label: str | None = None
     description: str | None = None
     required: bool = False
@@ -35,9 +37,21 @@ class StrField(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CheckboxField(BaseModel):
+    discriminator: Literal["bool"] = "bool"
+    value_type: Literal[ValueType.BOOL] = ValueType.BOOL
+    automatic: bool = False
+
+    label: str | None = None
+    description: str | None = None
+    default: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 Field = StrField | ListField
 
 # This fixes recursion error in openapi docs generation
 ListField.model_rebuild()
 
-FieldForm = dict[str, Field]
+FormFields = dict[str, Field]

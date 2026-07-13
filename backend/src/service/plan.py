@@ -7,13 +7,13 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from src.db import QuestPlanDB
-from src.quests.base import BaseQuestPlan
-from src.quests.registry import PlanRegistry
+from src.plans.base import BasePlan
+from src.plans.registry import PlanRegistry
 
 logger = logging.getLogger(__name__)
 
 
-class QuestPlanService:
+class PlanService:
     @staticmethod
     def load_registries_from_file(path: Path) -> list[PlanRegistry]:
         if path.suffix != ".py" or path.stem == "__init__":
@@ -36,11 +36,11 @@ class QuestPlanService:
         for obj in vars(ns).values():
             if (
                 inspect.isclass(obj)
-                and issubclass(obj, BaseQuestPlan)
-                and obj is not BaseQuestPlan
+                and issubclass(obj, BasePlan)
+                and obj is not BasePlan
             ):
                 instance = obj()
-                meta = instance.get_plan_info()
+                meta = instance.get_metadata()
                 registry = PlanRegistry(
                     id=meta.id,
                     name=meta.name,
@@ -58,7 +58,7 @@ class QuestPlanService:
     def load_registries_from_directory(directory: Path) -> list[PlanRegistry]:
         registries: list[PlanRegistry] = []
         for py_file in directory.rglob("*.py"):
-            registries.extend(QuestPlanService.load_registries_from_file(py_file))
+            registries.extend(PlanService.load_registries_from_file(py_file))
         return registries
 
     @staticmethod
@@ -88,13 +88,13 @@ class QuestPlanService:
         *,
         update_existing: bool = True,
     ) -> dict[str, QuestPlanDB]:
-        registries = QuestPlanService.load_registries_from_directory(directory)
+        registries = PlanService.load_registries_from_directory(directory)
         result: dict[str, QuestPlanDB] = {}
 
         for registry in registries:
             existing = db.get(QuestPlanDB, registry.id)
             if existing is None:
-                db_plan = QuestPlanService.add_plan_to_db(db, registry)
+                db_plan = PlanService.add_plan_to_db(db, registry)
             elif update_existing:
                 for key, value in registry.model_dump().items():
                     setattr(existing, key, value)

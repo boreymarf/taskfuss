@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class PlanMeta(BaseModel):
+class PlanMetadata(BaseModel):
     """Metadata about a quest plan, exposed to the frontend."""
     id: str
     name: str

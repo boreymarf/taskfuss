@@ -4,7 +4,7 @@ from src.db.base import Base
 
 
 class QuestPlanDB(Base):
-    __tablename__ = "quest_plan"
+    __tablename__ = "plan"
 
     id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))

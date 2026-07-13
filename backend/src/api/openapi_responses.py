@@ -1,6 +1,8 @@
 from fastapi import status
 from pydantic import BaseModel
 
+from src.exceptions import PlanSetupValidationError
+
 
 class ErrorDetail(BaseModel):
     detail: str
@@ -57,3 +59,17 @@ INTERNAL_ERROR = {
 
 # Combinations
 PROTECTED = {**UNAUTHORIZED, **FORBIDDEN}
+
+
+# Quests
+class PlanValidationErrorDetail(BaseModel):
+    message: str = "Validation error"
+    issues: list[str] = []
+
+
+PLAN_SETUP_VALIDATION_ERROR = {
+    status.HTTP_400_BAD_REQUEST: {
+        "description": "Plan setup validation error",
+        "model": PlanValidationErrorDetail,
+    }
+}

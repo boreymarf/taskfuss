@@ -4,7 +4,8 @@ import importlib.util
 
 from pydantic import BaseModel, ConfigDict
 
-from src.quests.base import BaseQuestPlan
+from src.plans.base import BasePlan
+
 
 
 class PlanRegistry(BaseModel):
@@ -12,7 +13,7 @@ class PlanRegistry(BaseModel):
     name: str
     class_path: str
 
-    def import_class(self) -> type[BaseQuestPlan]:
+    def import_class(self) -> type[BasePlan]:
         """
         Imports a class from an absolute file path.
         
