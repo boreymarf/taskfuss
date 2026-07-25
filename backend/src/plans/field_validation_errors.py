@@ -46,7 +46,21 @@ class ListErrors(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-FieldError = RequiredError | IncorrectTypeError | MinSizeError | MaxSizeError | ListErrors
+class CustomError(BaseModel):
+    discriminator: Literal["custom"] = "custom"
+    message: str = "Custom error message"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+FieldError = (
+    RequiredError
+    | IncorrectTypeError
+    | MinSizeError
+    | MaxSizeError
+    | ListErrors
+    | CustomError
+)
 
 # This fixes recursion error in openapi docs generation
 ListErrors.model_rebuild()

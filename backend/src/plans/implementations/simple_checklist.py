@@ -20,7 +20,7 @@ class SimpleChecklist(BasePlan):
     @override
     def get_setup_fields(self) -> FormFields:
         return {
-            "name": StrField(label="Quest name (optional)"),
+            "name": StrField(label="Quest name (non optional)", required=True),
             "task_list": ListField(item_field=StrField()),
         }
 

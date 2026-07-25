@@ -13,6 +13,19 @@ from src.plans.field_validation_errors import (
 )
 from src.plans.value_types import ValueType
 
+
+def validate_form(
+    fields: FormFields, data: dict[str, Any]
+) -> dict[str, list[FieldError]]:
+    errors: dict[str, list[FieldError]] = {}
+    for field_name, field_def in fields.items():
+        value = data.get(field_name)
+        field_errors = field_def.validate_value(value)
+        if field_errors:
+            errors[field_name] = field_errors
+    return errors
+
+
 class BaseField(BaseModel):
     discriminator: str
     value_type: ValueType
@@ -52,10 +65,11 @@ class StrField(BaseField):
     discriminator: Literal["str"] = "str"
     value_type: Literal[ValueType.STR] = ValueType.STR
 
+    treat_none_as_default: bool = True
+    default: str = ""
     label: str | None = None
     description: str | None = None
     required: bool = False
-    default: str | None = None
     max_size: int | None = None
     min_size: int | None = None
 
@@ -65,11 +79,13 @@ class StrField(BaseField):
     def validate_value(self, value: Any) -> list[FieldError]:
         errors: list["FieldError"] = []
 
+        # Convert none to default
+        if value is None and self.treat_none_as_default:
+            value = self.default
+
         # Check for no value
         if not value and self.required:
-            errors.append(
-                RequiredError()
-            )
+            errors.append(RequiredError())
             return errors
 
         # Check type
@@ -107,6 +123,8 @@ class ListField(BaseField):
     discriminator: Literal["list"] = "list"
     value_type: Literal[ValueType.LIST_OBJECT] = ValueType.LIST_OBJECT
 
+    treat_none_as_default: bool = True
+    default: list[Any] = []
     label: str | None = None
     description: str | None = None
     required: bool = False
@@ -119,13 +137,10 @@ class ListField(BaseField):
     @override
     def validate_value(self, value: Any) -> list["FieldError"]:
         errors: list["FieldError"] = []
-
-        # Check for no value
-        if not value and self.required:
-            errors.append(
-                RequiredError()
-            )
-            return errors
+        
+        # Convert none to default
+        if value is None and self.treat_none_as_default:
+            value = self.default
 
         # Check type
         if not isinstance(value, list):
@@ -134,6 +149,11 @@ class ListField(BaseField):
                     current_type=value.__class__.__name__, correct_type="list"
                 )
             )
+            return errors
+
+        # Check for no value
+        if not value and self.required:
+            errors.append(RequiredError())
             return errors
 
         # Yep, it's a list
@@ -175,8 +195,5 @@ class ListField(BaseField):
 
 
 Field = CheckboxField | StrField | ListField
-
-# This fixes recursion error in openapi docs generation
-ListField.model_rebuild()
-
+ListField.model_rebuild()  # This fixes recursion error in openapi docs generation
 FormFields = dict[str, Field]

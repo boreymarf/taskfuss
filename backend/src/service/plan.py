@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from src.db import QuestPlanDB
+from src.exceptions import NotFoundError
 from src.plans.base import BasePlan
 from src.plans.registry import PlanRegistry
 
@@ -15,7 +16,16 @@ logger = logging.getLogger(__name__)
 
 class PlanService:
     @staticmethod
+    def load_registries_from_directory(directory: Path) -> list[PlanRegistry]:
+        """Load plan registries from all Python files in a directory recursively."""
+        registries: list[PlanRegistry] = []
+        for py_file in directory.rglob("*.py"):
+            registries.extend(PlanService.load_registries_from_file(py_file))
+        return registries
+
+    @staticmethod
     def load_registries_from_file(path: Path) -> list[PlanRegistry]:
+        """Load plan registries from a single Python file."""
         if path.suffix != ".py" or path.stem == "__init__":
             return []
 
@@ -55,39 +65,13 @@ class PlanService:
         return registries
 
     @staticmethod
-    def load_registries_from_directory(directory: Path) -> list[PlanRegistry]:
-        registries: list[PlanRegistry] = []
-        for py_file in directory.rglob("*.py"):
-            registries.extend(PlanService.load_registries_from_file(py_file))
-        return registries
-
-    @staticmethod
-    def get_plan(db: Session, plan_id: str) -> PlanRegistry | None:
-        row = db.get(QuestPlanDB, plan_id)
-        if row is None:
-            return None
-        return PlanRegistry.model_validate(row)
-
-    @staticmethod
-    def get_all_plans(db: Session) -> list[PlanRegistry]:
-        rows = db.query(QuestPlanDB).all()
-        return [PlanRegistry.model_validate(row) for row in rows]
-
-    @staticmethod
-    def add_plan_to_db(db: Session, registry: PlanRegistry) -> QuestPlanDB:
-        db_plan = QuestPlanDB(**registry.model_dump())
-        db.add(db_plan)
-        db.commit()
-        db.refresh(db_plan)
-        return db_plan
-
-    @staticmethod
     def sync_plans_from_directory(
         db: Session,
         directory: Path,
         *,
         update_existing: bool = True,
     ) -> dict[str, QuestPlanDB]:
+        """Synchronize plans from directory to database, adding new and optionally updating existing."""
         registries = PlanService.load_registries_from_directory(directory)
         result: dict[str, QuestPlanDB] = {}
 
@@ -106,3 +90,36 @@ class PlanService:
             result[registry.id] = db_plan
 
         return result
+
+    @staticmethod
+    def get_plan(db: Session, plan_id: str) -> PlanRegistry | None:
+        """Retrieve a single plan by ID."""
+        row = db.get(QuestPlanDB, plan_id)
+        if row is None:
+            return None
+        return PlanRegistry.model_validate(row)
+
+    @staticmethod
+    def get_all_plans(db: Session) -> list[PlanRegistry]:
+        """Retrieve all plans from the database."""
+        rows = db.query(QuestPlanDB).all()
+        return [PlanRegistry.model_validate(row) for row in rows]
+
+    @staticmethod
+    def get_plan_instance(db: Session, plan_id: str) -> BasePlan:
+        """Retrieve a plan from the database and return an instantiated plan object."""
+        plan_registry = PlanService.get_plan(db, plan_id)
+        if plan_registry is None:
+            raise NotFoundError("Plan", plan_id)
+
+        plan_cls = plan_registry.import_class()
+        return plan_cls()
+
+    @staticmethod
+    def add_plan_to_db(db: Session, registry: PlanRegistry) -> QuestPlanDB:
+        """Add a new plan registry to the database."""
+        db_plan = QuestPlanDB(**registry.model_dump())
+        db.add(db_plan)
+        db.commit()
+        db.refresh(db_plan)
+        return db_plan

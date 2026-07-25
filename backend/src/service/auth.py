@@ -12,7 +12,6 @@ from src.exceptions import InvalidCredentialsError
 from src.security.auth import create_access_token
 from src.security.hashing import verify_password
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -29,12 +28,16 @@ class AuthService:
 
         verify_password(data.password, user_db.password_hash)
 
-        logger.info(f"User authenticated successfully: id={user_db.id}, login={data.login}")
+        logger.info(
+            f"User authenticated successfully: id={user_db.id}, login={data.login}"
+        )
 
         return User.model_validate(user_db)
 
     @staticmethod
-    def generate_token_for_user(user: User, *, token_expire_minutes: int | None = None) -> Token:
+    def generate_token_for_user(
+        user: User, *, token_expire_minutes: int | None = None
+    ) -> Token:
         """Generate JWT token for authenticated user."""
         logger.debug(f"Generating token for user id={user.id}")
 
