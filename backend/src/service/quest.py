@@ -38,8 +38,15 @@ class QuestService:
         setup_data = SetupData(form_data=setup_fields)
 
         # Plan should also validate data
-        # TODO: Doesn't work yet
+        # TODO: Doesn't work yet since I don't know which error structs to make
         # errors = plan_inst.validate_setup_data(setup_data)
+
+        # Get first iteration of the quest data
+        quest_data = plan_inst.compute_initial_quest_data(setup_data)
+
+
+
+
 
     # @staticmethod
     # def _get_plan_instance(db: Session, plan_id: str):

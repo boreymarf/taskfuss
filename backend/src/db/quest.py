@@ -15,4 +15,3 @@ class QuestDB(Base):
     plan_id: Mapped[str] = mapped_column(
         ForeignKey("plan.id", ondelete="CASCADE")
     )
-    setup_form_data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)

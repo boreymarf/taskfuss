@@ -1,9 +1,9 @@
 from typing import Any, override
 
 from src.plans.base import BasePlan
-from src.plans.fields import FormFields, ListField, StrField
+from src.plans.fields import CheckboxField, FormFields, ListField, StrField
 from src.plans.metadata import PlanMetadata
-from src.plans.quest_data import QuestData
+from src.plans.quest_state import QuestState
 from src.plans.setup_data import SetupData
 
 
@@ -27,14 +27,3 @@ class SimpleChecklist(BasePlan):
     @override
     def validate_setup_data(self, setup_info: SetupData) -> list[str]:
         return []
-
-    @override
-    def compute_initial_quest_data(self, setup_data: SetupData) -> QuestData:
-        return QuestData()
-
-    @override
-    def compute_current_quest_data(
-        self, current_data: QuestData, setup_data: SetupData
-    ) -> QuestData:
-
-        return QuestData()

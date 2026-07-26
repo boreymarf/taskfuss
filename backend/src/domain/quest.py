@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 
-class QuestState(Enum):
+class QuestStatus(Enum):
     ACTIVE = "active"
     PAUSED = "paused"
     COMPLETED = "completed"
@@ -17,7 +17,7 @@ class Quest(BaseModel):
     id: UUID
     title: str | None = None
     completion: float = 0
-    state: QuestState = QuestState.ACTIVE
+    state: QuestStatus = QuestStatus.ACTIVE
     plan_id: str
     setup_form_data: str
 

@@ -3,7 +3,7 @@ from typing import Any
 
 from src.plans.fields import FormFields
 from src.plans.metadata import PlanMetadata
-from src.plans.quest_data import QuestData
+from src.plans.quest_state import QuestState
 from src.plans.setup_data import SetupData
 
 
@@ -24,15 +24,13 @@ class BasePlan(ABC):
         """Validate creation form data. Returns list of errors (empty if valid)."""
         return []
 
-    @abstractmethod
-    def compute_initial_quest_data(self, setup_data: SetupData) -> QuestData:
+    def compute_initial_quest_state(self, setup_data: SetupData) -> QuestState:
         """Return field definitions for the interaction form, based on current state."""
         ...
 
-    @abstractmethod
     def compute_current_quest_data(
-        self, current_data: QuestData, setup_data: SetupData
-    ) -> QuestData:
+        self, current_data: QuestState, setup_data: SetupData
+    ) -> QuestState:
         """Return field definitions for the interaction form, based on current state."""
         ...
 
