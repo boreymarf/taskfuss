@@ -32,7 +32,7 @@ from .quest_event import InitEvent, NewRecordEvent, QuestEvent, SetupUpdateEvent
 from .quest_settings import QuestSettings, QuestSettingsCreate
 from .quest_state import QuestState, QuestStateCreate
 from .record import Record
-from .user import User
+from .user import User, UserCreate, UserLogin
 
 __all__ = [
     # auth
@@ -84,4 +84,6 @@ __all__ = [
     "Record",
     # user
     "User",
+    "UserCreate",
+    "UserLogin"
 ]

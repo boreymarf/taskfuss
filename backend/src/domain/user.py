@@ -8,3 +8,17 @@ class User(BaseModel):
     login: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserCreate(BaseModel):
+    login: str
+    password: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserLogin(BaseModel):
+    login: str
+    password: str
+
+    model_config = ConfigDict(from_attributes=True)
