@@ -3,8 +3,10 @@ from typing import Any
 
 from src.plans.fields import FormFields
 from src.plans.metadata import PlanMetadata
-from src.plans.quest_state import QuestState
-from src.plans.setup_data import SetupData
+from src.plans.quest_actions import QuestAction
+from src.plans.quest_event import InitEvent, NewRecordEvent, QuestEvent
+from src.plans.quest_settings import QuestSettingsCreate
+from src.plans.quest_state import QuestStateCreate
 
 
 class BasePlan(ABC):
@@ -20,35 +22,25 @@ class BasePlan(ABC):
         """Return field definitions for the creation form."""
         ...
 
-    def validate_setup_data(self, _setup_info: SetupData) -> list[str]:
+    def validate_settings_form(self, _form: dict[str, Any]) -> list[str]:
         """Validate creation form data. Returns list of errors (empty if valid)."""
         return []
 
-    def compute_initial_quest_state(self, setup_data: SetupData) -> QuestState:
-        """Return field definitions for the interaction form, based on current state."""
-        ...
+    def handle_event(self, event: QuestEvent) -> list[QuestAction]:
+        if isinstance(event, InitEvent):
+            return self.on_init(event)
+        if isinstance(event, NewRecordEvent):
+            return self.on_new_record_event(event)
+        return self.on_custom_event(event)
 
-    def compute_current_quest_data(
-        self, current_data: QuestState, setup_data: SetupData
-    ) -> QuestState:
-        """Return field definitions for the interaction form, based on current state."""
-        ...
-
-    def validate_field_change(
-        self, field_id: str, new_value: Any, current_state: dict[str, Any]
-    ) -> list[str]:
-        """Validate a single field change before persisting. Returns list of errors."""
-        ...
+    def on_init(self, _event: InitEvent) -> list[QuestAction]:
+        """When quest is created. Must declare at least one state."""
         return []
 
-    def after_field_change(
-        self, field_id: str, new_value: Any, current_state: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Called after a record is persisted. Returns list of side-effect actions."""
-        ...
+    def on_new_record_event(self, _event: NewRecordEvent) -> list[QuestAction]:
+        """When non-automatic (user's) record is added."""
+        return []
 
-    def handle_event(
-        self, event_name: str, current_state: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Handle system events (e.g. 'daily_reset'). Returns list of side-effect actions."""
-        ...
+    def on_custom_event(self, _event: QuestEvent) -> list[QuestAction]:
+        """Anything else"""
+        return []

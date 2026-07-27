@@ -5,8 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.domain.record import Record
-from src.plans.quest_data import QuestData
-from src.plans.setup_data import SetupData
+from src.plans.setup_data import QuestSettings
 
 
 class QuestContext:
@@ -15,13 +14,9 @@ class QuestContext:
         self,
         session: Session,
         quest_id: UUID,
-        setup_data: SetupData,
-        current_state: QuestData,
     ):
         self._session = session
         self.quest_id = quest_id
-        self.setup_data = setup_data
-        self.current_state = current_state
 
     def get_setup_data(
         self
