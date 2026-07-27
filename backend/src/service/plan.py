@@ -7,9 +7,9 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from src.db import QuestPlanDB
+from src.domain import PlanRegistry
 from src.exceptions import NotFoundError
 from src.plans.base import BasePlan
-from src.plans.registry import PlanRegistry
 
 logger = logging.getLogger(__name__)
 

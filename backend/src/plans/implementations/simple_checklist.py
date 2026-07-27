@@ -1,11 +1,14 @@
 from typing import Any, override
 
+from src.domain import (
+    FormFields,
+    InitEvent,
+    ListField,
+    PlanMetadata,
+    QuestAction,
+    StrField,
+)
 from src.plans.base import BasePlan
-from src.plans.fields import CheckboxField, FormFields, ListField, StrField
-from src.plans.metadata import PlanMetadata
-from src.plans.quest_actions import QuestAction
-from src.plans.quest_event import InitEvent
-from src.plans.quest_state import QuestStateCreate
 
 
 class SimpleChecklist(BasePlan):
@@ -28,4 +31,3 @@ class SimpleChecklist(BasePlan):
     @override
     def on_init(self, event: InitEvent) -> list[QuestAction]:
         return []
-

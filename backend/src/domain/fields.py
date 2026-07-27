@@ -3,15 +3,7 @@ from typing import Any, Literal, cast, override
 
 from pydantic import BaseModel, ConfigDict
 
-from src.plans.field_validation_errors import (
-    FieldError,
-    IncorrectTypeError,
-    ListErrors,
-    MaxSizeError,
-    MinSizeError,
-    RequiredError,
-)
-from src.plans.value_types import ValueType
+from src.domain import FieldError, IncorrectTypeError, ListErrors, MaxSizeError, MinSizeError, RequiredError
 
 
 def validate_form(
@@ -28,7 +20,6 @@ def validate_form(
 
 class BaseField(BaseModel):
     discriminator: str
-    value_type: ValueType
     automatic: bool = False
 
     def validate_value(self, _value: Any) -> list["FieldError"]:
@@ -37,7 +28,6 @@ class BaseField(BaseModel):
 
 class CheckboxField(BaseField):
     discriminator: Literal["bool"] = "bool"
-    value_type: Literal[ValueType.BOOL] = ValueType.BOOL
 
     label: str | None = None
     description: str | None = None
@@ -63,7 +53,6 @@ class CheckboxField(BaseField):
 
 class StrField(BaseField):
     discriminator: Literal["str"] = "str"
-    value_type: Literal[ValueType.STR] = ValueType.STR
 
     treat_none_as_default: bool = True
     default: str = ""
@@ -121,7 +110,6 @@ class StrField(BaseField):
 
 class ListField(BaseField):
     discriminator: Literal["list"] = "list"
-    value_type: Literal[ValueType.LIST_OBJECT] = ValueType.LIST_OBJECT
 
     treat_none_as_default: bool = True
     default: list[Any] = []
