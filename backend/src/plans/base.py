@@ -1,14 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from src.domain import (
-    FormFields,
-    InitEvent,
-    NewRecordEvent,
-    PlanMetadata,
-    QuestAction,
-    QuestEvent,
-)
+from src.domain.fields import FormFields
+from src.domain.plan_metadata import PlanMetadata
+from src.domain.quest_actions import QuestAction
+from src.domain.quest_event import InitEvent, NewRecordEvent, QuestEvent
 
 
 class BasePlan(ABC):

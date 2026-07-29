@@ -1,17 +1,31 @@
-from enum import Enum
+from typing import Any
 from uuid import UUID
-
 from pydantic import BaseModel, ConfigDict
 
-# class QuestStatus(Enum):
-#     ACTIVE = "active"
-#     PAUSED = "paused"
-#     COMPLETED = "completed"
-#     DROPPED = "dropped"
-#
+
+class QuestCreateRequest(BaseModel):
+    """DTO"""
+
+    owner_id: int
+    plan_id: str
+    settings: dict[str, Any]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestCreateResponse(BaseModel):
+    """DTO"""
+
+    id: UUID
+    owner_id: int
+    plan_id: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuestCreate(BaseModel):
+    """Internal struct for repo"""
+
     owner_id: int
     plan_id: str
 

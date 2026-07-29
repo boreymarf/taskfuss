@@ -1,11 +1,9 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.domain.record import Record
-from src.plans.setup_data import QuestSettings
 
 
 class QuestContext:
@@ -18,9 +16,7 @@ class QuestContext:
         self._session = session
         self.quest_id = quest_id
 
-    def get_setup_data(
-        self
-    ):
+    def get_setup_data(self):
         pass
 
     def get_all_latest_records(

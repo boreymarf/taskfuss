@@ -9,7 +9,7 @@ from src.api.openapi_responses import (
     NOT_FOUND,
     UNAUTHORIZED,
 )
-from src.dto.quest import QuestCreate
+from src.domain.quest import QuestCreateRequest
 from src.service.quest import QuestService
 
 router = APIRouter(prefix="/api/quest", tags=["quest"])
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/quest", tags=["quest"])
 
 @router.post("/", responses={**NOT_FOUND, **UNAUTHORIZED})
 def create_quest(
-    data: QuestCreate,
+    data: QuestCreateRequest,
     db: Session = Depends(get_session),
     current_user: int = Depends(get_current_user),
 ):

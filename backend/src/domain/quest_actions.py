@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
-from src.plans.quest_state import QuestStateCreate
+from src.domain.quest_state import QuestStateCreate
 
 
 

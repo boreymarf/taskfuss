@@ -4,8 +4,8 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from src.db import QuestDB
-from src.domain import FormFields, QuestSettingsCreate, validate_form
-from src.dto.quest import QuestCreate
+from src.domain import FormFields, QuestCreate, QuestSettingsCreate, validate_form
+from src.domain.quest import QuestCreateRequest
 from src.exceptions import NotFoundError, SetupFormDataValidationError
 from src.service.plan import PlanService
 
@@ -13,7 +13,7 @@ from src.service.plan import PlanService
 class QuestService:
     @staticmethod
     def create_quest(
-        db: Session, owner_id: int, data: QuestCreate, *, auto_commit: bool = False
+        db: Session, owner_id: int, data: QuestCreateRequest, *, auto_commit: bool = False
     ):
         # Check if plan exists
         plan_db = PlanService.get_plan(db, data.plan_id)
@@ -27,59 +27,17 @@ class QuestService:
         setup_fields: FormFields = plan_inst.get_setup_fields()
 
         # Validate data
-        errors = validate_form(setup_fields, data.setup_form_data)
+        errors = validate_form(setup_fields, data.settings)
         if errors:
             raise SetupFormDataValidationError(data.plan_id, errors)
 
         # Collect setup data
         # Can later have other info like date
-        setup_data = QuestSettingsCreate(form_data=setup_fields)
+        # setup_data = QuestSettingsCreate(form_data=setup_fields)
 
         # Plan should also validate data
         # TODO: Doesn't work yet since I don't know which error structs to make
-        # errors = plan_inst.validate_setup_data(setup_data)
-
-    @staticmethod
-    def add_quest(
-        db: Session, data: QuestCreate, *, auto_commit: bool = False
-    ) -> QuestDB:
-        quest = QuestDB(owner_id=data.owner_id, plan_id=data.plan_id)
-        db.add(quest)
-        db.flush()
-        db.refresh(quest)
-        if auto_commit:
-            db.commit()
-        return quest
-
-    @staticmethod
-    def add_quest_settings(
-        db: Session, data: QuestSettingsCreate, *, auto_commit: bool = False
-    ) -> QuestSettingsDB:
-        settings_db = QuestSettingsDB(
-            quest_id=data.quest_id,
-            form_data=data.form_data
-        )
-        db.add(settings_db)
-        db.flush()
-        db.refresh(settings_db)
-        if auto_commit:
-            db.commit()
-        return settings_db
-
-    @staticmethod
-    def add_quest_state(
-        db: Session, data: QuestStateCreate, *, auto_commit: bool = False
-    ) -> QuestStateDB:
-        # data содержит все поля, включая quest_id
-        state_db = QuestStateDB(**data.model_dump())
-        db.add(state_db)
-        db.flush()
-        db.refresh(state_db)
-        if auto_commit:
-            db.commit()
-        return state_db
-
-
+        # errors = plan_inst.validate_settings_form(data.settings)
 
     # @staticmethod
     # def _get_plan_instance(db: Session, plan_id: str):

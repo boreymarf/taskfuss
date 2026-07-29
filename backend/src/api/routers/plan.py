@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.api.dependencies.session import get_session
 from src.api.openapi_responses import NOT_FOUND
+from src.domain.fields import FormFields
+from src.domain.plan_registry import PlanRegistryPublic
 from src.exceptions import NotFoundError
-from src.plans.fields import FormFields
-from src.plans.registry import PlanRegistryPublic
 from src.service.plan import PlanService
 
 router = APIRouter(prefix="/api/plan", tags=["plan"])

@@ -1,4 +1,4 @@
-from typing import Any, override
+from typing import override
 
 from src.domain import (
     FormFields,

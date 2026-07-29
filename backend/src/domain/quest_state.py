@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from src.plans.fields import FormFields
+from src.domain.fields import FormFields
 
 
 class QuestStateCreate(BaseModel):

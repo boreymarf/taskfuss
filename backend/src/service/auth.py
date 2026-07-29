@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 
 from src.db import UserDB
 from src.domain.auth import Token
-from src.domain.user import User
-from src.dto.user import UserLogin
+from src.domain.user import User, UserLogin
 from src.exceptions import InvalidCredentialsError
 from src.security.auth import create_access_token
 from src.security.hashing import verify_password

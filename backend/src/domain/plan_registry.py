@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict
 from src.plans.base import BasePlan
 
 
-
 class PlanRegistry(BaseModel):
     id: str
     name: str
@@ -16,7 +15,7 @@ class PlanRegistry(BaseModel):
     def import_class(self) -> type[BasePlan]:
         """
         Imports a class from an absolute file path.
-        
+
         Expected format: '/path/to/file.py:ClassName'
         """
         try:

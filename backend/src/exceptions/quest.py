@@ -1,5 +1,5 @@
+from src.domain.field_validation_errors import FieldError
 from src.exceptions.base import AppException
-from src.plans.field_validation_errors import FieldError
 
 
 class SetupFormDataValidationError(AppException):
@@ -13,4 +13,3 @@ class SetupFormDataValidationError(AppException):
             status_code=400,
             details=json_details,
         )
-
