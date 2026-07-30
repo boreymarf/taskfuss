@@ -1,3 +1,4 @@
+import logging
 from pprint import pprint
 from typing import Any
 
@@ -6,14 +7,25 @@ from sqlalchemy.orm import Session
 from src.db import QuestDB
 from src.domain import FormFields, QuestCreate, QuestSettingsCreate, validate_form
 from src.domain.quest import QuestCreateRequest
+from src.domain.quest_actions import CreateNewStateAction, QuestAction, QuestActionBase
+from src.domain.quest_event import InitEvent
 from src.exceptions import NotFoundError, SetupFormDataValidationError
+from src.exceptions.quest import UnknownQuestActionError
+from src.repositories.quest import QuestRepository
+from src.repositories.quest_settings import QuestSettingsRepository
 from src.service.plan import PlanService
+
+logger = logging.getLogger(__name__)
 
 
 class QuestService:
     @staticmethod
     def create_quest(
-        db: Session, owner_id: int, data: QuestCreateRequest, *, auto_commit: bool = False
+        db: Session,
+        owner_id: int,
+        data: QuestCreateRequest,
+        *,
+        auto_commit: bool = False,
     ):
         # Check if plan exists
         plan_db = PlanService.get_plan(db, data.plan_id)
@@ -24,10 +36,10 @@ class QuestService:
         plan_inst = PlanService.get_plan_instance(db, data.plan_id)
 
         # Get setup fields
-        setup_fields: FormFields = plan_inst.get_setup_fields()
+        settings_fields: FormFields = plan_inst.get_settings_form()
 
         # Validate data
-        errors = validate_form(setup_fields, data.settings)
+        errors = validate_form(settings_fields, data.settings)
         if errors:
             raise SetupFormDataValidationError(data.plan_id, errors)
 
@@ -39,46 +51,28 @@ class QuestService:
         # TODO: Doesn't work yet since I don't know which error structs to make
         # errors = plan_inst.validate_settings_form(data.settings)
 
-    # @staticmethod
-    # def _get_plan_instance(db: Session, plan_id: str):
-    #     """Загружает план из БД и возвращает его экземпляр."""
-    #     plan_registry = PlanService.get_plan(db, plan_id)
-    #     if not plan_registry:
-    #         raise NotFoundError("plan", plan_id)
-    #
-    #     registry = PlanRegistry.model_validate(plan_registry)
-    #     plan_cls = registry.import_class()
-    #     return plan_cls()
-    #
-    # @staticmethod
-    # def validate_setup_form(
-    #     db: Session, setup_form: FormFields, plan_id: str
-    # ) -> list[str]:
-    #     instance = QuestService._get_plan_instance(db, plan_id)
-    #     return instance.validate_setup_data(SetupData(form_data=setup_form))
-    #
-    # @staticmethod
-    # def create_quest(
-    #     db: Session, owner_id: int, data: QuestCreate, *, auto_commit: bool = False
-    # ):
-    #     # Валидация использует тот же метод получения инстанса
-    #     issues = QuestService.validate_setup_form(db, data.setup_form, data.plan_id)
-    #     if len(issues) != 0:
-    #         raise PlanSetupValidationError(
-    #             "Failed to validate a setup form", details={"issues": issues}
-    #         )
-    #
-    #     plan_instance = QuestService._get_plan_instance(db, data.plan_id)
-    #
-    #     quest = QuestDB(
-    #         owner_id=owner_id,
-    #         setup_form_data=data.setup_form,
-    #         plan_id=data.plan_id,
-    #     )
-    #     db.add(quest)
-    #     db.flush()
-    #
-    #     if auto_commit:
-    #         db.commit()
-    #
-    #     return quest
+        # Create db records
+        quest_db = QuestRepository.add(db, owner_id, data.plan_id)
+        quest_settings_db = QuestSettingsRepository.add(db, quest_db.id, data.settings)
+
+        # Get new state
+        actions = plan_inst.handle_event(InitEvent())
+        for action in actions:
+            QuestService.handle_quest_action(db, action)
+
+    @staticmethod
+    def handle_quest_action(db: Session, action: QuestAction):
+        match action.discriminator:
+            # case "create_new_state":
+            #     QuestService.handle_create_new_state_action(db, action)
+            # case "update_settings":
+            #     QuestService.handle_update_settings_action(db, action)
+            # case "send_notification":
+            #     QuestService.handle_send_notification_action(db, action)
+            case _:
+                logger.error(f"Unknown action type: {action.discriminator}")
+                raise UnknownQuestActionError(action.discriminator)
+
+    @staticmethod
+    def handle_create_new_state_action(db: Session, action: CreateNewStateAction):
+        pass

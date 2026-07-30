@@ -16,7 +16,7 @@ class BasePlan(ABC):
         ...
 
     @abstractmethod
-    def get_setup_fields(self) -> FormFields:
+    def get_settings_form(self) -> FormFields:
         """Return field definitions for the creation form."""
         ...
 

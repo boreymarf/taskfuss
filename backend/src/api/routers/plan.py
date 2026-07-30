@@ -18,8 +18,10 @@ def get_all_plans(
     return [plan.to_public() for plan in plans]
 
 
-@router.get("/{plan_id}/setup_form", response_model=FormFields, responses={**NOT_FOUND})
-def get_plan_setup_form(
+@router.get(
+    "/{plan_id}/settings_form", response_model=FormFields, responses={**NOT_FOUND}
+)
+def get_plan_settings_form(
     plan_id: str,
     db: Session = Depends(get_session),
 ) -> FormFields:
@@ -30,5 +32,5 @@ def get_plan_setup_form(
 
     plan_class = plan.import_class()
     instance = plan_class()
-    setup_form = instance.get_setup_fields()
+    setup_form = instance.get_settings_form()
     return setup_form

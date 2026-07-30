@@ -1,5 +1,4 @@
 from __future__ import annotations
-from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
@@ -13,15 +12,13 @@ class QuestActionBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UpdateStateAction(QuestActionBase):
-    discriminator: Literal["update_state"] = "update_state"
-    data: QuestStateCreate
-
-
 class CreateNewStateAction(QuestActionBase):
     discriminator: Literal["create_new_state"] = "create_new_state"
     data: QuestStateCreate
-    creation_date: datetime
+
+class UpdateStateAction(QuestActionBase):
+    discriminator: Literal["update_state"] = "update_state"
+    data: QuestStateCreate
 
 
 class ScheduleEventAction(QuestActionBase):

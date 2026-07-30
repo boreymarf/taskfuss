@@ -13,3 +13,9 @@ class SetupFormDataValidationError(AppException):
             status_code=400,
             details=json_details,
         )
+
+
+class UnknownQuestActionError(Exception):
+    def __init__(self, discriminator: str):
+        self.discriminator = discriminator
+        super().__init__(f"Unknown quest action type: '{discriminator}'")

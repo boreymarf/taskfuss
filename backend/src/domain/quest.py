@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 class QuestCreateRequest(BaseModel):
     """DTO"""
 
-    owner_id: int
     plan_id: str
     settings: dict[str, Any]
 
@@ -28,6 +27,7 @@ class QuestCreate(BaseModel):
 
     owner_id: int
     plan_id: str
+    settings: dict[str, Any]
 
     model_config = ConfigDict(from_attributes=True)
 

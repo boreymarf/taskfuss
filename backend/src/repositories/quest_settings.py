@@ -1,8 +1,11 @@
+import logging
 from typing import Any
 from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.db.quest_settings import QuestSettingsDB
+
+logger = logging.getLogger(__name__)
 
 class QuestSettingsRepository:
     @staticmethod
@@ -11,6 +14,7 @@ class QuestSettingsRepository:
         db.add(settings)
         db.flush()
         db.refresh(settings)
+        logger.debug(f"Added new quest settings for quest id '{quest_id}'")
         return settings
 
     @staticmethod
