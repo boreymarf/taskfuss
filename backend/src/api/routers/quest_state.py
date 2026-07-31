@@ -21,3 +21,14 @@ def get_states_today(
     current_user: int = Depends(get_current_user)
 ) -> list[QuestState]:
     return QuestStateService.get_all_current(db, current_user)
+
+@router.get(
+    "/",
+    response_model=list[QuestState],
+    responses={**UNAUTHORIZED}
+)
+def get_all_states(
+    db: Session = Depends(get_session),
+    current_user: int = Depends(get_current_user)
+) -> list[QuestState]:
+    return QuestStateService.get_all(db, current_user)

@@ -64,7 +64,10 @@ class QuestStateRepository:
             .join(QuestDB, QuestDB.id == QuestStateDB.quest_id)
             .filter(
                 QuestDB.owner_id == owner_id,
-                QuestStateDB.start_date <= target_date,
+                or_(
+                    QuestStateDB.start_date.is_(None),
+                    QuestStateDB.start_date <= target_date
+                ),
                 or_(
                     QuestStateDB.end_date.is_(None),
                     QuestStateDB.end_date > target_date
@@ -73,4 +76,15 @@ class QuestStateRepository:
             .all()
         )
         logger.debug(f"Found {len(states)} states for owner_id={owner_id} at {target_date}")
+        return states
+
+    @staticmethod
+    def get_all(db: Session, owner_id: int) -> list[QuestStateDB]:
+        states = (
+            db.query(QuestStateDB)
+            .join(QuestDB, QuestDB.id == QuestStateDB.quest_id)
+            .filter(QuestDB.owner_id == owner_id)
+            .all()
+        )
+        logger.debug(f"Found {len(states)} states for owner_id={owner_id}")
         return states

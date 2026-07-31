@@ -15,3 +15,9 @@ class QuestStateService:
         states_db = QuestStateRepository.get_all_by_date(db, datetime.now(), owner_id)
         logger.debug(f"Retrieved {len(states_db)} current states for owner_id={owner_id}")
         return [QuestState.model_validate(state) for state in states_db]
+
+    @staticmethod
+    def get_all(db: Session, owner_id: int) -> list[QuestState]:
+        states_db = QuestStateRepository.get_all(db, owner_id)
+        logger.debug(f"Retrieved {len(states_db)} states for owner_id={owner_id}")
+        return [QuestState.model_validate(state) for state in states_db]
