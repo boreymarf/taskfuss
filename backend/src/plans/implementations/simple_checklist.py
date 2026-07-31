@@ -12,6 +12,7 @@ from src.domain import (
 )
 from src.domain.quest_actions import CreateNewStateAction
 from src.plans.base import BasePlan
+from src.plans.quest_context import QuestContext
 
 
 class SimpleChecklist(BasePlan):
@@ -32,8 +33,12 @@ class SimpleChecklist(BasePlan):
         }
 
     @override
-    def on_init(self, event: InitEvent) -> list[QuestAction]:
+    def on_init(self, ctx: QuestContext, event: InitEvent) -> list[QuestAction]:
+        quest_form: FormFields = {}
+
         actions: list[QuestAction] = [
-            CreateNewStateAction(data=QuestStateCreate(quest_id=uuid.UUID()))
+            CreateNewStateAction(
+                data=QuestStateCreate(quest_id=ctx.get_quest_id(), fields=quest_form)
+            )
         ]
         return actions

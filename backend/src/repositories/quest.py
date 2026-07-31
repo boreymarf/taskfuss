@@ -21,3 +21,7 @@ class QuestRepository:
     @staticmethod
     def get_by_id(db: Session, quest_id: UUID) -> QuestDB | None:
         return db.get(QuestDB, quest_id)
+
+    @staticmethod
+    def get_all_by_user(db: Session, owner_id: int) -> list[QuestDB]:
+        return db.query(QuestDB).filter(QuestDB.owner_id == owner_id).all()

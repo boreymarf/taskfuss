@@ -28,3 +28,15 @@ class QuestState(BaseModel):
     data: dict[str, Any] | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class QuestStateResponse(BaseModel):
+    id: UUID
+    quest_id: UUID
+    title: str | None
+    start_date: datetime
+    end_date: datetime | None
+    fields: FormFields | None
+    data: dict[str, Any] | None
+
+    model_config = ConfigDict(from_attributes=True)

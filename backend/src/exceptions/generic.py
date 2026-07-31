@@ -29,6 +29,13 @@ class BadRequestError(AppException):
         super().__init__(message=message, status_code=400, details=details)
 
 
+class AlreadyExistsError(AppException):
+    def __init__(self, entity_type: str, details: dict[str, Any] | None = None):
+        self.entity_type = entity_type
+        message = f"{entity_type} already exists"
+        super().__init__(message=message, status_code=400, details=details)
+
+
 class TodoError(AppException):
     def __init__(
         self,

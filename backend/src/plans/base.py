@@ -5,6 +5,7 @@ from src.domain.fields import FormFields
 from src.domain.plan_metadata import PlanMetadata
 from src.domain.quest_actions import QuestAction
 from src.domain.quest_event import InitEvent, NewRecordEvent, QuestEvent
+from src.plans.quest_context import QuestContext
 
 
 class BasePlan(ABC):
@@ -24,21 +25,25 @@ class BasePlan(ABC):
         """Validate creation form data. Returns list of errors (empty if valid)."""
         return []
 
-    def handle_event(self, event: QuestEvent) -> list[QuestAction]:
+    def handle_event(self, ctx: QuestContext, event: QuestEvent) -> list[QuestAction]:
         if isinstance(event, InitEvent):
-            return self.on_init(event)
+            return self.on_init(ctx, event)
         if isinstance(event, NewRecordEvent):
-            return self.on_new_record_event(event)
-        return self.on_custom_event(event)
+            return self.on_new_record_event(ctx, event)
+        return self.on_custom_event(ctx, event)
 
-    def on_init(self, _event: InitEvent) -> list[QuestAction]:
+    def on_init(self, _ctx: QuestContext, _event: InitEvent) -> list[QuestAction]:
         """When quest is created. Must declare at least one state."""
         return []
 
-    def on_new_record_event(self, _event: NewRecordEvent) -> list[QuestAction]:
+    def on_new_record_event(
+        self, _ctx: QuestContext, _event: NewRecordEvent
+    ) -> list[QuestAction]:
         """When non-automatic (user's) record is added."""
         return []
 
-    def on_custom_event(self, _event: QuestEvent) -> list[QuestAction]:
+    def on_custom_event(
+        self, _ctx: QuestContext, _event: QuestEvent
+    ) -> list[QuestAction]:
         """Anything else"""
         return []
