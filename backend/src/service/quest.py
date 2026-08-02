@@ -1,19 +1,15 @@
 import logging
 from pprint import pprint
-from typing import Any
 
 from sqlalchemy.orm import Session
 
-from src.db import QuestDB
+from src.classes.form_processor import FormProcessor
 from src.domain import (
     FormFields,
     Quest,
-    QuestCreate,
-    QuestSettingsCreate,
-    validate_form,
 )
 from src.domain.quest import QuestCreateRequest
-from src.domain.quest_actions import CreateNewStateAction, QuestAction, QuestActionBase
+from src.domain.quest_actions import CreateNewStateAction, QuestAction
 from src.domain.quest_event import InitEvent
 from src.exceptions import NotFoundError, SetupFormDataValidationError
 from src.exceptions.generic import AlreadyExistsError
@@ -48,7 +44,8 @@ class QuestService:
         settings_fields: FormFields = plan_inst.get_settings_form()
 
         # Validate data
-        errors = validate_form(settings_fields, data.settings)
+        form_processor = FormProcessor(settings_fields, data.settings)
+        errors = form_processor.validate()
         if errors:
             raise SetupFormDataValidationError(data.plan_id, errors)
 

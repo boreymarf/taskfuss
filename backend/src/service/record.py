@@ -3,10 +3,13 @@ import logging
 from uuid import UUID
 from sqlalchemy.orm import Session
 
+from src.classes.form_processor import FormProcessor
 from src.db.record import RecordDB
 from src.domain import Record
 from src.domain.record import RecordCreateRequest
 from src.exceptions.generic import ForbiddenError, NotFoundError
+from src.exceptions.quest_state import NoFieldsQuestStateError
+from src.exceptions.record import RecordValidationFailed
 from src.repositories.quest import QuestRepository
 from src.repositories.quest_state import QuestStateRepository
 from src.repositories.record import RecordRepository
@@ -53,10 +56,18 @@ class RecordService:
             db, request.quest_id, datetime.now()
         )
 
-        if quest_state_db:
+        if not quest_state_db:
             raise NotFoundError("Quest state")
 
+        if not quest_state_db.fields:
+            raise NoFieldsQuestStateError(quest_state_db.id)
 
+        form_processor = FormProcessor()
+        form_processor.load_fields(quest_state_db.fields)
+        errors = form_processor.validate_value(request.field_path, value=request.value)
+
+        if errors:
+            raise RecordValidationFailed(request.value, request.field_path, errors)
 
         record_db = RecordDB(**request.model_dump())
         created = RecordRepository.add(db, record_db)

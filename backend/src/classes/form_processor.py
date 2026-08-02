@@ -2,6 +2,7 @@ from typing import Any, cast
 
 from src.domain.field_validation_errors import FieldError, ListErrors
 from src.domain.fields import FormFields
+from src.exceptions.generic import NotFoundError
 
 
 # NOTE: Vibe coded :(
@@ -68,3 +69,15 @@ class FormProcessor:
         else:
             path = ".".join(str(part) for part in args)
         return get_nested_value(self.data, path)
+
+    def validate_value(self, *args: str | int, value: Any) -> list[FieldError]:
+        if len(args) == 1 and isinstance(args[0], str):
+            path = args[0]
+        else:
+            path = ".".join(str(part) for part in args)
+
+        field_def = self.fields.get(path)
+        if field_def is None:
+            raise NotFoundError("Field", path)
+
+        return field_def.validate_value(value, loc=path)
