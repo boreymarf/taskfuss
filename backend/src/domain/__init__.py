@@ -15,7 +15,6 @@ from .fields import (
     FormFields,
     ListField,
     StrField,
-    validate_form,
 )
 from .plan_metadata import PlanMetadata
 from .plan_registry import PlanRegistry, PlanRegistryPublic

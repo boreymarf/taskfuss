@@ -5,11 +5,17 @@ from src.exceptions.base import AppException
 
 
 class NotFoundError(AppException):
-    def __init__(self, resource: str, id: int | UUID | str):
+    def __init__(self, resource: str, id: int | UUID | str | None = None):
+        if id is None:
+            message = f"{resource} not found"
+            details = {"resource": resource}
+        else:
+            message = f"{resource} with id {id} not found"
+            details = {"resource": resource, "id": str(id)}
         super().__init__(
-            message=f"{resource} with id {id} not found",
+            message=message,
             status_code=404,
-            details={"resource": resource, "id": str(id)},
+            details=details,
         )
 
 

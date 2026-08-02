@@ -10,6 +10,7 @@ from src.domain import QuestStateCreate
 
 logger = logging.getLogger(__name__)
 
+
 class QuestStateRepository:
     @staticmethod
     def add(db: Session, state_data: QuestStateCreate) -> QuestStateDB:
@@ -43,13 +44,18 @@ class QuestStateRepository:
         conditions = [QuestStateDB.quest_id == quest_id]
 
         if end_date is not None:
-            conditions.append(QuestStateDB.start_date < end_date)
+            conditions.append(
+                or_(
+                    QuestStateDB.start_date.is_(None),        
+                    QuestStateDB.start_date < end_date
+                )
+            )
 
         if start_date is not None:
             conditions.append(
                 or_(
-                    QuestStateDB.end_date.is_(None),
-                    QuestStateDB.end_date > start_date,
+                    QuestStateDB.end_date.is_(None),         
+                    QuestStateDB.end_date > start_date
                 )
             )
 
@@ -58,12 +64,55 @@ class QuestStateRepository:
         ).scalar()
 
     @staticmethod
-    def get_all_by_date(db: Session, target_date: datetime, owner_id: int) -> list[QuestStateDB]:
+    def get_all(
+        db: Session,
+        owner_id: int | None = None,
+        quest_id: UUID | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> list[QuestStateDB]:
+        """
+        Get all quest states, optionally filtered by owner, quest and date range.
+        Dates are compared strictly (>= for start, <= for end).
+        NULL values are **excluded** from these filters (they don't satisfy >= or <=).
+        """
+        query = db.query(QuestStateDB)
+
+        if owner_id is not None:
+            query = query.join(QuestDB, QuestDB.id == QuestStateDB.quest_id)
+            query = query.filter(QuestDB.owner_id == owner_id)
+
+        if quest_id is not None:
+            query = query.filter(QuestStateDB.quest_id == quest_id)
+
+        if start_date is not None:
+            query = query.filter(QuestStateDB.start_date >= start_date)
+
+        if end_date is not None:
+            query = query.filter(QuestStateDB.end_date <= end_date)
+
+        states = query.all()
+        logger.debug(
+            f"Found {len(states)} states for owner_id={owner_id}, "
+            f"quest_id={quest_id}, start_date={start_date}, end_date={end_date}"
+        )
+        return states
+
+    @staticmethod
+    def get_by_date(
+        db: Session,
+        quest_id: UUID,
+        target_date: datetime,
+    ) -> QuestStateDB | None:
+        """
+        Get the state active for the given quest at the exact target_date.
+        Treats NULL start_date as 'beginning of time' and NULL end_date as 'end of time'.
+        Returns the most recently started state if multiple overlap.
+        """
         states = (
             db.query(QuestStateDB)
-            .join(QuestDB, QuestDB.id == QuestStateDB.quest_id)
             .filter(
-                QuestDB.owner_id == owner_id,
+                QuestStateDB.quest_id == quest_id,
                 or_(
                     QuestStateDB.start_date.is_(None),
                     QuestStateDB.start_date <= target_date
@@ -73,18 +122,20 @@ class QuestStateRepository:
                     QuestStateDB.end_date > target_date
                 )
             )
+            .order_by(QuestStateDB.start_date.desc().nulls_last())
+            .limit(2)
             .all()
         )
-        logger.debug(f"Found {len(states)} states for owner_id={owner_id} at {target_date}")
-        return states
 
-    @staticmethod
-    def get_all(db: Session, owner_id: int) -> list[QuestStateDB]:
-        states = (
-            db.query(QuestStateDB)
-            .join(QuestDB, QuestDB.id == QuestStateDB.quest_id)
-            .filter(QuestDB.owner_id == owner_id)
-            .all()
-        )
-        logger.debug(f"Found {len(states)} states for owner_id={owner_id}")
-        return states
+        if not states:
+            logger.debug(f"No state found for quest {quest_id} at {target_date}")
+            return None
+
+        if len(states) > 1:
+            logger.error(
+                f"Multiple states ({len(states)}) found for quest {quest_id} at {target_date}. "
+                "Returning the most recent (by start_date)."
+            )
+            return states[0]
+
+        return states[0]

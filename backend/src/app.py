@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 
-from src.api.routers import auth, config, debug, quest, plan, quest_state, user
+from src.api.routers import auth, config, debug, quest, plan, quest_state, record, user
 from src.logger_conf.helpers import set_modules_log_level
 from src.logger_conf.implementations import (
     set_root_logger,
@@ -63,6 +63,7 @@ app.include_router(quest.router)
 app.include_router(quest_state.router)
 app.include_router(auth.router)
 app.include_router(plan.router)
+app.include_router(record.router)
 
 # Middlewares
 app.add_middleware(
