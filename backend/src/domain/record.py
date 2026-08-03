@@ -1,4 +1,3 @@
-from uuid import UUID
 from datetime import datetime
 from typing import Any
 from pydantic import BaseModel, ConfigDict
@@ -6,9 +5,9 @@ from pydantic import BaseModel, ConfigDict
 
 class Record(BaseModel):
     """Domain level model"""
-    id: UUID
+    id: int
     automated: bool = False
-    quest_id: UUID
+    quest_id: int
     field_path: str
     value: Any
     created_at: datetime
@@ -20,7 +19,7 @@ class RecordCreateRequest(BaseModel):
     """DTO"""
 
     field_path: str
-    quest_id: UUID
+    quest_id: int
     value: Any
 
     model_config = ConfigDict(from_attributes=True)
@@ -29,11 +28,11 @@ class RecordCreateRequest(BaseModel):
 class RecordResponse(BaseModel):
     """DTO"""
 
-    id: UUID
+    id: int
     created_at: datetime
 
     field_path: str
-    quest_id: UUID
+    quest_id: int
     automated: bool
     value: Any
 
@@ -44,7 +43,7 @@ class RecordCreate(BaseModel):
     """Used by repo"""
 
     field_path: str
-    quest_id: UUID
+    quest_id: int
     value: Any
     automated: bool = False
 

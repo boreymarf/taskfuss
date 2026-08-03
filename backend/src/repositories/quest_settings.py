@@ -1,6 +1,5 @@
 import logging
 from typing import Any
-from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.db.quest_settings import QuestSettingsDB
@@ -9,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class QuestSettingsRepository:
     @staticmethod
-    def add(db: Session, quest_id: UUID, form_data: dict[str, Any]) -> QuestSettingsDB:
+    def add(db: Session, quest_id: int, form_data: dict[str, Any]) -> QuestSettingsDB:
         settings = QuestSettingsDB(quest_id=quest_id, form_data=form_data)
         db.add(settings)
         db.flush()
@@ -18,7 +17,7 @@ class QuestSettingsRepository:
         return settings
 
     @staticmethod
-    def get_latest(db: Session, quest_id: UUID) -> QuestSettingsDB | None:
+    def get_latest(db: Session, quest_id: int) -> QuestSettingsDB | None:
         return (
             db.query(QuestSettingsDB)
             .filter(QuestSettingsDB.quest_id == quest_id)

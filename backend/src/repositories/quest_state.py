@@ -1,6 +1,5 @@
 from datetime import datetime
 import logging
-from uuid import UUID
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -22,7 +21,7 @@ class QuestStateRepository:
         return state_db
 
     @staticmethod
-    def get_latest(db: Session, quest_id: UUID) -> QuestStateDB | None:
+    def get_latest(db: Session, quest_id: int) -> QuestStateDB | None:
         return (
             db.query(QuestStateDB)
             .filter(QuestStateDB.quest_id == quest_id)
@@ -33,7 +32,7 @@ class QuestStateRepository:
     @staticmethod
     def has_overlap(
         db: Session,
-        quest_id: UUID,
+        quest_id: int,
         start_date: datetime | None = None,
         end_date: datetime | None = None
     ) -> bool:
@@ -67,7 +66,7 @@ class QuestStateRepository:
     def get_all(
         db: Session,
         owner_id: int | None = None,
-        quest_id: UUID | None = None,
+        quest_id: int | None = None,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
     ) -> list[QuestStateDB]:
@@ -101,7 +100,7 @@ class QuestStateRepository:
     @staticmethod
     def get_by_date(
         db: Session,
-        quest_id: UUID,
+        quest_id: int,
         target_date: datetime,
     ) -> QuestStateDB | None:
         """

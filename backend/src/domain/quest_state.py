@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Any
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
@@ -8,7 +7,7 @@ from src.domain.fields import FormFields
 
 
 class QuestStateCreate(BaseModel):
-    quest_id: UUID
+    quest_id: int
     title: str | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
@@ -19,8 +18,8 @@ class QuestStateCreate(BaseModel):
 
 
 class QuestState(BaseModel):
-    id: UUID | None = None
-    quest_id: UUID | None = None
+    id: int | None = None
+    quest_id: int | None = None
     title: str | None = None
     start_date: datetime | None = None
     end_date: datetime | None = None
@@ -31,8 +30,8 @@ class QuestState(BaseModel):
 
 
 class QuestStateResponse(BaseModel):
-    id: UUID
-    quest_id: UUID
+    id: int
+    quest_id: int
     title: str | None
     start_date: datetime
     end_date: datetime | None

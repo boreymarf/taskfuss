@@ -1,5 +1,4 @@
 from typing import Any
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,8 +13,8 @@ class QuestSettingsCreate(BaseModel):
 
 class QuestSettings(BaseModel):
 
-    id: UUID
-    quest_id: UUID
+    id: int
+    quest_id: int
     form_data: dict[str, Any]
 
     model_config = ConfigDict(from_attributes=True)

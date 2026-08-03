@@ -1,5 +1,4 @@
 import logging
-from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -19,7 +18,7 @@ class QuestRepository:
         return quest
 
     @staticmethod
-    def get_by_id(db: Session, quest_id: UUID) -> QuestDB | None:
+    def get_by_id(db: Session, quest_id: int) -> QuestDB | None:
         return db.get(QuestDB, quest_id)
 
     @staticmethod

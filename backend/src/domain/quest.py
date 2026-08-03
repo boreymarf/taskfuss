@@ -1,5 +1,4 @@
 from typing import Any
-from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 
@@ -25,7 +24,7 @@ class QuestCreate(BaseModel):
 class Quest(BaseModel):
     """All info about current instance of the quest"""
 
-    id: UUID
+    id: int
     owner_id: int
     plan_id: str
 
