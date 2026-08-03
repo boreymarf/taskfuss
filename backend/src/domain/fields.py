@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Any, Literal, cast, override
 from pydantic import BaseModel, ConfigDict
 
@@ -12,12 +13,20 @@ from src.domain.field_validation_errors import (
     RequiredError,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class BaseField(BaseModel):
     discriminator: str
     automatic: bool = False
 
     def validate_value(self, _value: Any, _loc: str) -> list[FieldError]:
+        raise NotImplementedError
+
+    def get_default(self) -> Any:
+        raise NotImplementedError
+
+    def set_default(self, _value: Any) -> None:
         raise NotImplementedError
 
 
@@ -39,6 +48,14 @@ class CheckboxField(BaseField):
                 )
             ]
         return []
+
+    @override
+    def get_default(self) -> bool:
+        return self.default
+
+    @override
+    def set_default(self, value: bool) -> None:
+        self.default = value
 
 
 class StrField(BaseField):
@@ -91,6 +108,14 @@ class StrField(BaseField):
                 )
             )
         return errors
+
+    @override
+    def get_default(self) -> str:
+        return self.default
+
+    @override
+    def set_default(self, value: str) -> None:
+        self.default = value
 
 
 class ListField(BaseField):
@@ -157,6 +182,14 @@ class ListField(BaseField):
 
         return errors
 
+    @override
+    def get_default(self) -> list[Any]:
+        return self.default
+
+    @override
+    def set_default(self, value: list[Any]) -> None:
+        self.default = value
+
 
 class TupleField(BaseField):
     """A fixed-size tuple of fields, each with its own schema."""
@@ -218,12 +251,33 @@ class TupleField(BaseField):
 
         return errors
 
+    @override
+    def get_default(self) -> tuple[Any, ...]:
+        return self.default
+
+    @override
+    def set_default(self, value: Any) -> None:
+        if not isinstance(value, (list, tuple)):
+            logger.error(
+                f"Default for TupleField must be a list or tuple, got {type(value).__name__}"
+            )
+            return
+        # Yes, it's a list or a tuple
+        value = cast(list[Any] | tuple[Any, ...], value)
+        if len(value) != len(self.fields):
+            logger.error(
+                f"Expected {len(self.fields)} default values for TupleField, got {len(value)}"
+            )
+            return
+        for field, val in zip(self.fields, value):
+            field.set_default(val)
+
 
 Field = CheckboxField | StrField | ListField | TupleField
 
 # This fixes openapi's build failure
 # And also weird "name 'Callable' is not defined" error lol
-ListField.model_rebuild() 
+ListField.model_rebuild()
 TupleField.model_rebuild()
 
 FormFields = dict[str, Field]
