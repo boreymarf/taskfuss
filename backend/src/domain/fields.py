@@ -3,6 +3,7 @@ from typing import Any, Literal, cast, override
 from pydantic import BaseModel, ConfigDict
 
 from src.domain.field_validation_errors import (
+    ExactLengthError,
     FieldError,
     IncorrectTypeError,
     ListErrors,
@@ -16,7 +17,7 @@ class BaseField(BaseModel):
     discriminator: str
     automatic: bool = False
 
-    def validate_value(self, value: Any, loc: str) -> list[FieldError]:
+    def validate_value(self, _value: Any, _loc: str) -> list[FieldError]:
         raise NotImplementedError
 
 
@@ -157,6 +158,72 @@ class ListField(BaseField):
         return errors
 
 
-Field = CheckboxField | StrField | ListField
-ListField.model_rebuild()  # для разрешения прямой ссылки
+class TupleField(BaseField):
+    """A fixed-size tuple of fields, each with its own schema."""
+
+    discriminator: Literal["tuple"] = "tuple"
+    treat_none_as_default: bool = True
+    label: str | None = None
+    description: str | None = None
+    required: bool = False
+    fields: tuple[Field, ...]
+    model_config = ConfigDict(from_attributes=True)
+
+    @property
+    def default(self) -> tuple[Any, ...]:
+        return tuple(f.default for f in self.fields)
+
+    @override
+    def validate_value(self, value: Any, loc: str) -> list[FieldError]:
+        errors: list[FieldError] = []
+
+        if value is None and self.treat_none_as_default:
+            value = self.default
+
+        if not isinstance(value, (list, tuple)):
+            errors.append(
+                IncorrectTypeError(
+                    loc=loc,
+                    current_type=value.__class__.__name__,
+                    correct_type="tuple",
+                )
+            )
+            return errors
+
+        # Yes, this is a tuple
+        value = cast(tuple[Any], value)
+
+        if len(value) != len(self.fields):
+            errors.append(
+                ExactLengthError(
+                    loc=loc,
+                    current_length=len(value),
+                    required_length=len(self.fields),
+                )
+            )
+            return errors
+
+        if not value and self.required:
+            errors.append(RequiredError(loc=loc))
+            return errors
+
+        child_errors: dict[int, list[FieldError]] = {}
+        for i, (field, item) in enumerate(zip(self.fields, value)):
+            item_errs = field.validate_value(item, f"{loc}.{i}")
+            if item_errs:
+                child_errors[i] = item_errs
+
+        if child_errors:
+            errors.append(ListErrors(loc=loc, errors=child_errors))
+
+        return errors
+
+
+Field = CheckboxField | StrField | ListField | TupleField
+
+# This fixes openapi's build failure
+# And also weird "name 'Callable' is not defined" error lol
+ListField.model_rebuild() 
+TupleField.model_rebuild()
+
 FormFields = dict[str, Field]

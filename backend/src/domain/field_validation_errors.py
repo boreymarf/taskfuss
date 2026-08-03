@@ -51,6 +51,15 @@ class CustomError(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ExactLengthError(BaseModel):
+    loc: str
+    discriminator: Literal["exact_length_error"] = "exact_length_error"
+    message: str = "The tuple has an incorrect number of elements."
+    current_length: int
+    required_length: int
+    model_config = ConfigDict(from_attributes=True)
+
+
 FieldError = (
     RequiredError
     | IncorrectTypeError
@@ -58,6 +67,7 @@ FieldError = (
     | MaxSizeError
     | ListErrors
     | CustomError
+    | ExactLengthError
 )
 
 # This fixes recursion error in openapi docs generation

@@ -1,6 +1,5 @@
 from pprint import pprint
 from typing import override
-import uuid
 
 from src.domain import (
     FormFields,
@@ -11,7 +10,7 @@ from src.domain import (
     QuestStateCreate,
     StrField,
 )
-from src.domain.fields import CheckboxField
+from src.domain.fields import CheckboxField, TupleField
 from src.domain.quest_actions import CreateNewStateAction
 from src.plans.base import BasePlan
 from src.plans.quest_context import QuestContext
@@ -39,13 +38,15 @@ class SimpleChecklist(BasePlan):
         settings = ctx.get_quest_settings()
         assert settings != None
 
-        pprint(settings)
-
         quest_form: FormFields = {}
 
-        if settings.form_data.get("task_list"):
-            for i, item_name in enumerate(settings.form_data["task_list"]):
-                quest_form[str(i)] = CheckboxField(label=item_name)
+        tasks = settings.form_data.get("task_list")
+        checkbox_fields: list[CheckboxField] = []
+        if tasks:
+            for task in tasks:
+                checkbox_fields.append(CheckboxField(label=task))
+
+        quest_form["task_list"] = TupleField(fields=tuple(checkbox_fields))
 
         actions: list[QuestAction] = [
             CreateNewStateAction(
