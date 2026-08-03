@@ -72,7 +72,7 @@ class SecurityPasswordPolicy(BaseModel):
 
 class SecurityConfig(BaseModel):
     auth_secret_key: str = "change-me"
-    auth_token_lifespan_minutes: int = 120
+    auth_token_lifespan_seconds: int | Literal["infinite"] = 120 * 60
     login_policy: SecurityLoginPolicy = Field(default_factory=SecurityLoginPolicy)
     password_policy: SecurityPasswordPolicy = Field(
         default_factory=SecurityPasswordPolicy

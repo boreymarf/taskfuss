@@ -25,7 +25,7 @@ def sign_up(
     domain_data = UserCreate(**data.model_dump())
 
     user = UserService.create_user(db, domain_data, auto_commit=True)
-    token = AuthService.generate_token_for_user(user, token_expire_minutes=None) # TODO: Remove expire minutes later lmao
+    token = AuthService.generate_token_for_user(user) 
 
     return token
 
@@ -45,6 +45,6 @@ def sign_in(
     domain_data = UserLogin(**data.model_dump())
 
     user = AuthService.authenticate_user(db, domain_data)
-    token = AuthService.generate_token_for_user(user, token_expire_minutes=None)
+    token = AuthService.generate_token_for_user(user)
 
     return token
