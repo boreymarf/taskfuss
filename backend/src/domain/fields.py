@@ -3,6 +3,7 @@ import logging
 from typing import Any, Literal, cast, override
 from pydantic import BaseModel, ConfigDict
 
+from abc import ABC, abstractmethod
 from src.domain.field_validation_errors import (
     ExactLengthError,
     FieldError,
@@ -16,18 +17,20 @@ from src.domain.field_validation_errors import (
 logger = logging.getLogger(__name__)
 
 
-class BaseField(BaseModel):
+class BaseField(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritance]
     discriminator: str
     automatic: bool = False
 
-    def validate_value(self, _value: Any, _loc: str) -> list[FieldError]:
-        raise NotImplementedError
+    @abstractmethod
+    def validate_value(
+        self, value: Any, loc: str, *, error_list: list[FieldError] | None = None
+    ) -> list[FieldError]: ...
 
-    def get_default(self) -> Any:
-        raise NotImplementedError
+    @abstractmethod
+    def get_default(self) -> Any: ...
 
-    def set_default(self, _value: Any) -> None:
-        raise NotImplementedError
+    @abstractmethod
+    def set_default(self, value: Any) -> None: ...
 
 
 class CheckboxField(BaseField):
@@ -38,16 +41,24 @@ class CheckboxField(BaseField):
     model_config = ConfigDict(from_attributes=True)
 
     @override
-    def validate_value(self, value: Any, loc: str) -> list[FieldError]:
+    def validate_value(
+        self, value: Any, loc: str, *, error_list: list[FieldError] | None = None
+    ) -> list[FieldError]:
+        errors: list[FieldError] = []
+
         if not isinstance(value, bool):
-            return [
-                IncorrectTypeError(
-                    loc=loc,
-                    current_type=value.__class__.__name__,
-                    correct_type="bool",
-                )
-            ]
-        return []
+            error = IncorrectTypeError(
+                loc=loc,
+                current_type=value.__class__.__name__,
+                correct_type="bool",
+            )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
+
+        if error_list is not None:
+            error_list.extend(errors)
+        return errors
 
     @override
     def get_default(self) -> bool:
@@ -70,43 +81,54 @@ class StrField(BaseField):
     model_config = ConfigDict(from_attributes=True)
 
     @override
-    def validate_value(self, value: Any, loc: str) -> list[FieldError]:
+    def validate_value(
+        self, value: Any, loc: str, *, error_list: list[FieldError] | None = None
+    ) -> list[FieldError]:
         errors: list[FieldError] = []
 
         if value is None and self.treat_none_as_default:
             value = self.default
 
         if not value and self.required:
-            errors.append(RequiredError(loc=loc))
+            error = RequiredError(loc=loc)
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         if not isinstance(value, str):
-            errors.append(
-                IncorrectTypeError(
-                    loc=loc,
-                    current_type=value.__class__.__name__,
-                    correct_type="str",
-                )
+            error = IncorrectTypeError(
+                loc=loc,
+                current_type=value.__class__.__name__,
+                correct_type="str",
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         list_length = len(value)
         if self.min_size is not None and list_length < self.min_size:
-            errors.append(
-                MinSizeError(
-                    loc=loc,
-                    current_value=list_length,
-                    min_value=self.min_size,
-                )
+            error = MinSizeError(
+                loc=loc,
+                current_value=list_length,
+                min_value=self.min_size,
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
         if self.max_size is not None and list_length > self.max_size:
-            errors.append(
-                MaxSizeError(
-                    loc=loc,
-                    current_value=list_length,
-                    max_value=self.max_size,
-                )
+            error = MaxSizeError(
+                loc=loc,
+                current_value=list_length,
+                max_value=self.max_size,
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
+
+        if error_list is not None:
+            error_list.extend(errors)
         return errors
 
     @override
@@ -131,55 +153,70 @@ class ListField(BaseField):
     model_config = ConfigDict(from_attributes=True)
 
     @override
-    def validate_value(self, value: Any, loc: str) -> list[FieldError]:
+    def validate_value(
+        self, value: Any, loc: str, *, error_list: list[FieldError] | None = None
+    ) -> list[FieldError]:
         errors: list[FieldError] = []
 
         if value is None and self.treat_none_as_default:
             value = self.default
 
         if not isinstance(value, list):
-            errors.append(
-                IncorrectTypeError(
-                    loc=loc,
-                    current_type=value.__class__.__name__,
-                    correct_type="list",
-                )
+            error = IncorrectTypeError(
+                loc=loc,
+                current_type=value.__class__.__name__,
+                correct_type="list",
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         if not value and self.required:
-            errors.append(RequiredError(loc=loc))
+            error = RequiredError(loc=loc)
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         value = cast(list[Any], value)
         list_length = len(value)
 
         if self.min_size is not None and list_length < self.min_size:
-            errors.append(
-                MinSizeError(
-                    loc=loc,
-                    current_value=list_length,
-                    min_value=self.min_size,
-                )
+            error = MinSizeError(
+                loc=loc,
+                current_value=list_length,
+                min_value=self.min_size,
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
         if self.max_size is not None and list_length > self.max_size:
-            errors.append(
-                MaxSizeError(
-                    loc=loc,
-                    current_value=list_length,
-                    max_value=self.max_size,
-                )
+            error = MaxSizeError(
+                loc=loc,
+                current_value=list_length,
+                max_value=self.max_size,
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
 
         child_errors: dict[int, list[FieldError]] = {}
         for i, item in enumerate(value):
-            item_errs = self.item_field.validate_value(item, loc=f"{loc}.{i}")
+            item_errs = self.item_field.validate_value(
+                item, loc=f"{loc}.{i}", error_list=error_list
+            )
             if item_errs:
                 child_errors[i] = item_errs
 
         if child_errors:
-            errors.append(ListErrors(loc=loc, errors=child_errors))
+            error = ListErrors(loc=loc, errors=child_errors)
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
 
+        if error_list is not None:
+            error_list.extend(errors)
         return errors
 
     @override
@@ -207,48 +244,60 @@ class TupleField(BaseField):
         return tuple(f.default for f in self.fields)
 
     @override
-    def validate_value(self, value: Any, loc: str) -> list[FieldError]:
+    def validate_value(
+        self, value: Any, loc: str, *, error_list: list[FieldError] | None = None
+    ) -> list[FieldError]:
         errors: list[FieldError] = []
 
         if value is None and self.treat_none_as_default:
             value = self.default
 
         if not isinstance(value, (list, tuple)):
-            errors.append(
-                IncorrectTypeError(
-                    loc=loc,
-                    current_type=value.__class__.__name__,
-                    correct_type="tuple",
-                )
+            error = IncorrectTypeError(
+                loc=loc,
+                current_type=value.__class__.__name__,
+                correct_type="tuple",
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         # Yes, this is a tuple
         value = cast(tuple[Any], value)
 
         if len(value) != len(self.fields):
-            errors.append(
-                ExactLengthError(
-                    loc=loc,
-                    current_length=len(value),
-                    required_length=len(self.fields),
-                )
+            error = ExactLengthError(
+                loc=loc,
+                current_length=len(value),
+                required_length=len(self.fields),
             )
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         if not value and self.required:
-            errors.append(RequiredError(loc=loc))
+            error = RequiredError(loc=loc)
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
             return errors
 
         child_errors: dict[int, list[FieldError]] = {}
         for i, (field, item) in enumerate(zip(self.fields, value)):
-            item_errs = field.validate_value(item, f"{loc}.{i}")
+            item_errs = field.validate_value(item, f"{loc}.{i}", error_list=error_list)
             if item_errs:
                 child_errors[i] = item_errs
 
         if child_errors:
-            errors.append(ListErrors(loc=loc, errors=child_errors))
+            error = ListErrors(loc=loc, errors=child_errors)
+            errors.append(error)
+            if error_list is not None:
+                error_list.append(error)
 
+        if error_list is not None:
+            error_list.extend(errors)
         return errors
 
     @override

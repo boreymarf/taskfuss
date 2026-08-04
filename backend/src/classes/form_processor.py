@@ -1,9 +1,12 @@
+import logging
 from typing import Any, cast
 
-from src.domain.field_validation_errors import FieldError, ListErrors
+from src.domain.field_validation_errors import FieldError
 from src.domain.fields import FormFields
 from src.exceptions.generic import NotFoundError
 
+
+logger = logging.getLogger(__name__)
 
 # NOTE: Vibe coded :(
 def get_nested_value(data: dict[str, Any], path: str) -> Any | None:
@@ -43,41 +46,29 @@ class FormProcessor:
 
     def validate(self) -> list[FieldError]:
         """Валидирует все поля и возвращает плоский список ошибок с точными loc."""
-        raw_errors: list[FieldError] = []
+        errors: list[FieldError] = []
         for field_name, field_def in self.fields.items():
             value = self.data.get(field_name)
-            raw_errors.extend(field_def.validate_value(value, loc=field_name))
+            field_def.validate_value(value, loc=field_name, error_list=errors)
+        return errors
 
-        # Разворачиваем все ListErrors – в итоге каждый FieldError имеет свой loc
-        return self._flatten_errors(raw_errors)
-
-    @staticmethod
-    def _flatten_errors(errors: list[FieldError]) -> list[FieldError]:
-        flat: list[FieldError] = []
-        for err in errors:
-            if isinstance(err, ListErrors):
-                # Все ошибки внутри уже имеют полный путь (например "items.0.name")
-                for idx, child_err_list in err.errors.items():
-                    flat.extend(FormProcessor._flatten_errors(child_err_list))
-            else:
-                flat.append(err)
-        return flat
-
-    def get_value(self, *args: str | int) -> Any | None:
+    def validate_value(self, *args: str | int, value: Any, error_list: list[FieldError] | None = None) -> list[FieldError]:
         if len(args) == 1 and isinstance(args[0], str):
             path = args[0]
         else:
             path = ".".join(str(part) for part in args)
-        return get_nested_value(self.data, path)
 
-    def validate_value(self, *args: str | int, value: Any) -> list[FieldError]:
-        if len(args) == 1 and isinstance(args[0], str):
-            path = args[0]
-        else:
-            path = ".".join(str(part) for part in args)
+        logger.debug(f"Looking for field: '{path}' in fields: {list(self.fields.keys())}")
+        logger.debug(f"Full fields dict: {self.fields}")
 
         field_def = self.fields.get(path)
         if field_def is None:
             raise NotFoundError("Field", path)
 
-        return field_def.validate_value(value, loc=path)
+        if error_list is None:
+            local_errors: list[FieldError] = []
+            field_def.validate_value(value, loc=path, error_list=local_errors)
+            return local_errors
+        else:
+            field_def.validate_value(value, loc=path, error_list=error_list)
+            return error_list
