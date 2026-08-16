@@ -13,6 +13,7 @@ from src.domain.field_validation_errors import (
     MinSizeError,
     RequiredError,
 )
+from src.exceptions.generic import NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -301,7 +302,10 @@ class TupleField(BaseField):
         return errors
 
     def get_field(self, index: int) -> Field:
-        return self.fields[index]
+        try:
+            return self.fields[index]
+        except IndexError:
+            raise NotFoundError("field", index)
 
     @override
     def get_default(self) -> tuple[Any, ...]:

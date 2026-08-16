@@ -45,7 +45,7 @@ class QuestService:
 
         # Validate data
         form_processor = FormProcessor(settings_fields, data.settings)
-        errors = form_processor.validate()
+        errors = form_processor.validate_data()
         if errors:
             raise SetupFormDataValidationError(data.plan_id, errors)
 

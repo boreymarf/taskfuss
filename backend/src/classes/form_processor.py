@@ -4,7 +4,8 @@ from typing import Any, Literal, cast
 from pydantic import TypeAdapter
 
 from src.domain.field_validation_errors import FieldError
-from src.domain.fields import Field, FormFields, TupleField
+from src.domain.fields import Field, TupleField
+from src.exceptions.generic import NotFoundError
 logger = logging.getLogger(__name__)
 
 class FormProcessorNoDataError(Exception):
@@ -110,7 +111,10 @@ class FormProcessor:
 
             # If it's a tuple
             if isinstance(current_dir, TupleField) and p.isdigit():
-                current_dir = current_dir.get_field(int(p))
+                try:
+                    current_dir = current_dir.get_field(int(p))
+                except NotFoundError:
+                    raise NotFoundError("field", ".".join(current_path))
                 continue
 
             # If it's a dict (only a first layer)
