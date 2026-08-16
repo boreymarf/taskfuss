@@ -1,12 +1,11 @@
 from datetime import datetime
 import logging
-from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.classes.form_processor import FormProcessor
 from src.db.record import RecordDB
 from src.domain import Record
-from src.domain.record import RecordCreateRequest
+from src.domain.record import RecordCreateRequest, RecordQueryParams
 from src.exceptions.generic import ForbiddenError, NotFoundError
 from src.exceptions.quest_state import NoFieldsQuestStateError
 from src.exceptions.record import RecordValidationFailed
@@ -19,21 +18,14 @@ logger = logging.getLogger(__name__)
 
 class RecordService:
     @staticmethod
-    def get_all(db: Session) -> list[Record]:
-        records_db = RecordRepository.get_all(db)
+    def get_all(db: Session, params: RecordQueryParams) -> list[Record]:
+        records_db = RecordRepository.get_all(db, params)
         result = [Record.model_validate(r) for r in records_db]
         logger.debug(f"Fetched {len(result)} records")
         return result
 
     @staticmethod
-    def get_all_by_quest_id(db: Session, quest_id: UUID) -> list[Record]:
-        records_db = RecordRepository.get_all_by_quest_id(db, quest_id)
-        result = [Record.model_validate(r) for r in records_db]
-        logger.debug(f"Fetched {len(result)} records for quest_id={quest_id}")
-        return result
-
-    @staticmethod
-    def get(db: Session, record_id: UUID) -> Record | None:
+    def get(db: Session, record_id: int) -> Record | None:
         record_db = RecordRepository.get(db, record_id)
         if record_db is None:
             raise NotFoundError("Record", record_id)
@@ -77,10 +69,10 @@ class RecordService:
         return result
 
     @staticmethod
-    def remove(db: Session, record_id: UUID) -> None:
+    def remove(db: Session, record_id: int) -> None:
         record_db = RecordRepository.get(db, record_id)
         if record_db is None:
-            logger.debug(f"Record {record_id} not found, nothing to remove")
-            return
+            raise NotFoundError("record", record_id)
+
         RecordRepository.remove(db, record_db)
         logger.debug(f"Removed record {record_id}")

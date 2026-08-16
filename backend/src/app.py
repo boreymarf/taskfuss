@@ -7,6 +7,8 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+from fastapi.encoders import jsonable_encoder
 import uvicorn
 
 from src.api.routers import auth, config, debug, quest, plan, quest_state, record, user
@@ -116,6 +118,13 @@ async def app_exception_handler(_request: Request, exc: AppException):
     )
 
 
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(_request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=422, content={"detail": jsonable_encoder(exc.errors())}
+    )
+
+
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     tb_str = traceback.format_exc()
@@ -128,16 +137,11 @@ async def generic_exception_handler(request: Request, exc: Exception):
     }
 
     logger.error(
-        "Unhandled exception: %s\n"
-        "Request: %s\n"
-        "Traceback:\n%s",
+        "Unhandled exception: %s\n" "Request: %s\n" "Traceback:\n%s",
         exc,
         request_info,
         tb_str,
-        exc_info=True,  
+        exc_info=True,
     )
 
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})

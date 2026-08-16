@@ -1,10 +1,11 @@
+from datetime import datetime
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from src.api.dependencies.session import get_session
 from src.api.dependencies.auth import get_current_user
-from src.domain.record import Record, RecordCreateRequest
+from src.domain.record import Record, RecordCreateRequest, RecordQueryParams
 from src.service.record import RecordService
 
 router = APIRouter(prefix="/api/record", tags=["record"])
@@ -12,27 +13,28 @@ router = APIRouter(prefix="/api/record", tags=["record"])
 
 @router.get("/", response_model=list[Record])
 def get_all_records(
+    params: RecordQueryParams = Depends(),
     db: Session = Depends(get_session),
     current_user=Depends(get_current_user),
 ):
-    return RecordService.get_all(db)
+    return RecordService.get_all(db, params)
 
 
-@router.get("/{record_id}", response_model=Record)
-def get_record(
-    record_id: UUID,
-    db: Session = Depends(get_session),
-    current_user=Depends(get_current_user),
-):
-    record = RecordService.get(db, record_id)
-    if record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
-        )
-    return record
+# @router.get("/{record_id}", response_model=Record)
+# def get_record(
+#     record_id: UUID,
+#     db: Session = Depends(get_session),
+#     current_user=Depends(get_current_user),
+# ):
+#     record = RecordService.get(db, record_id)
+#     if record is None:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND, detail="Record not found"
+#         )
+#     return record
 
 
-@router.get("/by-quest/{quest_id}", response_model=list[Record])
+@router.get("/by_quest/{quest_id}", response_model=list[Record])
 def get_records_by_quest(
     quest_id: UUID,
     db: Session = Depends(get_session),
