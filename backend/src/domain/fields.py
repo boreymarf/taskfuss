@@ -300,6 +300,9 @@ class TupleField(BaseField):
             error_list.extend(errors)
         return errors
 
+    def get_field(self, index: int) -> Field:
+        return self.fields[index]
+
     @override
     def get_default(self) -> tuple[Any, ...]:
         return self.default

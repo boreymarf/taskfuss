@@ -64,13 +64,14 @@ class RecordService:
 
         form_processor = FormProcessor()
         form_processor.load_fields(quest_state_db.fields)
-        errors = form_processor.validate_value(request.field_path, value=request.value)
+        errors = form_processor.validate_value(request.field_path, value=request.value) # This fails
 
         if errors:
             raise RecordValidationFailed(request.value, request.field_path, errors)
 
         record_db = RecordDB(**request.model_dump())
         created = RecordRepository.add(db, record_db)
+        db.commit()
         result = Record.model_validate(created)
         logger.debug(f"Created record with id={result.id}")
         return result

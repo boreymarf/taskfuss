@@ -39,6 +39,8 @@ reportIncompatibleVariableOverride = false
 reportCallInDefaultInitializer = false
 reportUnusedCallResult = false
 reportImplicitStringConcatenation = false
+reportUnnecessaryCast = false
+reportUnnecessaryIsInstance = false
 
 [tool.pytest.ini_options]
 filterwarnings = [

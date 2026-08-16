@@ -1,149 +1,176 @@
 import logging
-from typing import Any, cast
+from typing import Any, Literal, cast
+
+from pydantic import TypeAdapter
 
 from src.domain.field_validation_errors import FieldError
-from src.domain.fields import FormFields, Field
-from src.exceptions.generic import NotFoundError
-
-
+from src.domain.fields import Field, FormFields, TupleField
 logger = logging.getLogger(__name__)
 
+class FormProcessorNoDataError(Exception):
+    def __init__(self):
+        self.message = (
+            "Tried to access data in form processor without loading it first!"
+        )
+        super().__init__(self.message)
 
-# NOTE: I'm gonna be honest, this whole file is vibecoded and is crap
-# I hate every single line in this file, but I can't be bothered to rewrite it yet
 
-def get_nested_value(data: dict[str, Any], path: str) -> Any | None:
-    parts = path.split(".")
-    current: Any = data
-    for part in parts:
-        if current is None:
-            return None
-        if part.isdigit():
-            idx = int(part)
-            if not isinstance(current, list):
-                return None
-            current_list = cast(list[Any], current)
-            if idx < 0 or idx >= len(current_list):
-                return None
-            current = current_list[idx]
-        else:
-            if not isinstance(current, dict):
-                return None
-            current_dict = cast(dict[str, Any], current)
-            if part not in current_dict:
-                return None
-            current = current_dict[part]
-    return current
+class FormProcessorNoFieldsError(Exception):
+    def __init__(self):
+        self.message = (
+            "Tried to access fields in form processor without loading them first!"
+        )
+        super().__init__(self.message)
+
+
+class FormProcessorNotFound(Exception):
+    def __init__(
+        self,
+        type: Literal["field", "value"],
+        path: str,
+        message: str | None = None,
+        *,
+        current_dir: Any | None = None,
+    ):
+        self.type = type
+        self.path = path
+        self.message = message or f"A {type} on a path '{path}' was not found!"
+        self.current_dir = current_dir
+        super().__init__(self.message)
+
+
+class FormProcessorIncorrectType(Exception):
+    def __init__(
+        self,
+        path: str,
+        current_type: str,
+        expected_type: str,
+        message: str | None = None,
+    ):
+        self.path = path
+        self.current_type = current_type
+        self.expected_type = expected_type
+        self.message = message or f"Wrong type on a path '{path}'"
+        super().__init__(self.message)
 
 
 class FormProcessor:
-    def __init__(self, fields: FormFields | None = None, data: dict[str, Any] | None = None):
+    def __init__(
+        self, fields: dict[str, Field] | None = None, data: dict[str, Any] | None = None
+    ):
         self.fields = fields or {}
         self.data = data or {}
 
-    def load_fields(self, fields: FormFields) -> None:
-        self.fields = fields
+    def load_fields(self, fields: dict[str, Field]) -> None:
+        # Without adapter, this methdo will allow plain JSON to pass
+        adapter = TypeAdapter(dict[str, Field])
+        self.fields = adapter.validate_python(fields)
 
     def load_data(self, data: dict[str, Any]) -> None:
         self.data = data
 
-    def validate(self) -> list[FieldError]:
-        """Валидирует все поля и возвращает плоский список ошибок с точными loc."""
-        errors: list[FieldError] = []
-        for field_name, field_def in self.fields.items():
-            value = self.data.get(field_name)
-            field_def.validate_value(value, loc=field_name, error_list=errors)
-        return errors
+    def validate_data(self) -> list[FieldError]:
 
-    def validate_value(self, *args: str | int, value: Any, error_list: list[FieldError] | None = None) -> list[FieldError]:
-        path = ".".join(map(str, args))
+        if not self.data:
+            raise FormProcessorNoDataError
 
-        logger.debug(f"Looking for field: '{path}' in fields: {list(self.fields.keys())}")
-        logger.debug(f"Full fields dict: {self.fields}")
+        if not self.fields:
+            raise FormProcessorNoFieldsError
 
-        field_def = self.get_field(*args)
+        error_list: list[FieldError] = []
+        for i, field in self.fields.items():
+            field.validate_value(self.data[i], i, error_list=error_list)
 
-        if error_list is None:
-            local_errors: list[FieldError] = []
-            field_def.validate_value(value, loc=path, error_list=local_errors)
-            return local_errors
-        else:
-            field_def.validate_value(value, loc=path, error_list=error_list)
-            return error_list
+        return error_list
+
+    def validate_value(
+        self, *args: str | int, value: Any, error_list: list[FieldError] | None = None
+    ) -> list[FieldError]:
+
+        if not self.fields:
+            raise FormProcessorNoFieldsError
+
+        field = self.get_field(*args)
+        return field.validate_value(value, ".".join(str(*args)), error_list=error_list)
 
     def get_field(self, *args: str | int) -> Field:
-        """Возвращает определение поля по пути (например, 'user.name' или 'items.0')."""
-        path = ".".join(map(str, args))
-        if not path:
-            raise NotFoundError("Field", path)
 
-        current: Any = self.fields
+        if not self.fields:
+            raise FormProcessorNoFieldsError
 
-        for part in path.split("."):
-            if hasattr(current, "fields"):
-                nested: Any = current.fields
+        path_str = ".".join(map(str, args))
+        path = path_str.split(".")
 
-                if isinstance(nested, list):
-                    nested_list = cast(list[Any], nested)
-                    if not part.isdigit():
-                        raise NotFoundError("Field", path)
-                    idx = int(part)
-                    if idx < 0 or idx >= len(nested_list):
-                        raise NotFoundError("Field", path)
-                    current = nested_list[idx]
+        current_dir: dict[str, Field] | Field = self.fields
+        current_path: list[str] = []
 
-                elif isinstance(nested, tuple):
-                    nested_tuple = cast(tuple[Any, ...], nested)
-                    if not part.isdigit():
-                        raise NotFoundError("Field", path)
-                    idx = int(part)
-                    if idx < 0 or idx >= len(nested_tuple):
-                        raise NotFoundError("Field", path)
-                    current = nested_tuple[idx]
+        for p in path:
 
-                elif isinstance(nested, dict):
-                    nested_dict = cast(dict[str, Any], nested)
-                    if part not in nested_dict:
-                        raise NotFoundError("Field", path)
-                    current = nested_dict[part]
+            current_path.append(p)
 
-                else:
-                    raise NotFoundError("Field", path)
+            # If it's a tuple
+            if isinstance(current_dir, TupleField) and p.isdigit():
+                current_dir = current_dir.get_field(int(p))
+                continue
 
-            elif isinstance(current, dict):
-                # current — это словарь FormFields (dict[str, Field])
-                current_dict = cast(dict[str, Any], current)
-                if part not in current_dict:
-                    raise NotFoundError("Field", path)
-                current = current_dict[part]
+            # If it's a dict (only a first layer)
+            # Should be last or things will break
+            elif isinstance(current_dir, dict):
+                current_dir = current_dir[p]
+                continue
 
+            # Default
             else:
-                raise NotFoundError("Field", path)
+                raise FormProcessorNotFound(
+                    "field", ".".join(current_path), current_dir=current_dir
+                )
 
-        return cast(Field, current)
-
+        assert isinstance(current_dir, Field)
+        return current_dir
 
     def get_default(self, *args: str | int) -> Any:
-        """Возвращает значение по умолчанию для поля по пути."""
-        field = self.get_field(*args)
-        return field.get_default()
+
+        if not self.fields:
+            raise FormProcessorNoFieldsError
+
+        return self.get_field(*args).get_default()
 
     def get_value(self, *args: str | int) -> Any | None:
-        """Возвращает значение из данных по пути (использует get_nested_value)."""
-        path = ".".join(map(str, args))
-        return get_nested_value(self.data, path)
+
+        if not self.data:
+            raise FormProcessorNoDataError
+
+        path_str = ".".join(map(str, args))
+        path = path_str.split(".")
+
+        current_dir: dict[str, Any] | list[Any] = self.data
+        current_path: list[str] = []
+
+        for p in path:
+
+            current_path.append(p)
+            current_dir = cast(dict[str, Any] | list[Any], current_dir)
+
+            if isinstance(current_dir, dict):
+                current_dir = current_dir[p]
+            elif isinstance(current_dir, list) and p.isdigit():
+                current_dir = current_dir[int(p)]
+            else:
+                raise FormProcessorNotFound(
+                    "field", ".".join(current_path), current_dir=current_dir
+                )
+
+        return current_dir
 
     def get_value_or_default(self, *args: str | int) -> Any:
-        """
-        Возвращает значение из данных, если оно есть, иначе — значение по умолчанию.
-        Если путь отсутствует в данных, возвращает дефолт.
-        """
-        path = ".".join(map(str, args))
-        value = get_nested_value(self.data, path)
-        if value is None:
-            # Пытаемся получить дефолт, если поле существует
-            try:
-                return self.get_default(*args)
-            except NotFoundError:
-                return None  # или можно вернуть None, если поле не найдено
-        return value
+
+        if not self.data:
+            raise FormProcessorNoDataError
+
+        if not self.fields:
+            raise FormProcessorNoFieldsError
+
+        try:
+            return self.get_value(*args)
+        except FormProcessorNotFound:
+            return self.get_default(*args)

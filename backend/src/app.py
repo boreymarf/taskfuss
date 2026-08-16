@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -116,6 +117,27 @@ async def app_exception_handler(_request: Request, exc: AppException):
 
 
 @app.exception_handler(Exception)
-async def generic_exception_handler(_request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+async def generic_exception_handler(request: Request, exc: Exception):
+    tb_str = traceback.format_exc()
+
+    request_info = {
+        "method": request.method,
+        "url": str(request.url),
+        "client": request.client.host if request.client else "unknown",
+        "headers": dict(request.headers),
+    }
+
+    logger.error(
+        "Unhandled exception: %s\n"
+        "Request: %s\n"
+        "Traceback:\n%s",
+        exc,
+        request_info,
+        tb_str,
+        exc_info=True,  
+    )
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
