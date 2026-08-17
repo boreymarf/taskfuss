@@ -12,16 +12,10 @@ from fastapi.encoders import jsonable_encoder
 import uvicorn
 
 from src.api.routers import auth, config, debug, quest, plan, quest_state, record, user
-from src.logger_conf.helpers import set_modules_log_level
-from src.logger_conf.implementations import (
-    set_root_logger,
-    setup_daily_json_logger,
-    setup_json_logger,
-    setup_rich_logging,
-)
 from src.config import get_config, init_config
 from src.database import create_engine, get_session
 from src.exceptions import AppException
+from src.logging.setup import setup_logging
 from src.service.plan import PlanService
 
 logger = logging.getLogger(__name__)
@@ -38,12 +32,7 @@ async def lifespan(_app: FastAPI):
     init_config(Path(config_path))
 
     # logging
-    set_root_logger(level=get_config().logging.log_level)
-    setup_rich_logging(level=logging.DEBUG)
-    setup_daily_json_logger(log_dir="logs")
-    setup_json_logger(log_file="logs/errors.jsonl", level=logging.ERROR)
-
-    set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
+    setup_logging(get_config().logging)
 
     if get_config().app.environment == "dev":
         generate_openapi_file(app)
@@ -93,7 +82,7 @@ def run_app():
         "src.app:app",
         log_config=None,
         port=get_config().server.port,
-        log_level=get_config().logging.log_level,
+        log_level=get_config().logging.root_level,
         reload=reload,
         reload_dirs=reload_dirs,
     )

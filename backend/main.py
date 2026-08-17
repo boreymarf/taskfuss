@@ -4,13 +4,8 @@ from pathlib import Path
 import click
 import sys
 
-from src.logger_conf.implementations import (
-    set_root_logger,
-    setup_daily_json_logger,
-    setup_json_logger,
-    setup_rich_logging,
-)
 from src.config import get_config, init_config
+from src.logging.setup import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +29,7 @@ def start_server(config: str | None):
     init_config(Path(config_path))
 
     # logging
-    set_root_logger(level=get_config().logging.log_level)
-    setup_rich_logging(level=logging.DEBUG)
-    setup_daily_json_logger(log_dir="logs")
-    setup_json_logger(log_file="logs/errors.jsonl", level=logging.ERROR)
+    setup_logging(get_config().logging)
 
     # set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
 
