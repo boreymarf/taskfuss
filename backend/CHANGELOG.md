@@ -1,5 +1,11 @@
 # backend
 
+## 0.2.1
+
+### Patch Changes
+
+- chore: restructured logger module
+
 ## 0.2.0
 
 ### Minor Changes

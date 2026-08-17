@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from src.classes.config import ConfigManager
+from src.logging.settings import LoggingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +78,6 @@ class SecurityConfig(BaseModel):
     password_policy: SecurityPasswordPolicy = Field(
         default_factory=SecurityPasswordPolicy
     )
-
-
-class LoggingConfig(BaseModel):
-    log_level: str = "DEBUG"
-    shushed_modules: list[str] = ["asyncio", "passlib"]
 
 
 class DatabaseConfig(BaseModel):
