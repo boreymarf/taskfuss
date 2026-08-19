@@ -62,6 +62,9 @@ class FormProcessor:
         self.fields = fields or {}
         self.data = data or {}
 
+    def new_data(self) -> None:
+        self.data = {}
+
     def load_fields(self, fields: dict[str, Field]) -> None:
         # Without adapter, this methdo will allow plain JSON to pass
         adapter = TypeAdapter(dict[str, Field])
@@ -178,3 +181,66 @@ class FormProcessor:
             return self.get_value(*args)
         except FormProcessorNotFound:
             return self.get_default(*args)
+
+    def insert_value(self, value: Any, *args: str | int) -> None:
+
+        path_str = ".".join(map(str, args))
+        path = path_str.split(".")
+
+        current_dir: dict[str, Any] | list[Any] = self.data
+        current_path: list[str] = []
+
+        for i, p in enumerate(path):
+            current_path.append(p)
+            is_last = i == len(path) - 1
+            next_is_list = not is_last and path[i + 1].isdigit()
+
+            # === Последний сегмент: записываем значение ===
+            if is_last:
+                if isinstance(current_dir, dict):
+                    current_dir[p] = value
+                elif isinstance(current_dir, list) and p.isdigit():
+                    idx = int(p)
+                    current_list = cast(list[Any], current_dir)
+                    while len(current_list) <= idx:
+                        current_list.append(None)
+                    current_list[idx] = value
+                else:
+                    raise FormProcessorIncorrectType(
+                        path=".".join(current_path),
+                        current_type=type(current_dir).__name__,
+                        expected_type="dict" if isinstance(current_dir, list) else "dict/list",
+                    )
+                return
+
+            # === Промежуточный сегмент: получаем или создаём контейнер ===
+            expected_type = list if next_is_list else dict
+
+            if isinstance(current_dir, dict):
+                if p not in current_dir or current_dir[p] is None:
+                    current_dir[p] = list[Any]() if next_is_list else dict[str, Any]()
+                target = current_dir[p]
+            elif isinstance(current_dir, list) and p.isdigit():
+                idx = int(p)
+                current_list = cast(list[Any], current_dir)
+                while len(current_list) <= idx:
+                    current_list.append(None)
+                if current_list[idx] is None:
+                    current_list[idx] = list[Any]() if next_is_list else dict[str, Any]()
+                target = current_list[idx]
+            else:
+                raise FormProcessorIncorrectType(
+                    path=".".join(current_path),
+                    current_type=type(current_dir).__name__,
+                    expected_type="dict" if isinstance(current_dir, list) else "dict/list",
+                )
+
+            # Проверяем, что target имеет ожидаемый тип
+            if not isinstance(target, expected_type):
+                raise FormProcessorIncorrectType(
+                    path=".".join(current_path),
+                    current_type=type(target).__name__,
+                    expected_type=expected_type.__name__,
+                )
+
+            current_dir = cast(dict[str, Any] | list[Any], target)

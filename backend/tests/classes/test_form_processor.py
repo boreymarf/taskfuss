@@ -94,3 +94,68 @@ class TestFormProcessor:
 
         value = form_processor.get_field("first.1")
         assert isinstance(value, CheckboxField)
+
+    # --------------------------------------------
+
+    def test_insert_value_basic(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "title")
+
+        assert form_processor.get_value("title") == "value"
+
+    def test_insert_value_creates_nested_dict(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "first", "second")
+
+        assert form_processor.get_value("first", "second") == "value"
+
+    def test_insert_value_with_dot_path(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "first.second")
+
+        assert form_processor.get_value("first.second") == "value"
+
+    def test_insert_value_creates_list(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "first", 0)
+
+        assert form_processor.get_value("first", 0) == "value"
+        assert isinstance(form_processor.get_value("first"), list)
+
+    def test_insert_value_creates_nested_list(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "first", 1, 0)
+
+        assert form_processor.get_value("first", 1, 0) == "value"
+        assert form_processor.get_value("first", 0) is None
+        assert isinstance(form_processor.get_value("first", 1), list)
+
+    def test_insert_value_creates_intermediate_none(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "first", 2)
+
+        assert form_processor.get_value("first", 0) is None
+        assert form_processor.get_value("first", 1) is None
+        assert form_processor.get_value("first", 2) == "value"
+
+    def test_insert_value_overwrites_existing(self):
+        form_processor = FormProcessor()
+        form_processor.load_data({"first": {"second": "old"}})
+
+        form_processor.insert_value("new", "first", "second")
+
+        assert form_processor.get_value("first", "second") == "new"
+
+    def test_insert_value_mixed_types(self):
+        form_processor = FormProcessor()
+
+        form_processor.insert_value("value", "first", 0, "name")
+
+        assert form_processor.get_value("first", 0, "name") == "value"
+        assert isinstance(form_processor.get_value("first", 0), dict)

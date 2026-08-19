@@ -11,6 +11,7 @@ from src.domain import (
 )
 from src.domain.fields import CheckboxField, TupleField
 from src.domain.quest_actions import CreateNewStateAction
+from src.domain.quest_event import NewRecordEvent
 from src.plans.base import BasePlan
 from src.plans.quest_context import QuestContext
 
@@ -57,3 +58,7 @@ class SimpleChecklist(BasePlan):
             )
         ]
         return actions
+
+    @override
+    def on_new_record_event(self, _ctx: QuestContext, _event: NewRecordEvent) -> list[QuestAction]:
+        return []
