@@ -21,6 +21,10 @@ class QuestStateRepository:
         return state_db
 
     @staticmethod
+    def get_by_id(db: Session, state_id: int) -> QuestStateDB | None:
+        return db.query(QuestStateDB).filter(QuestStateDB.id == state_id).first()
+
+    @staticmethod
     def get_latest(db: Session, quest_id: int) -> QuestStateDB | None:
         return (
             db.query(QuestStateDB)
