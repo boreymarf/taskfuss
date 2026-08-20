@@ -4,7 +4,6 @@ from sqlalchemy import ColumnElement, func, desc, asc
 from sqlalchemy.orm import Session
 
 from src.db.record import RecordDB
-from src.domain.record import RecordQueryParams
 
 
 
@@ -33,8 +32,8 @@ class RecordRepository:
         field_path: str | None = None,
         field_path__startswith: str | None = None,
         automated: bool | None = None,
-        created_at__gte: datetime | None = None,
-        created_at__lte: datetime | None = None,
+        recorded_at__gte: datetime | None = None,
+        recorded_at__lte: datetime | None = None,
         latest: bool = False,
         ordering: str | None = None,
         limit: int | None = None,
@@ -50,10 +49,10 @@ class RecordRepository:
             filters.append(RecordDB.field_path.startswith(field_path__startswith))
         if automated is not None:
             filters.append(RecordDB.automated == automated)
-        if created_at__gte is not None:
-            filters.append(RecordDB.created_at >= created_at__gte)
-        if created_at__lte is not None:
-            filters.append(RecordDB.created_at <= created_at__lte)
+        if recorded_at__gte is not None:
+            filters.append(RecordDB.recorded_at >= recorded_at__gte)
+        if recorded_at__lte is not None:
+            filters.append(RecordDB.recorded_at <= recorded_at__lte)
 
         query = db.query(RecordDB)
         for condition in filters:
@@ -62,7 +61,7 @@ class RecordRepository:
         if latest:
             subquery = db.query(
                 RecordDB.field_path,
-                func.max(RecordDB.created_at).label("max_created"),
+                func.max(RecordDB.recorded_at).label("max_created"),
             )
             for condition in filters:
                 subquery = subquery.filter(condition)
@@ -71,7 +70,7 @@ class RecordRepository:
             query = db.query(RecordDB).join(
                 subquery,
                 (RecordDB.field_path == subquery.c.field_path)
-                & (RecordDB.created_at == subquery.c.max_created),
+                & (RecordDB.recorded_at == subquery.c.max_created),
             )
 
         if ordering:

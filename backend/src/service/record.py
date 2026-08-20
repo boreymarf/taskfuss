@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.classes.form_processor import FormProcessor
 from src.db.record import RecordDB
-from src.domain.record import Record, RecordCreateRequest
+from src.domain.record import Record, RecordCreate
 from src.exceptions.generic import BadRequestError, ForbiddenError, NotFoundError
 from src.exceptions.quest_state import NoFieldsQuestStateError
 from src.exceptions.record import RecordValidationFailed
@@ -24,8 +24,8 @@ class RecordService:
         field_path: str | None = None,
         field_path__startswith: str | None = None,
         automated: bool | None = None,
-        created_at__gte: datetime | None = None,
-        created_at__lte: datetime | None = None,
+        recorded_at__gte: datetime | None = None,
+        recorded_at__lte: datetime | None = None,
         latest: bool = False,
         ordering: str | None = None,
         limit: int | None = None,
@@ -33,9 +33,9 @@ class RecordService:
         state_id: int | None = None,
     ) -> list[Record]:
         if state_id is not None:
-            if created_at__gte is not None or created_at__lte is not None:
+            if recorded_at__gte is not None or recorded_at__lte is not None:
                 raise BadRequestError(
-                    "Cannot use 'state_id' together with 'created_at__gte' or 'created_at__lte'. "
+                    "Cannot use 'state_id' together with 'recorded_at__gte' or 'recorded_at__lte'. "
                     "Please choose one filtering method."
                 )
 
@@ -43,16 +43,16 @@ class RecordService:
             if state is None:
                 raise NotFoundError("state", state_id)
 
-            created_at__gte = state.start_date
-            created_at__lte = state.end_date
+            recorded_at__gte = state.start_date
+            recorded_at__lte = state.end_date
 
         if latest and (ordering or limit or offset):
             raise ValueError(
                 "'latest' cannot be combined with 'ordering', 'limit', or 'offset'"
             )
 
-        if created_at__gte and created_at__lte and created_at__gte > created_at__lte:
-            raise ValueError("'created_at__gte' must be <= 'created_at__lte'")
+        if recorded_at__gte and recorded_at__lte and recorded_at__gte > recorded_at__lte:
+            raise ValueError("'recorded_at__gte' must be <= 'recorded_at__lte'")
 
         if (
             field_path
@@ -67,8 +67,8 @@ class RecordService:
             field_path=field_path,
             field_path__startswith=field_path__startswith,
             automated=automated,
-            created_at__gte=created_at__gte,
-            created_at__lte=created_at__lte,
+            recorded_at__gte=recorded_at__gte,
+            recorded_at__lte=recorded_at__lte,
             latest=latest,
             ordering=ordering,
             limit=limit,
@@ -89,7 +89,7 @@ class RecordService:
         return result
 
     @staticmethod
-    def create(db: Session, request: RecordCreateRequest, user_id: int) -> Record:
+    def create(db: Session, request: RecordCreate, user_id: int) -> Record:
         quest_db = QuestRepository.get_by_id(db, request.quest_id)
 
         if not quest_db:
@@ -98,9 +98,8 @@ class RecordService:
         if quest_db.owner_id != user_id:
             raise ForbiddenError()
 
-        # TODO: Replace later with actual record time
         quest_state_db = QuestStateRepository.get_by_date(
-            db, request.quest_id, datetime.now()
+            db, request.quest_id, request.recorded_at
         )
 
         if not quest_state_db:
@@ -111,13 +110,12 @@ class RecordService:
 
         form_processor = FormProcessor()
         form_processor.load_fields(quest_state_db.fields)
-        errors = form_processor.validate_value(
-            request.field_path, value=request.value
-        )  # This fails
+        errors = form_processor.validate_value(request.field_path, value=request.value)
 
         if errors:
             raise RecordValidationFailed(request.value, request.field_path, errors)
 
+        # TODO: I don't think it should be here
         record_db = RecordDB(**request.model_dump())
         created = RecordRepository.add(db, record_db)
         db.commit()

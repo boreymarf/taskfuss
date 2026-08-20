@@ -16,6 +16,7 @@ class RecordDB(Base):
     field_path: Mapped[str] = mapped_column(String, index=True)
     quest_id: Mapped[int] = mapped_column(ForeignKey("quest.id", ondelete="CASCADE"))
     value: Mapped[Any] = mapped_column(JSON)
+    recorded_at: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc))
 
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=True)

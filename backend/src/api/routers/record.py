@@ -1,3 +1,4 @@
+import dateparser
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -5,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from src.api.dependencies.session import get_session
 from src.api.dependencies.auth import get_current_user
-from src.domain.record import Record, RecordCreateRequest
+from src.domain.record import Record, RecordCreate, RecordCreateRequest
+from src.exceptions.generic import BadRequestError
 from src.service.record import RecordService
 
 router = APIRouter(prefix="/api/record", tags=["record"])
@@ -17,8 +19,8 @@ def get_all_records(
     field_path: str | None = Query(None),
     field_path__startswith: str | None = Query(None),
     automated: bool | None = Query(None),
-    created_at__gte: datetime | None = Query(None),
-    created_at__lte: datetime | None = Query(None),
+    recorded_at__gte: datetime | None = Query(None),
+    recorded_at__lte: datetime | None = Query(None),
     latest: bool = Query(False),
     ordering: str | None = Query(None),
     limit: int | None = Query(None, ge=1),
@@ -33,8 +35,8 @@ def get_all_records(
         field_path=field_path,
         field_path__startswith=field_path__startswith,
         automated=automated,
-        created_at__gte=created_at__gte,
-        created_at__lte=created_at__lte,
+        recorded_at__gte=recorded_at__gte,
+        recorded_at__lte=recorded_at__lte,
         latest=latest,
         ordering=ordering,
         limit=limit,
@@ -57,13 +59,30 @@ def get_record(
     return record
 
 
+
 @router.post("/", response_model=Record, status_code=status.HTTP_201_CREATED)
 def create_record(
     request: RecordCreateRequest,
     db: Session = Depends(get_session),
     current_user: int = Depends(get_current_user),
 ):
-    return RecordService.create(db, request, current_user)
+    if isinstance(request.recorded_at, str):
+        parsed_date = dateparser.parse(
+            request.recorded_at,
+            settings={
+                "TIMEZONE": "UTC",
+                "RETURN_AS_TIMEZONE_AWARE": False,
+            },
+        )
+
+        if parsed_date is None:
+            raise BadRequestError(f"Cannot parse {str(request.recorded_at)} as date")
+        else:
+            request.recorded_at = parsed_date
+
+    record_create = RecordCreate.model_validate(request)
+    record = RecordService.create(db, record_create, current_user)
+    return record
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
