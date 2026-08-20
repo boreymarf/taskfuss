@@ -1,6 +1,5 @@
 from src.classes.form_processor import FormProcessor
-from src.domain import CheckboxField
-from src.domain.fields import Field, StrField, TupleField
+from src.domain.fields import CheckboxField, Field, StrField, TupleField
 
 
 class TestFormProcessor:

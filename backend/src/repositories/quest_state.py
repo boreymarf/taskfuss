@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.db.quest import QuestDB
 from src.db.quest_state import QuestStateDB
-from src.domain import QuestStateCreate
+from src.domain.quest_state import QuestStateCreate
 
 logger = logging.getLogger(__name__)
 

@@ -1,17 +1,10 @@
 from typing import override
 
-from src.domain import (
-    FormFields,
-    InitEvent,
-    ListField,
-    PlanMetadata,
-    QuestAction,
-    QuestStateCreate,
-    StrField,
-)
-from src.domain.fields import CheckboxField, TupleField
-from src.domain.quest_actions import CreateNewStateAction
-from src.domain.quest_event import NewRecordEvent
+from src.domain.fields import CheckboxField, FormFields, ListField, StrField, TupleField
+from src.domain.plan_metadata import PlanMetadata
+from src.domain.quest_actions import CreateNewStateAction, QuestAction
+from src.domain.quest_event import InitEvent, NewRecordEvent
+from src.domain.quest_state import QuestStateCreate
 from src.plans.base import BasePlan
 from src.plans.quest_context import QuestContext
 

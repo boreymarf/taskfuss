@@ -4,9 +4,8 @@ from sqlalchemy.orm import Session
 
 from src.classes.form_processor import FormProcessor
 from src.db.record import RecordDB
-from src.domain import Record
-from src.domain.record import RecordCreateRequest, RecordQueryParams
-from src.exceptions.generic import ForbiddenError, NotFoundError
+from src.domain.record import Record, RecordCreateRequest
+from src.exceptions.generic import BadRequestError, ForbiddenError, NotFoundError
 from src.exceptions.quest_state import NoFieldsQuestStateError
 from src.exceptions.record import RecordValidationFailed
 from src.repositories.quest import QuestRepository
@@ -18,8 +17,64 @@ logger = logging.getLogger(__name__)
 
 class RecordService:
     @staticmethod
-    def get_all(db: Session, params: RecordQueryParams) -> list[Record]:
-        records_db = RecordRepository.get_all(db, params)
+    def get_all(
+        db: Session,
+        *,
+        quest_id: int | None = None,
+        field_path: str | None = None,
+        field_path__startswith: str | None = None,
+        automated: bool | None = None,
+        created_at__gte: datetime | None = None,
+        created_at__lte: datetime | None = None,
+        latest: bool = False,
+        ordering: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        state_id: int | None = None,
+    ) -> list[Record]:
+        if state_id is not None:
+            if created_at__gte is not None or created_at__lte is not None:
+                raise BadRequestError(
+                    "Cannot use 'state_id' together with 'created_at__gte' or 'created_at__lte'. "
+                    "Please choose one filtering method."
+                )
+
+            state = QuestStateRepository.get_by_id(db, state_id)
+            if state is None:
+                raise NotFoundError("state", state_id)
+
+            created_at__gte = state.start_date
+            created_at__lte = state.end_date
+
+        if latest and (ordering or limit or offset):
+            raise ValueError(
+                "'latest' cannot be combined with 'ordering', 'limit', or 'offset'"
+            )
+
+        if created_at__gte and created_at__lte and created_at__gte > created_at__lte:
+            raise ValueError("'created_at__gte' must be <= 'created_at__lte'")
+
+        if (
+            field_path
+            and field_path__startswith
+            and not field_path.startswith(field_path__startswith)
+        ):
+            raise ValueError("'field_path' must start with 'field_path__startswith'")
+
+        records_db = RecordRepository.get_all(
+            db,
+            quest_id=quest_id,
+            field_path=field_path,
+            field_path__startswith=field_path__startswith,
+            automated=automated,
+            created_at__gte=created_at__gte,
+            created_at__lte=created_at__lte,
+            latest=latest,
+            ordering=ordering,
+            limit=limit,
+            offset=offset,
+        )
+
         result = [Record.model_validate(r) for r in records_db]
         logger.debug(f"Fetched {len(result)} records")
         return result
@@ -56,7 +111,9 @@ class RecordService:
 
         form_processor = FormProcessor()
         form_processor.load_fields(quest_state_db.fields)
-        errors = form_processor.validate_value(request.field_path, value=request.value) # This fails
+        errors = form_processor.validate_value(
+            request.field_path, value=request.value
+        )  # This fails
 
         if errors:
             raise RecordValidationFailed(request.value, request.field_path, errors)

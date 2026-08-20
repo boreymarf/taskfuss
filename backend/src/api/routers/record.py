@@ -1,12 +1,11 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from src.api.dependencies.session import get_session
 from src.api.dependencies.auth import get_current_user
-from src.domain.record import Record, RecordCreateRequest, RecordQueryParams
-from src.exceptions import NotFoundError
-from src.exceptions.generic import BadRequestError
-from src.repositories.quest_state import QuestStateRepository
+from src.domain.record import Record, RecordCreateRequest
 from src.service.record import RecordService
 
 router = APIRouter(prefix="/api/record", tags=["record"])
@@ -14,23 +13,34 @@ router = APIRouter(prefix="/api/record", tags=["record"])
 
 @router.get("/", response_model=list[Record])
 def get_all_records(
-    params: RecordQueryParams = Depends(),
+    quest_id: int | None = Query(None),
+    field_path: str | None = Query(None),
+    field_path__startswith: str | None = Query(None),
+    automated: bool | None = Query(None),
+    created_at__gte: datetime | None = Query(None),
+    created_at__lte: datetime | None = Query(None),
+    latest: bool = Query(False),
+    ordering: str | None = Query(None),
+    limit: int | None = Query(None, ge=1),
+    offset: int | None = Query(None, ge=0),
     state_id: int | None = Query(None, description="Filter records by state (uses its time range)"),
     db: Session = Depends(get_session),
     # current_user: int = Depends(get_current_user),
 ):
-    if state_id is not None:
-        if params.created_at__gte is not None or params.created_at__lte is not None:
-            raise BadRequestError("Cannot use 'state_id' together with 'created_at__gte' or 'created_at__lte'. Please choose one filtering method.")
-
-        state = QuestStateRepository.get_by_id(db, state_id)
-        if state is None:
-            raise NotFoundError("state", state_id)
-
-        params.created_at__gte = state.start_date
-        params.created_at__lte = state.end_date
-
-    return RecordService.get_all(db, params)
+    return RecordService.get_all(
+        db,
+        quest_id=quest_id,
+        field_path=field_path,
+        field_path__startswith=field_path__startswith,
+        automated=automated,
+        created_at__gte=created_at__gte,
+        created_at__lte=created_at__lte,
+        latest=latest,
+        ordering=ordering,
+        limit=limit,
+        offset=offset,
+        state_id=state_id,
+    )
 
 
 @router.get("/{record_id}", response_model=Record)

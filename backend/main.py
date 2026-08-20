@@ -41,7 +41,7 @@ def start_server(config: str | None):
 
 @cli.command()
 @click.option("--path", "-p", default=None, help="Custom file path to write to")
-def generate_openapi_file(path: str | None):
+def generate_openapi_file(_path: str | None):
     pass
 
 

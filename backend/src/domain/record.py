@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Any
-from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -67,9 +66,19 @@ class RecordQueryParams(BaseModel):
     @model_validator(mode="after")
     def check_conflicts(self):
         if self.latest and (self.ordering or self.limit or self.offset):
-            raise ValueError("'latest' cannot be combined with 'ordering', 'limit', or 'offset'")
-        if self.created_at__gte and self.created_at__lte and self.created_at__gte > self.created_at__lte:
+            raise ValueError(
+                "'latest' cannot be combined with 'ordering', 'limit', or 'offset'"
+            )
+        if (
+            self.created_at__gte
+            and self.created_at__lte
+            and self.created_at__gte > self.created_at__lte
+        ):
             raise ValueError("'created_at__gte' must be <= 'created_at__lte'")
-        if self.field_path and self.field_path__startswith and not self.field_path.startswith(self.field_path__startswith):
+        if (
+            self.field_path
+            and self.field_path__startswith
+            and not self.field_path.startswith(self.field_path__startswith)
+        ):
             raise ValueError("'field_path' must start with 'field_path__startswith'")
         return self
