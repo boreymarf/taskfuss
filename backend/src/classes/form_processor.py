@@ -144,9 +144,6 @@ class FormProcessor:
 
     def get_value(self, *args: str | int) -> Any | None:
 
-        if not self.data:
-            raise FormProcessorNoDataError
-
         path_str = ".".join(map(str, args))
         path = path_str.split(".")
 
@@ -182,6 +179,7 @@ class FormProcessor:
         except FormProcessorNotFound:
             return self.get_default(*args)
 
+    # NOTE: Vibecoded, future rework and cleanup required
     def insert_value(self, value: Any, *args: str | int) -> None:
 
         path_str = ".".join(map(str, args))
@@ -206,6 +204,8 @@ class FormProcessor:
                         current_list.append(None)
                     current_list[idx] = value
                 else:
+                    # Сюда попадаем, если current_dir - list, но p не число,
+                    # или если current_dir имеет неожиданный тип
                     raise FormProcessorIncorrectType(
                         path=".".join(current_path),
                         current_type=type(current_dir).__name__,
@@ -229,6 +229,7 @@ class FormProcessor:
                     current_list[idx] = list[Any]() if next_is_list else dict[str, Any]()
                 target = current_list[idx]
             else:
+                # Достижимо, если current_dir - list, но p не число
                 raise FormProcessorIncorrectType(
                     path=".".join(current_path),
                     current_type=type(current_dir).__name__,
@@ -244,3 +245,70 @@ class FormProcessor:
                 )
 
             current_dir = cast(dict[str, Any] | list[Any], target)
+
+
+    # NOTE: Vibecoded, rewrite this later
+    def insert_field(self, field: Field, *path: str | int) -> None:
+        if not path:
+            raise ValueError("Path is required to add a field")
+
+        path_str = ".".join(map(str, path))
+        segments = path_str.split(".")
+
+        if len(segments) == 1:
+            if not isinstance(self.fields, dict):
+                raise FormProcessorIncorrectType(
+                    path=path_str,
+                    current_type=type(self.fields).__name__,
+                    expected_type="dict",
+                )
+            self.fields[segments[0]] = field
+            return
+
+        current_dir: dict[str, Field] | Field = self.fields
+        current_path: list[str] = []
+
+        for p in segments[:-1]:
+            current_path.append(p)
+
+            if isinstance(current_dir, TupleField):
+                if not p.isdigit():
+                    raise FormProcessorIncorrectType(
+                        path=".".join(current_path),
+                        current_type=current_dir.__class__.__name__,
+                        expected_type="int index",
+                    )
+                try:
+                    current_dir = current_dir.get_field(int(p))
+                except NotFoundError:
+                    raise FormProcessorNotFound(
+                        "field", ".".join(current_path), current_dir=current_dir
+                    )
+            elif isinstance(current_dir, dict):
+                if p not in current_dir:
+                    raise FormProcessorNotFound(
+                        "field", ".".join(current_path), current_dir=current_dir
+                    )
+                current_dir = current_dir[p]
+            else:
+                raise FormProcessorIncorrectType(
+                    path=".".join(current_path),
+                    current_type=type(current_dir).__name__,
+                    expected_type="dict or TupleField",
+                )
+
+        last = segments[-1]
+        if isinstance(current_dir, dict):
+            current_dir[last] = field
+        elif isinstance(current_dir, TupleField):
+            raise FormProcessorIncorrectType(
+                path=path_str,
+                current_type=current_dir.__class__.__name__,
+                expected_type="dict (adding into TupleField is not supported)",
+            )
+        else:
+            raise FormProcessorIncorrectType(
+                path=path_str,
+                current_type=type(current_dir).__name__,
+                expected_type="dict",
+            )
