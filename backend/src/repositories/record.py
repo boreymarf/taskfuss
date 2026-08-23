@@ -4,16 +4,21 @@ from sqlalchemy import ColumnElement, func, desc, asc
 from sqlalchemy.orm import Session
 
 from src.db.record import RecordDB
+from src.domain.record import Record, RecordCreate
 
 
 
 class RecordRepository:
     @staticmethod
-    def add(db: Session, record: RecordDB) -> RecordDB:
-        db.add(record)
+    def add(db: Session, record: RecordCreate) -> Record:
+
+        record_db = RecordDB(**record.model_dump())
+        db.add(record_db)
         db.flush()
-        db.refresh(record)
-        return record
+        db.refresh(record_db)
+
+        new_record = Record.model_validate(record_db)
+        return new_record
 
     @staticmethod
     def remove(db: Session, record: RecordDB) -> None:

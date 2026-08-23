@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import override
 
 from src.domain.fields import CheckboxField, FormFields, ListField, StrField, TupleField
@@ -53,5 +54,11 @@ class SimpleChecklist(BasePlan):
         return actions
 
     @override
-    def on_new_record_event(self, _ctx: QuestContext, _event: NewRecordEvent) -> list[QuestAction]:
+    def on_new_record_event(self, ctx: QuestContext, event: NewRecordEvent) -> list[QuestAction]:
+        
+
+        print("Called on_new_record_event")
+        pprint(event)
+
+
         return []

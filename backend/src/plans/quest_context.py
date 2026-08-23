@@ -38,8 +38,7 @@ class QuestContext:
     def get_state_for_date(self, date: datetime) -> QuestState | None:
         return QuestStateService.get_by_date(self.db, self.quest_id, date)
 
-    # TODO
-    def get_latest_records_for_state(self, state_id: int, *, include_defaults: bool =True) -> list[Record]:
+    def get_latest_records_for_state(self, state_id: int) -> list[Record]:
 
         records = RecordService.get_all(
             self.db, quest_id=self.quest_id, state_id=state_id, latest=True

@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from src.classes.form_processor import FormProcessor
-from src.db.record import RecordDB
+from src.domain.quest_event import NewRecordEvent
 from src.domain.record import Record, RecordCreate
 from src.exceptions.generic import BadRequestError, ForbiddenError, NotFoundError
 from src.exceptions.quest_state import NoFieldsQuestStateError
@@ -115,13 +115,15 @@ class RecordService:
         if errors:
             raise RecordValidationFailed(request.value, request.field_path, errors)
 
-        # TODO: I don't think it should be here
-        record_db = RecordDB(**request.model_dump())
-        created = RecordRepository.add(db, record_db)
+        # Make an event that we want to create a new record
+        # event = NewRecordEvent(field_id=request.field_path, new_value=request.value, recorded_at=request.recorded_at)
+        # QuestService.handle_event(db, request.quest_id, event)
+
+        # TODO: If allowed create new record
+        record = RecordRepository.add(db, request)
         db.commit()
-        result = Record.model_validate(created)
-        logger.debug(f"Created record with id={result.id}")
-        return result
+        logger.debug(f"Created record with id={record.id}")
+        return record
 
     @staticmethod
     def remove(db: Session, record_id: int) -> None:

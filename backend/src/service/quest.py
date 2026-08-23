@@ -4,13 +4,10 @@ from pprint import pprint
 from sqlalchemy.orm import Session
 
 from src.classes.form_processor import FormProcessor
-from src.domain import (
-    FormFields,
-    Quest,
-)
-from src.domain.quest import QuestCreateRequest
+from src.domain.fields import FormFields
+from src.domain.quest import Quest, QuestCreateRequest
 from src.domain.quest_actions import CreateNewStateAction, QuestAction
-from src.domain.quest_event import InitEvent
+from src.domain.quest_event import InitEvent, QuestEvent
 from src.exceptions import NotFoundError, SetupFormDataValidationError
 from src.exceptions.generic import AlreadyExistsError
 from src.exceptions.quest import UnknownQuestActionError
@@ -105,6 +102,7 @@ class QuestService:
 
         quest_state = QuestStateRepository.add(db, action.data)
 
+        logger.debug("handle_create_new_state_action in quest service is called:")
         pprint(quest_state)
 
     @staticmethod
@@ -114,3 +112,27 @@ class QuestService:
         quests = [Quest.model_validate(q) for q in quests_db]
 
         return quests
+
+    @staticmethod
+    def handle_event(db: Session, quest_id: int, event: QuestEvent):
+        quest = QuestRepository.get_by_id(db, quest_id)
+        
+        # Get quest
+        if not quest:
+            raise NotFoundError("quest", quest_id)
+
+        # Get plan
+        plan = PlanService.get_plan(db, quest.plan_id)
+
+        if not plan:
+            raise NotFoundError("plan", quest.plan_id)
+
+        plan_class = plan.import_class()
+        plan_instance = plan_class()
+
+        quest_ctx = QuestContext(db, quest_id)
+
+        actions: list[QuestAction] = plan_instance.handle_event(quest_ctx, event)
+
+        for action in actions:
+            QuestService.handle_quest_action(db, action)

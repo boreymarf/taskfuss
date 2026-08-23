@@ -19,7 +19,6 @@ class NewRecordEvent(QuestEvent):
     field_id: str
     new_value: Any
     recorded_at: datetime
-    created_at: datetime
 
 
 class SetupUpdateEvent(QuestEvent):
