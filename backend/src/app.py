@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,72 +12,90 @@ from pydantic import ValidationError
 from fastapi.encoders import jsonable_encoder
 import uvicorn
 
-from src.api.routers import auth, config, debug, quest, plan, quest_state, record, user
+from src.api.routers import config, debug, plan, quest, quest_state, record, user
 from src.config import get_config, init_config
-from src.database import create_engine, get_session
+from src.container import Container
+from src.database import Database
+from src.exception_handlers import app_exception_handler, generic_exception_handler, validation_exception_handler
 from src.exceptions import AppException
 from src.logging.setup import setup_logging
-from src.service.plan import PlanService
 
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-
-    # The code is duplicated from main.py for a reason!
-    # Otherwise first logs from uvicorn will be ignored.
-
-    # config
-    config_path = os.environ.get("APP_CONFIG_PATH") or "config.toml"
+def create_app(config_path: str | None = None) -> FastAPI:
+    """Application factory that sets up config, logging, database, and routes."""
+    # Initialize configuration
+    if config_path is None:
+        config_path = os.environ.get("APP_CONFIG_PATH") or "config.toml"
     init_config(Path(config_path))
 
-    # logging
+    # Setup logging
     setup_logging(get_config().logging)
 
-    if get_config().app.environment == "dev":
-        generate_openapi_file(app)
+    # Create database and store it on app.state
+    database = Database.from_config()
 
-    plan_implementations_path = Path(os.getcwd()) / "src" / "plans" / "implementations"
-    with get_session() as db:
-        PlanService.sync_plans_from_directory(db, plan_implementations_path)
+    # Create and wire dependency injection container
+    container = Container()
+    container.wire()
 
-    yield
-    # Clean up
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        # Startup
+        if get_config().app.environment == "dev":
+            generate_openapi_file(_app)
+
+        # Any initialization that requires database can be done here
+        # plan_implementations_path = Path(os.getcwd()) / "src" / "plans" / "implementations"
+        # plan_service = container.plan_service()
+        # with database.session() as db:
+        #     plan_service.sync_plans_from_directory(db, plan_implementations_path)
+
+        yield
+        # Shutdown
+        database.dispose()
+        logger.info("Application stopped")
+
+    app = FastAPI(
+        lifespan=lifespan,
+        exception_handlers={
+            AppException: app_exception_handler,
+            ValidationError: validation_exception_handler,
+            Exception: generic_exception_handler,
+        },
+    )
+    app.state.database = database
+
+    # Include routers
+    app.include_router(debug.router)
+    app.include_router(user.router)
+    app.include_router(config.router)
+    app.include_router(quest.router)
+    app.include_router(quest_state.router)
+    app.include_router(plan.router)
+    app.include_router(record.router)
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=get_config().server.allow_origins,
+        allow_credentials=get_config().server.allow_credentials,
+        allow_methods=get_config().server.allow_methods,
+        allow_headers=get_config().server.allow_headers,
+    )
+
+    return app
 
 
-app = FastAPI(lifespan=lifespan)
-
-# Routes
-app.include_router(debug.router)
-app.include_router(user.router)
-app.include_router(config.router)
-app.include_router(quest.router)
-app.include_router(quest_state.router)
-app.include_router(auth.router)
-app.include_router(plan.router)
-app.include_router(record.router)
-
-# Middlewares
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=get_config().server.allow_origins,
-    allow_credentials=get_config().server.allow_credentials,
-    allow_methods=get_config().server.allow_methods,
-    allow_headers=get_config().server.allow_headers,
-)
-
-
-def run_app():
-
+def run_app() -> None:
+    """Run the application via uvicorn with import string for reload support."""
     if get_config().app.environment == "dev":
         reload = get_config().app.dev.reload_app
         reload_dirs = get_config().app.dev.reload_dirs
     else:
         reload = False
         reload_dirs = None
-
-    create_engine()
 
     uvicorn.run(
         "src.app:app",
@@ -88,49 +107,16 @@ def run_app():
     )
 
 
-def generate_openapi_file(app: FastAPI):
+def generate_openapi_file(app: FastAPI) -> None:
+    """Write OpenAPI schema to shared temp directory in dev mode."""
     openapi_schema = app.openapi()
     root_dir = Path(os.getcwd())
     shared_tmp_dir = root_dir.parent / "shared" / "temp"
-    Path(shared_tmp_dir).mkdir(parents=True, exist_ok=True)
+    shared_tmp_dir.mkdir(parents=True, exist_ok=True)
     openapi_path = shared_tmp_dir / "openapi.json"
     with open(openapi_path, "w", encoding="utf-8") as f:
         json.dump(openapi_schema, f)
 
 
-# Exception handlers (very important yes yes)
-@app.exception_handler(AppException)
-async def app_exception_handler(_request: Request, exc: AppException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.message, "details": exc.details},
-    )
-
-
-@app.exception_handler(ValidationError)
-async def validation_exception_handler(_request: Request, exc: ValidationError):
-    return JSONResponse(
-        status_code=422, content={"detail": jsonable_encoder(exc.errors())}
-    )
-
-
-@app.exception_handler(Exception)
-async def generic_exception_handler(request: Request, exc: Exception):
-    tb_str = traceback.format_exc()
-
-    request_info = {
-        "method": request.method,
-        "url": str(request.url),
-        "client": request.client.host if request.client else "unknown",
-        "headers": dict(request.headers),
-    }
-
-    logger.error(
-        "Unhandled exception: %s\n" "Request: %s\n" "Traceback:\n%s",
-        exc,
-        request_info,
-        tb_str,
-        exc_info=True,
-    )
-
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+# Global application instance (import string "src.app:app" points here)
+app = create_app()

@@ -1,3 +1,5 @@
+# src/services/plan_service.py
+
 import importlib.util
 import inspect
 import logging
@@ -6,25 +8,26 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from src.db import QuestPlanDB
 from src.domain.plan_registry import PlanRegistry
 from src.exceptions import NotFoundError
 from src.plans.base import BasePlan
+from src.repositories.plan import PlanRepository
 
 logger = logging.getLogger(__name__)
 
 
 class PlanService:
-    @staticmethod
-    def load_registries_from_directory(directory: Path) -> list[PlanRegistry]:
+    def __init__(self, plan_repository: PlanRepository):
+        self.plan_repository = plan_repository
+
+    def load_registries_from_directory(self, directory: Path) -> list[PlanRegistry]:
         """Load plan registries from all Python files in a directory recursively."""
         registries: list[PlanRegistry] = []
         for py_file in directory.rglob("*.py"):
-            registries.extend(PlanService.load_registries_from_file(py_file))
+            registries.extend(self.load_registries_from_file(py_file))
         return registries
 
-    @staticmethod
-    def load_registries_from_file(path: Path) -> list[PlanRegistry]:
+    def load_registries_from_file(self, path: Path) -> list[PlanRegistry]:
         """Load plan registries from a single Python file."""
         if path.suffix != ".py" or path.stem == "__init__":
             return []
@@ -64,62 +67,42 @@ class PlanService:
             )
         return registries
 
-    @staticmethod
     def sync_plans_from_directory(
+        self,
         db: Session,
         directory: Path,
         *,
         update_existing: bool = True,
-    ) -> dict[str, QuestPlanDB]:
+    ) -> dict[str, PlanRegistry]:
         """Synchronize plans from directory to database, adding new and optionally updating existing."""
-        registries = PlanService.load_registries_from_directory(directory)
-        result: dict[str, QuestPlanDB] = {}
+        registries = self.load_registries_from_directory(directory)
+        result: dict[str, PlanRegistry] = {}
 
         for registry in registries:
-            existing = db.get(QuestPlanDB, registry.id)
+            existing = self.plan_repository.get_by_id(db, registry.id)
             if existing is None:
-                db_plan = PlanService.add_plan_to_db(db, registry)
+                db_plan = self.plan_repository.add(db, registry)
             elif update_existing:
-                for key, value in registry.model_dump().items():
-                    setattr(existing, key, value)
-                db.commit()
-                db.refresh(existing)
-                db_plan = existing
+                db_plan = self.plan_repository.update(db, registry)
             else:
                 db_plan = existing
             result[registry.id] = db_plan
 
         return result
 
-    @staticmethod
-    def get_plan(db: Session, plan_id: str) -> PlanRegistry | None:
+    def get_plan(self, db: Session, plan_id: str) -> PlanRegistry | None:
         """Retrieve a single plan by ID."""
-        row = db.get(QuestPlanDB, plan_id)
-        if row is None:
-            return None
-        return PlanRegistry.model_validate(row)
+        return self.plan_repository.get_by_id(db, plan_id)
 
-    @staticmethod
-    def get_all_plans(db: Session) -> list[PlanRegistry]:
+    def get_all_plans(self, db: Session) -> list[PlanRegistry]:
         """Retrieve all plans from the database."""
-        rows = db.query(QuestPlanDB).all()
-        return [PlanRegistry.model_validate(row) for row in rows]
+        return self.plan_repository.get_all(db)
 
-    @staticmethod
-    def get_plan_instance(db: Session, plan_id: str) -> BasePlan:
+    def get_plan_instance(self, db: Session, plan_id: str) -> BasePlan:
         """Retrieve a plan from the database and return an instantiated plan object."""
-        plan_registry = PlanService.get_plan(db, plan_id)
+        plan_registry = self.get_plan(db, plan_id)
         if plan_registry is None:
             raise NotFoundError("Plan", plan_id)
 
         plan_cls = plan_registry.import_class()
         return plan_cls()
-
-    @staticmethod
-    def add_plan_to_db(db: Session, registry: PlanRegistry) -> QuestPlanDB:
-        """Add a new plan registry to the database."""
-        db_plan = QuestPlanDB(**registry.model_dump())
-        db.add(db_plan)
-        db.commit()
-        db.refresh(db_plan)
-        return db_plan

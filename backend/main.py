@@ -31,8 +31,6 @@ def start_server(config: str | None):
     # logging
     setup_logging(get_config().logging)
 
-    # set_modules_log_level(get_config().logging.shushed_modules, "WARNING")
-
     # So src.app has a chance of reading correct configuration file
     from src.app import run_app
 

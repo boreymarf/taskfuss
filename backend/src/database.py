@@ -1,62 +1,61 @@
 from contextlib import contextmanager
 import logging
 from pathlib import Path
+
 import sqlalchemy
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
+
 from src.config import get_config
 from src.db.base import Base
 
 logger = logging.getLogger(__name__)
 
-_engine: Engine | None = None
 
+class Database:
+    def __init__(self, db_url: str, echo: bool = False) -> None:
+        self._engine = sqlalchemy.create_engine(db_url, echo=echo)
+        self._session_factory = sessionmaker(
+            bind=self._engine,
+            autocommit=False,
+            autoflush=False,
+            expire_on_commit=False,
+        )
 
-def create_engine() -> Engine:
-    global _engine
+    @classmethod
+    def from_config(cls, echo: bool = False) -> "Database":
+        db_path = get_config().database.db_path
 
-    if _engine is not None:
-        logger.warning("Engine already created, returning existing.")
-        return _engine
-
-    try:
-        if get_config().database.db_path == ":memory:":
-            _engine = sqlalchemy.create_engine("sqlite:///:memory:")
+        if db_path == ":memory:":
+            db_url = "sqlite:///:memory:"
             logger.info("The engine was created in :memory:.")
         else:
-            db_path = Path(get_config().database.db_path).resolve()
-            db_path.parent.mkdir(parents=True, exist_ok=True)
+            path = Path(db_path).resolve()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            db_url = f"sqlite:///{path}"
+            logger.info(f"The engine was created for '{path}' file")
 
-            logger.info(f"The engine was created for '{db_path}' file")
-            _engine = sqlalchemy.create_engine(f"sqlite:///{db_path}")
+        database = cls(db_url, echo=echo)
+        database.create_database()
+        return database
 
-        Base.metadata.create_all(_engine)
-        return _engine
+    @property
+    def engine(self) -> Engine:
+        return self._engine
 
-    except Exception as e:
-        logger.critical(f"Failed to create engine: {e}")
-        raise
+    def create_database(self) -> None:
+        Base.metadata.create_all(self._engine)
 
+    @contextmanager
+    def session(self):
+        session: Session = self._session_factory()
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
-def get_engine() -> Engine:
-    global _engine
-    if _engine is None:
-        _engine = create_engine()
-    return _engine
-
-
-@contextmanager
-def get_session():
-    engine = get_engine()
-    session = Session(engine)
-    try:
-        yield session
-    finally:
-        session.close()
-
-
-def reset_engine():
-    global _engine
-    if _engine is not None:
-        _engine.dispose()
-        _engine = None
+    def dispose(self) -> None:
+        self._engine.dispose()

@@ -5,40 +5,42 @@ from sqlalchemy.orm import Session
 
 from src.db.quest import QuestDB
 from src.db.quest_state import QuestStateDB
-from src.domain.quest_state import QuestStateCreate
+from src.domain.quest_state import QuestState, QuestStateCreate
 
 logger = logging.getLogger(__name__)
 
-
 class QuestStateRepository:
-    @staticmethod
-    def add(db: Session, state_data: QuestStateCreate) -> QuestStateDB:
+    def add(self, db: Session, state_data: QuestStateCreate) -> QuestState:
         state_db = QuestStateDB(**state_data.model_dump())
         db.add(state_db)
         db.flush()
         db.refresh(state_db)
         logger.debug(f"Created new quest state for quest '{state_data.quest_id}'")
-        return state_db
+        return QuestState.model_validate(state_db)
 
-    @staticmethod
-    def get_by_id(db: Session, state_id: int) -> QuestStateDB | None:
-        return db.query(QuestStateDB).filter(QuestStateDB.id == state_id).first()
+    def get_by_id(self, db: Session, state_id: int) -> QuestState | None:
+        state_db = db.query(QuestStateDB).filter(QuestStateDB.id == state_id).first()
+        if state_db is None:
+            return None
+        return QuestState.model_validate(state_db)
 
-    @staticmethod
-    def get_latest(db: Session, quest_id: int) -> QuestStateDB | None:
-        return (
+    def get_latest(self, db: Session, quest_id: int) -> QuestState | None:
+        state_db = (
             db.query(QuestStateDB)
             .filter(QuestStateDB.quest_id == quest_id)
             .order_by(QuestStateDB.start_date.desc())
             .first()
         )
+        if state_db is None:
+            return None
+        return QuestState.model_validate(state_db)
 
-    @staticmethod
     def has_overlap(
+        self,
         db: Session,
         quest_id: int,
         start_date: datetime | None = None,
-        end_date: datetime | None = None
+        end_date: datetime | None = None,
     ) -> bool:
         """
         Return True if any existing state overlaps with [start_date, end_date).
@@ -66,14 +68,14 @@ class QuestStateRepository:
             db.query(QuestStateDB).filter(*conditions).exists()
         ).scalar()
 
-    @staticmethod
     def get_all(
+        self,
         db: Session,
         owner_id: int | None = None,
         quest_id: int | None = None,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
-    ) -> list[QuestStateDB]:
+    ) -> list[QuestState]:
         """
         Get all quest states, optionally filtered by owner, quest and date range.
         Dates are compared strictly (>= for start, <= for end).
@@ -94,25 +96,25 @@ class QuestStateRepository:
         if end_date is not None:
             query = query.filter(QuestStateDB.end_date <= end_date)
 
-        states = query.all()
+        states_db = query.all()
         logger.debug(
-            f"Found {len(states)} states for owner_id={owner_id}, "
+            f"Found {len(states_db)} states for owner_id={owner_id}, "
             f"quest_id={quest_id}, start_date={start_date}, end_date={end_date}"
         )
-        return states
+        return [QuestState.model_validate(state) for state in states_db]
 
-    @staticmethod
     def get_by_date(
+        self,
         db: Session,
         quest_id: int,
         target_date: datetime,
-    ) -> QuestStateDB | None:
+    ) -> QuestState | None:
         """
         Get the state active for the given quest at the exact target_date.
         Treats NULL start_date as 'beginning of time' and NULL end_date as 'end of time'.
         Returns the most recently started state if multiple overlap.
         """
-        states = (
+        states_db = (
             db.query(QuestStateDB)
             .filter(
                 QuestStateDB.quest_id == quest_id,
@@ -130,15 +132,15 @@ class QuestStateRepository:
             .all()
         )
 
-        if not states:
+        if not states_db:
             logger.debug(f"No state found for quest {quest_id} at {target_date}")
             return None
 
-        if len(states) > 1:
+        if len(states_db) > 1:
             logger.error(
-                f"Multiple states ({len(states)}) found for quest {quest_id} at {target_date}. "
+                f"Multiple states ({len(states_db)}) found for quest {quest_id} at {target_date}. "
                 "Returning the most recent (by start_date)."
             )
-            return states[0]
+            return QuestState.model_validate(states_db[0])
 
-        return states[0]
+        return QuestState.model_validate(states_db[0])

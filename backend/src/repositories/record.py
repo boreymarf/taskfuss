@@ -1,36 +1,40 @@
 from datetime import datetime
-
 from sqlalchemy import ColumnElement, func, desc, asc
 from sqlalchemy.orm import Session
 
 from src.db.record import RecordDB
 from src.domain.record import Record, RecordCreate
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RecordRepository:
-    @staticmethod
-    def add(db: Session, record: RecordCreate) -> Record:
-
+    def add(self, db: Session, record: RecordCreate) -> Record:
         record_db = RecordDB(**record.model_dump())
         db.add(record_db)
         db.flush()
         db.refresh(record_db)
-
         new_record = Record.model_validate(record_db)
+        logger.debug(f"Added record with id={new_record.id}")
         return new_record
 
-    @staticmethod
-    def remove(db: Session, record: RecordDB) -> None:
-        db.delete(record)
-        db.flush()
+    def remove(self, db: Session, record_id: int) -> None:
+        record_db = db.get(RecordDB, record_id)
+        if record_db:
+            db.delete(record_db)
+            db.flush()
+            logger.debug(f"Removed record {record_id}")
 
-    @staticmethod
-    def get(db: Session, record_id: int) -> RecordDB | None:
-        return db.get(RecordDB, record_id)
+    def get(self, db: Session, record_id: int) -> Record | None:
+        record_db = db.get(RecordDB, record_id)
+        if record_db is None:
+            return None
+        return Record.model_validate(record_db)
 
-    @staticmethod
     def get_all(
+        self,
         db: Session,
         *,
         quest_id: int | None = None,
@@ -43,7 +47,7 @@ class RecordRepository:
         ordering: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
-    ) -> list[RecordDB]:
+    ) -> list[Record]:
         filters: list[ColumnElement[bool]] = []
 
         if quest_id is not None:
@@ -90,4 +94,6 @@ class RecordRepository:
         if limit is not None:
             query = query.limit(limit)
 
-        return query.all()
+        records_db = query.all()
+        logger.debug(f"Fetched {len(records_db)} records from database")
+        return [Record.model_validate(r) for r in records_db]

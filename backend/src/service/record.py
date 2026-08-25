@@ -1,9 +1,10 @@
+# src/services/record_service.py
+
 from datetime import datetime
 import logging
 from sqlalchemy.orm import Session
 
 from src.classes.form_processor import FormProcessor
-from src.domain.quest_event import NewRecordEvent
 from src.domain.record import Record, RecordCreate
 from src.exceptions.generic import BadRequestError, ForbiddenError, NotFoundError
 from src.exceptions.quest_state import NoFieldsQuestStateError
@@ -14,10 +15,19 @@ from src.repositories.record import RecordRepository
 
 logger = logging.getLogger(__name__)
 
-
 class RecordService:
-    @staticmethod
+    def __init__(
+        self,
+        record_repository: RecordRepository,
+        quest_repository: QuestRepository,
+        quest_state_repository: QuestStateRepository,
+    ):
+        self.record_repository = record_repository
+        self.quest_repository = quest_repository
+        self.quest_state_repository = quest_state_repository
+
     def get_all(
+        self,
         db: Session,
         *,
         quest_id: int | None = None,
@@ -39,7 +49,7 @@ class RecordService:
                     "Please choose one filtering method."
                 )
 
-            state = QuestStateRepository.get_by_id(db, state_id)
+            state = self.quest_state_repository.get_by_id(db, state_id)
             if state is None:
                 raise NotFoundError("state", state_id)
 
@@ -61,7 +71,7 @@ class RecordService:
         ):
             raise ValueError("'field_path' must start with 'field_path__startswith'")
 
-        records_db = RecordRepository.get_all(
+        records = self.record_repository.get_all(
             db,
             quest_id=quest_id,
             field_path=field_path,
@@ -75,41 +85,37 @@ class RecordService:
             offset=offset,
         )
 
-        result = [Record.model_validate(r) for r in records_db]
-        logger.debug(f"Fetched {len(result)} records")
-        return result
+        logger.debug(f"Fetched {len(records)} records")
+        return records
 
-    @staticmethod
-    def get(db: Session, record_id: int) -> Record | None:
-        record_db = RecordRepository.get(db, record_id)
-        if record_db is None:
+    def get(self, db: Session, record_id: int) -> Record:
+        record = self.record_repository.get(db, record_id)
+        if record is None:
             raise NotFoundError("Record", record_id)
-        result = Record.model_validate(record_db)
         logger.debug(f"Record {record_id} found")
-        return result
+        return record
 
-    @staticmethod
-    def create(db: Session, request: RecordCreate, user_id: int) -> Record:
-        quest_db = QuestRepository.get_by_id(db, request.quest_id)
+    def create(self, db: Session, request: RecordCreate, user_id: int) -> Record:
+        quest = self.quest_repository.get_by_id(db, request.quest_id)
 
-        if not quest_db:
+        if not quest:
             raise NotFoundError("Quest", request.quest_id)
 
-        if quest_db.owner_id != user_id:
+        if quest.owner_id != user_id:
             raise ForbiddenError()
 
-        quest_state_db = QuestStateRepository.get_by_date(
+        quest_state = self.quest_state_repository.get_by_date(
             db, request.quest_id, request.recorded_at
         )
 
-        if not quest_state_db:
+        if not quest_state:
             raise NotFoundError("Quest state")
 
-        if not quest_state_db.fields:
-            raise NoFieldsQuestStateError(quest_state_db.id)
+        if not quest_state.fields:
+            raise NoFieldsQuestStateError(quest_state.id)
 
         form_processor = FormProcessor()
-        form_processor.load_fields(quest_state_db.fields)
+        form_processor.load_fields(quest_state.fields)
         errors = form_processor.validate_value(request.field_path, value=request.value)
 
         if errors:
@@ -120,16 +126,15 @@ class RecordService:
         # QuestService.handle_event(db, request.quest_id, event)
 
         # TODO: If allowed create new record
-        record = RecordRepository.add(db, request)
+        record = self.record_repository.add(db, request)
         db.commit()
         logger.debug(f"Created record with id={record.id}")
         return record
 
-    @staticmethod
-    def remove(db: Session, record_id: int) -> None:
-        record_db = RecordRepository.get(db, record_id)
-        if record_db is None:
+    def remove(self, db: Session, record_id: int) -> None:
+        record = self.record_repository.get(db, record_id)
+        if record is None:
             raise NotFoundError("record", record_id)
 
-        RecordRepository.remove(db, record_db)
+        self.record_repository.remove(db, record_id)
         logger.debug(f"Removed record {record_id}")
