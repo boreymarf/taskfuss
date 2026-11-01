@@ -1,5 +1,11 @@
 # taskfuss
 
+## 0.2.1
+
+### Patch Changes
+
+- cd8a722: bug: now pool created all parent dirs for the db file
+
 ## 0.2.0
 
 ### Minor Changes
