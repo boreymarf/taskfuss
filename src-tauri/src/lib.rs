@@ -1,8 +1,11 @@
+#![allow(warnings)]
+
 mod db;
 mod managed;
 mod models;
 
 use tauri::Manager;
+use tauri_plugin_log::{Target, TargetKind};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -22,6 +25,23 @@ fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir { file_name: None }),
+                    Target::new(TargetKind::Webview),
+                ])
+                .format(|out, message, record| {
+                    out.finish(format_args!(
+                        "{:<5} {} {}",
+                        record.level(),
+                        record.target(),
+                        message
+                    ))
+                })
+                .build(),
+        )
         .setup(|app| {
             let storage = managed::storage::Storage::resolve(app)?;
             let db_path = storage.db_file();
@@ -34,6 +54,8 @@ pub fn run() {
             // Shove em inside
             let app_state = managed::app_state::AppState { storage, database };
             app.manage(app_state);
+
+            log::info!("Tauri setup complete");
 
             Ok(())
         })

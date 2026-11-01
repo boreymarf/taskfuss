@@ -26,11 +26,14 @@ pub fn create_pool(db_path: &Path) -> Result<DbPool, DbError> {
     let manager = ConnectionManager::<SqliteConnection>::new(db_path_str);
 
     let pool = Pool::builder()
+        .event_handler(Box::new(super::pool_logger::DbPoolLogger))
         .build(manager)
         .map_err(|source| DbError::PoolOpen {
             path: db_path.display().to_string(),
             source,
         })?;
+
+    log::info!("Pool was created for the path {db_path_str}");
 
     Ok(pool)
 }

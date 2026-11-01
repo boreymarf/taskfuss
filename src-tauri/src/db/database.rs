@@ -1,4 +1,4 @@
-use diesel_migrations::{EmbeddedMigrations, embed_migrations, MigrationHarness};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 use crate::db::{DbConn, DbError, DbPool};
 
@@ -21,7 +21,7 @@ impl Database {
     pub fn run_migrations(&self) -> Result<(), DbError> {
         let mut conn = self.conn()?;
         conn.run_pending_migrations(MIGRATIONS)
-            .map_err(|e| DbError::Migration(e))?;
+            .map_err(DbError::Migration)?;
         Ok(())
     }
 }

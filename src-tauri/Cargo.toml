@@ -2,7 +2,7 @@
 name = "taskfuss"
 version = "0.2.1"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["Borey Marfemov"]
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -20,6 +20,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
+tauri-plugin-log = "2.0.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 diesel = { version = "2.2.0", features = ["sqlite", "returning_clauses_for_sqlite_3_35", "r2d2"] }
@@ -27,6 +28,7 @@ libsqlite3-sys = { version = "0.35.0", features = ["bundled"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 thiserror = "2.0.21"
 diesel_migrations = "2.3.2"
+log = "0.4.35"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
