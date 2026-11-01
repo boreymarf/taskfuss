@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::Path;
 
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
@@ -11,6 +12,13 @@ pub type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 pub type DbConn = PooledConnection<ConnectionManager<SqliteConnection>>;
 
 pub fn create_pool(db_path: &Path) -> Result<DbPool, DbError> {
+    if let Some(parent) = db_path.parent() {
+        fs::create_dir_all(parent).map_err(|source| DbError::CreateDir {
+            path: parent.display().to_string(),
+            source,
+        })?;
+    }
+
     let db_path_str = db_path
         .to_str()
         .ok_or_else(|| DbError::NonUtf8Path(db_path.display().to_string()))?;

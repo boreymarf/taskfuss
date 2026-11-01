@@ -2058,10 +2058,11 @@ dependencies = [
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.38.2"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8"
+checksum = "133c182a6a2c87864fe97778797e46c7e999672690dc9fa3ee8e241aa4a9c13f"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]
@@ -3571,6 +3572,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel_migrations",
+ "libsqlite3-sys",
  "serde",
  "serde_json",
  "tauri",

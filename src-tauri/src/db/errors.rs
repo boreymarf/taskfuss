@@ -5,6 +5,14 @@ pub enum DbError {
     #[error("invalid UTF-8 in DB path: {0}")]
     NonUtf8Path(String),
 
+    #[error("failed to create DB directory at {path}: {source}")]
+    CreateDir {
+        path: String,
+        #[serde(skip)]
+        #[source]
+        source: std::io::Error,
+    },
+
     #[error("failed to create a pool at {path}: {source}")]
     PoolOpen {
         path: String,
