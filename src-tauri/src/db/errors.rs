@@ -35,6 +35,10 @@ pub enum DbError {
         Box<dyn std::error::Error + Send + Sync>,
     ),
 
-    #[error("query failed: {0}")]
-    Query(String),
+    #[error("database error: {0}")]
+    Diesel(
+        #[from]
+        #[serde(skip)]
+        diesel::result::Error,
+    ),
 }

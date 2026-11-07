@@ -1,8 +1,14 @@
 #![allow(warnings)]
 
+mod assets;
 mod db;
+mod domain;
+mod dto;
+mod errors;
 mod managed;
-mod models;
+mod repositories;
+mod services;
+mod orchestrators;
 
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
@@ -48,8 +54,10 @@ pub fn run() {
             let pool = db::pool::create_pool(&db_path)?;
             let database = db::Database::new(pool);
 
-            // Run migrations
+            // DB Stuff
             database.run_migrations()?;
+
+            // Repositories
 
             // Shove em inside
             let app_state = managed::app_state::AppState { storage, database };

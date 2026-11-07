@@ -1,0 +1,11 @@
+[plan]
+name = "Simple Quest" # Name of the plan
+id = "boreymarf.simplequest" # Unique id
+author = "Borey Marfemov" # Author
+version = "0.1.0" # Internal version (for dev's versioning)
+
+language = "luau" # What language interpretator to use
+entry = "main.luau" # Entry point
+
+[permissions] 
+

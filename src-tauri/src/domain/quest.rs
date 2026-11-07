@@ -6,8 +6,10 @@ use crate::db::schema::quests;
 
 #[derive(Debug, Clone, Queryable, Selectable, Identifiable, Serialize)]
 #[diesel(table_name = quests)]
+#[diesel(primary_key(uuid))]
 pub struct Quest {
-    pub id: i32,
+    pub uuid: String,
+    pub plan_snapshot_uuid: String,
     pub title: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -16,6 +18,8 @@ pub struct Quest {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = quests)]
 pub struct NewQuest<'a> {
+    pub uuid: &'a str,
+    pub plan_snapshot_uuid: &'a str,
     pub title: Option<&'a str>,
 }
 
