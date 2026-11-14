@@ -1,5 +1,3 @@
-pub(crate) mod plan_snapshots;
-pub(crate) mod quest;
+pub(crate) mod plans;
 
-pub(crate) use plan_snapshots::*;
-pub(crate) use quest::*;
+pub(crate) use plans::*;

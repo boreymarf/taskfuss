@@ -1,26 +1,25 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    plan_snapshots (uuid) {
-        uuid -> Text,
-        plan_id -> Text,
-        path -> Text,
-        hash -> Text,
-        content -> Text,
-        created_at -> Timestamp,
+    plans (id) {
+        id -> Text,
+        name -> Text,
+        author -> Text,
+        version -> Text,
+        entry_point -> Text,
+        language -> Text,
+        permissions -> Text,
     }
 }
 
 diesel::table! {
     quests (uuid) {
         uuid -> Text,
-        plan_snapshot_uuid -> Text,
+        plan_id -> Text,
         title -> Nullable<Text>,
-        created_at -> Text,
-        updated_at -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
-diesel::joinable!(quests -> plan_snapshots (plan_snapshot_uuid));
-
-diesel::allow_tables_to_appear_in_same_query!(plan_snapshots, quests,);
+diesel::allow_tables_to_appear_in_same_query!(plans, quests,);

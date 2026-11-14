@@ -1,50 +1,33 @@
--- quests
-CREATE TABLE quests (
-    uuid               TEXT NOT NULL PRIMARY KEY,
-    plan_snapshot_uuid TEXT NOT NULL,
-    title              TEXT,
-    created_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
-    updated_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
+CREATE TABLE plans (
+    id          TEXT NOT NULL PRIMARY KEY,          -- unique plan id
+    name        TEXT NOT NULL,
+    author      TEXT NOT NULL,
+    version     TEXT NOT NULL,
+    entry_point TEXT NOT NULL,
+    language    TEXT NOT NULL,
+    permissions TEXT NOT NULL,                       -- JSON array/object
 
-    FOREIGN KEY (plan_snapshot_uuid)
-        REFERENCES plan_snapshots (uuid)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE
+    CHECK (length(id) > 0),
+    CHECK (language IN ('lua', 'luau')),
+    CHECK (json_valid(permissions))
 );
 
-CREATE INDEX idx_quests_plan_snapshot_uuid
-    ON quests (plan_snapshot_uuid);
+CREATE TABLE quests (
+    uuid       TEXT      NOT NULL PRIMARY KEY,
+    plan_id    TEXT      NOT NULL,
+    title      TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now')),
+    updated_at TIMESTAMP NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now'))
+);
 
--- update time when updating the quest
+CREATE INDEX idx_quests_plan_id ON quests (plan_id);
+
 CREATE TRIGGER quests_set_updated_at
 AFTER UPDATE ON quests
 FOR EACH ROW
 WHEN NEW.updated_at = OLD.updated_at
 BEGIN
     UPDATE quests
-    SET updated_at = strftime('%Y-%m-%d %H:%M:%S', 'now')
+    SET updated_at = strftime('%Y-%m-%d %H:%M:%S','now')
     WHERE uuid = OLD.uuid;
 END;
-
--- plans
-CREATE TABLE plan_snapshots (
-    uuid        TEXT NOT NULL PRIMARY KEY,
-    plan_id     TEXT NOT NULL,
-    path        TEXT NOT NULL,
-    hash        TEXT NOT NULL,
-    content     TEXT NOT NULL,
-    created_at  TIMESTAMP NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')),
-
-    CHECK (length(plan_id) > 0),
-    CHECK (length(hash)    > 0),
-    CHECK (json_valid(content))
-);
-
--- can't have same id + hash combo
--- guards against copies
-CREATE UNIQUE INDEX idx_plan_snapshots_plan_id_hash
-    ON plan_snapshots (plan_id, hash);
-
--- gimme the most recent snapshot
-CREATE INDEX idx_plan_snapshots_plan_id_created_at
-    ON plan_snapshots (plan_id, created_at DESC);

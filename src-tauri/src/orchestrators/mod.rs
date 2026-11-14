@@ -1,1 +1,1 @@
-pub(crate) mod plan_snapshots;
+pub(crate) mod plans;

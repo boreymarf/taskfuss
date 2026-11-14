@@ -1,3 +1,4 @@
+use diesel::Connection;
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 use crate::db::{DbConn, DbError, DbPool};
@@ -23,5 +24,14 @@ impl Database {
         conn.run_pending_migrations(MIGRATIONS)
             .map_err(DbError::Migration)?;
         Ok(())
+    }
+
+    pub fn transaction<T, E, F>(&self, f: F) -> Result<T, E>
+    where
+        F: FnOnce(&mut DbConn) -> Result<T, E>,
+        E: From<DbError> + From<diesel::result::Error>,
+    {
+        let mut conn = self.conn()?;
+        conn.transaction(f)
     }
 }
