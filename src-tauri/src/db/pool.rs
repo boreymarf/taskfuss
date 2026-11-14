@@ -16,7 +16,7 @@ pub fn create_pool(db_path: &Path) -> Result<DbPool, DbError> {
         fs::create_dir_all(parent).map_err(|source| DbError::CreateDir {
             path: parent.display().to_string(),
             source,
-        })?;
+        });
     }
 
     let db_path_str = db_path

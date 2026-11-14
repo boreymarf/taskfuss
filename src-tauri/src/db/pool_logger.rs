@@ -30,7 +30,7 @@ impl HandleEvent for DbPoolLogger {
 
     fn handle_release(&self, event: ReleaseEvent) {
         log::debug!(
-            "pool: connection id={} released / discarded from pool",
+            "pool: connection id={} discarded from pool",
             event.connection_id()
         );
     }

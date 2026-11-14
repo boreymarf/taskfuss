@@ -1,6 +1,5 @@
 #![allow(warnings)]
 
-mod assets;
 mod db;
 mod domain;
 mod dto;
@@ -9,6 +8,9 @@ mod managed;
 mod repositories;
 mod services;
 mod orchestrators;
+mod commands;
+
+use std::sync::Arc;
 
 use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
@@ -58,16 +60,20 @@ pub fn run() {
             database.run_migrations()?;
 
             // Repositories
+            let plan_repo = Arc::new(repositories::PlanRepository::new());
+
+            // Services
+            let plan_service = Arc::new(services::PlanService::new(plan_repo.clone()));
 
             // Shove em inside
-            let app_state = managed::app_state::AppState { storage, database };
+            let app_state = managed::app_state::AppState { storage, database, plan_repo, plan_service };
             app.manage(app_state);
 
             log::info!("Tauri setup complete");
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_app_data_dir])
+        .invoke_handler(tauri::generate_handler![greet, get_app_data_dir, commands::debug::debug_something])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
