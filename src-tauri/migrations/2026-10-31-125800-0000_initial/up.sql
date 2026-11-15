@@ -3,7 +3,7 @@ CREATE TABLE plans (
     name        TEXT NOT NULL,
     author      TEXT NOT NULL,
     version     TEXT NOT NULL,
-    entry_point TEXT NOT NULL,
+    entry       TEXT NOT NULL,
     language    TEXT NOT NULL,
     permissions TEXT NOT NULL,                       -- JSON array/object
 

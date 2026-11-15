@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 
-use crate::domain::{NewPlan, Plan};
 use crate::db::{DbConn, plans};
+use crate::domain::{NewPlan, Plan};
 
 pub struct PlanRepository;
 
@@ -10,9 +10,9 @@ impl PlanRepository {
         Self
     }
 
-    pub fn create(&self, conn: &mut DbConn, new_plan: NewPlan<'_>) -> QueryResult<Plan> {
+    pub fn create(&self, conn: &mut DbConn, new_plan: NewPlan) -> QueryResult<Plan> {
         diesel::insert_into(plans::table)
-            .values(&new_plan)
+            .values(new_plan)
             .returning(Plan::as_returning())
             .get_result(conn)
     }
@@ -29,10 +29,10 @@ impl PlanRepository {
         &self,
         conn: &mut DbConn,
         plan_id: &str,
-        changes: NewPlan<'_>,
+        changes: NewPlan,
     ) -> QueryResult<Plan> {
         diesel::update(plans::table.find(plan_id))
-            .set(&changes)
+            .set(changes)
             .returning(Plan::as_returning())
             .get_result(conn)
     }
@@ -45,3 +45,4 @@ impl PlanRepository {
         diesel::delete(plans::table).execute(conn)
     }
 }
+

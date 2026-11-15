@@ -2,8 +2,8 @@ use std::error::Error;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::repositories::PlanRepository;
 use crate::managed::app_state::AppState;
+use crate::repositories::PlanRepository;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
@@ -23,11 +23,15 @@ pub fn debug_something(app: AppHandle) -> Result<(), String> {
     );
 
     let app_state = app.state::<AppState>();
-    
+
     let plan_service = app_state.plan_service.clone();
     let plan_path = plans_dir.join("simple_quest");
+    let mut conn = app_state.database.conn().map_err(|e| e.to_string())?;
 
-    plan_service.register_plan(&plan_path);
+    let result = plan_service.register_plan(&mut conn, &plan_path);
+
+    dbg!(result);
 
     Ok(())
 }
+
