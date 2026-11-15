@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Debug, Error, serde::Serialize)]
+#[derive(specta::Type, Debug, Error, serde::Serialize)]
 pub enum DbError {
     #[error("invalid UTF-8 in DB path: {0}")]
     NonUtf8Path(String),
@@ -10,6 +10,7 @@ pub enum DbError {
         path: String,
         #[serde(skip)]
         #[source]
+        #[specta(skip)]
         source: std::io::Error,
     },
 
@@ -18,6 +19,7 @@ pub enum DbError {
         path: String,
         #[serde(skip)]
         #[source]
+        #[specta(skip)]
         source: diesel::r2d2::PoolError,
     },
 
@@ -25,6 +27,7 @@ pub enum DbError {
     PoolConn(
         #[from]
         #[serde(skip)]
+        #[specta(skip)]
         diesel::r2d2::PoolError,
     ),
 
@@ -32,6 +35,7 @@ pub enum DbError {
     Migration(
         #[serde(skip)]
         #[source]
+        #[specta(skip)]
         Box<dyn std::error::Error + Send + Sync>,
     ),
 
@@ -39,7 +43,7 @@ pub enum DbError {
     Diesel(
         #[from]
         #[serde(skip)]
+        #[specta(skip)]
         diesel::result::Error,
     ),
 }
-

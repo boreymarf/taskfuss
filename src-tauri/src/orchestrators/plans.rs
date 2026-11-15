@@ -4,6 +4,7 @@ use log::{debug, info, warn};
 
 use crate::{
     db::DbConn,
+    domain::Plan,
     errors::{AppError, PlanError},
     services::PlanService,
 };
@@ -15,6 +16,10 @@ pub struct PlanOrchestrator {
 impl PlanOrchestrator {
     pub fn new(plan_service: Arc<PlanService>) -> Self {
         Self { plan_service }
+    }
+
+    pub fn get_all_plans(&self, conn: &mut DbConn) -> Result<Vec<Plan>, AppError> {
+        self.plan_service.get_all_plans(conn)
     }
 
     pub fn register_all_plans(&self, conn: &mut DbConn, plans_dir: &Path) -> Result<(), AppError> {

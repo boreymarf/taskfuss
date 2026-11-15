@@ -1,33 +1,21 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { commands } from "./generated/bindings";
 
-const greetMsg = ref("");
-const dataPath = ref<string>("");
-const name = ref("");
-
-
-onMounted(async () => {
-  dataPath.value = await invoke<string>("debug");
-});
+const result = ref();
 
 async function debug_something() {
   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  await invoke("debug_something");
+  result.value = await commands.getAllPlans()
 }
-
-
-
 </script>
 
 <template>
   <main class="container">
     <h1>This is a test page</h1>
     <button @click="debug_something">Do something</button>
+    <pre>{{ JSON.stringify(result, null, 2) }}</pre>
   </main>
 </template>
 
-<style scoped>
-
-</style>
-
+<style scoped></style>

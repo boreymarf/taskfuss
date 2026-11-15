@@ -1,4 +1,5 @@
 [package]
+
 name = "taskfuss"
 version = "0.2.1"
 description = "A Tauri App"
@@ -19,7 +20,7 @@ tauri-build = { version = "2", features = [] }
 tempfile = "3"
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2.0", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-log = { version = "2.0", features = ["colored"] }
 serde = { version = "1", features = ["derive"] }
@@ -38,6 +39,9 @@ log = "0.4.35"
 uuid = { version = "1.29.0", features = ["v7"] }
 toml = "1.2.1"
 colored = "2"
+specta = "=2.0.0-rc.28"
+specta-typescript = "0.0.15"
+tauri-specta = { version = "=2.0.0-rc.28", features = ["derive", "typescript"] }
 
 
 

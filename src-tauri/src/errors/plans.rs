@@ -1,7 +1,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
-#[derive(Debug, Error, Serialize)]
+#[derive(specta::Type, Debug, Error, Serialize)]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -22,7 +22,8 @@ pub enum PlanError {
     ManifestRead {
         path: String,
         #[source]
-        #[serde(skip_serializing)]
+        #[serde(skip)]
+        #[specta(skip)]
         source: std::io::Error,
     },
 
@@ -30,7 +31,8 @@ pub enum PlanError {
     ManifestParse {
         path: String,
         #[source]
-        #[serde(skip_serializing)]
+        #[serde(skip)]
+        #[specta(skip)]
         source: toml::de::Error,
     },
 
@@ -39,15 +41,17 @@ pub enum PlanError {
 
     #[error("invalid language: {0}")]
     InvalidLanguage(
-        #[serde(skip_serializing)]
+        #[serde(skip)]
         #[source]
+        #[specta(skip)]
         serde_json::Error,
     ),
 
     #[error("invalid permissions: {0}")]
     InvalidPermissions(
-        #[serde(skip_serializing)]
+        #[serde(skip)]
         #[source]
+        #[specta(skip)]
         serde_json::Error,
     ),
 
@@ -56,7 +60,8 @@ pub enum PlanError {
     ReadPlansDir {
         path: String,
         #[source]
-        #[serde(skip_serializing)]
+        #[serde(skip)]
+        #[specta(skip)]
         source: std::io::Error,
     },
 
@@ -64,7 +69,8 @@ pub enum PlanError {
     ReadDirEntry {
         path: String,
         #[source]
-        #[serde(skip_serializing)]
+        #[serde(skip)]
+        #[specta(skip)]
         source: std::io::Error,
     },
 

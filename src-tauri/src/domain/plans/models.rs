@@ -5,7 +5,7 @@ use crate::{db::plans, domain::PlanLanguage};
 
 use super::permissions::PlanPermissions;
 
-#[derive(Debug, Clone, Queryable, Selectable, Identifiable)]
+#[derive(serde::Serialize, specta::Type, Debug, Clone, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = plans)]
 pub struct Plan {
     pub id: String,

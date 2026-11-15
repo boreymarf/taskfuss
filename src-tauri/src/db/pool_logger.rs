@@ -7,7 +7,7 @@ pub(super) struct DbPoolLogger;
 
 impl HandleEvent for DbPoolLogger {
     fn handle_checkout(&self, event: CheckoutEvent) {
-        log::trace!(
+        log::debug!(
             "pool: connection id={} checked out",
             event.connection_id()
         );
@@ -29,7 +29,7 @@ impl HandleEvent for DbPoolLogger {
     }
 
     fn handle_release(&self, event: ReleaseEvent) {
-        log::debug!(
+        log::trace!(
             "pool: connection id={} discarded from pool",
             event.connection_id()
         );

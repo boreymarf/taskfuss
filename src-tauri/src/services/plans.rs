@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::db::{DbConn, DbError};
-use crate::domain::{IntoNewPlan, NewPlan, RawManifest, parse_manifest};
+use crate::domain::{IntoNewPlan, NewPlan, Plan, RawManifest, parse_manifest};
 use crate::errors::{AppError, PlanError};
 use crate::repositories::PlanRepository;
 
@@ -14,6 +14,10 @@ pub struct PlanService {
 impl PlanService {
     pub fn new(plan_repo: Arc<PlanRepository>) -> Self {
         Self { plan_repo }
+    }
+
+    pub fn get_all_plans(&self, conn: &mut DbConn) -> Result<Vec<Plan>, AppError> {
+        self.plan_repo.get_all(conn).map_err(|e| DbError::Diesel(e).into())
     }
 
     pub fn register_plan(&self, conn: &mut DbConn, path: &Path) -> Result<(), AppError> {

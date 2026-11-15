@@ -5,7 +5,7 @@ use crate::db::DbError;
 
 use super::PlanError;
 
-#[derive(Debug, Error, Serialize)]
+#[derive(specta::Type, Debug, Error, Serialize)]
 #[serde(tag = "kind", content = "detail", rename_all = "camelCase")]
 pub enum AppError {
     #[error(transparent)]

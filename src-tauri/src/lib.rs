@@ -19,8 +19,14 @@ use tauri_plugin_log::{
     fern::colors::{Color, ColoredLevelConfig},
 };
 
+use specta_typescript::Typescript;
+use tauri_specta::{Builder, collect_commands};
+
+use crate::commands::plans::get_all_plans;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
+#[specta::specta]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
@@ -35,6 +41,15 @@ fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Spectra type generation
+    let mut builder = Builder::new().commands(tauri_specta::collect_commands![greet, get_all_plans]);
+
+    #[cfg(debug_assertions)]
+    builder
+        .export(Typescript::default(), "../src/generated/bindings.ts")
+        .expect("Failed to export typescript bindings");
+
+    // Colors for logging
     let colors = ColoredLevelConfig::new()
         .error(Color::Red)
         .warn(Color::Yellow)
@@ -93,7 +108,11 @@ pub fn run() {
                 .level(log::LevelFilter::Debug)
                 .build(),
         )
-        .setup(|app| {
+        .invoke_handler(builder.invoke_handler())
+        .setup(move |app| {
+            // Spectra events
+            builder.mount_events(app);
+
             let storage = managed::storage::Storage::resolve(app)?;
             let db_path = storage.db_file();
             let pool = db::pool::create_pool(&db_path)?;
@@ -137,6 +156,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             greet,
+            get_all_plans,
             get_app_data_dir,
             commands::debug::debug_something
         ])
