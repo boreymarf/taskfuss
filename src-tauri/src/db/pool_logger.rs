@@ -7,14 +7,14 @@ pub(super) struct DbPoolLogger;
 
 impl HandleEvent for DbPoolLogger {
     fn handle_checkout(&self, event: CheckoutEvent) {
-        log::debug!(
+        log::trace!(
             "pool: connection id={} checked out",
             event.connection_id()
         );
     }
 
     fn handle_checkin(&self, event: CheckinEvent) {
-        log::debug!(
+        log::trace!(
             "pool: connection id={} checked in after {:?}",
             event.connection_id(),
             event.duration()  // how long it was held
@@ -22,7 +22,7 @@ impl HandleEvent for DbPoolLogger {
     }
 
     fn handle_acquire(&self, event: AcquireEvent) {
-        log::debug!(
+        log::trace!(
             "pool: new connection id={} acquired",
             event.connection_id()
         );

@@ -18,3 +18,9 @@ pub enum AppError {
     #[error("internal error: {0}")]
     Internal(String),
 }
+
+impl From<diesel::result::Error> for AppError {
+    fn from(e: diesel::result::Error) -> Self {
+        DbError::Diesel(e).into()
+    }
+}

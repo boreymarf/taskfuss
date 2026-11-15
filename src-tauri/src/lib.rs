@@ -1,19 +1,23 @@
 #![allow(warnings)]
 
+mod commands;
 mod db;
 mod domain;
 mod dto;
 mod errors;
 mod managed;
+mod orchestrators;
 mod repositories;
 mod services;
-mod orchestrators;
-mod commands;
 
 use std::sync::Arc;
 
+use colored::Colorize;
 use tauri::Manager;
-use tauri_plugin_log::{Target, TargetKind};
+use tauri_plugin_log::{
+    Target, TargetKind,
+    fern::colors::{Color, ColoredLevelConfig},
+};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -31,23 +35,62 @@ fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let colors = ColoredLevelConfig::new()
+        .error(Color::Red)
+        .warn(Color::Yellow)
+        .info(Color::Green)
+        .debug(Color::TrueColor {
+            r: 128,
+            g: 128,
+            b: 128,
+        }) // Medium Grey
+        .trace(Color::TrueColor {
+            r: 80,
+            g: 80,
+            b: 80,
+        }); // Darker Grey 
+
+    let source_color = Color::Cyan;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_log::Builder::new()
+                .clear_format()
                 .targets([
-                    Target::new(TargetKind::Stdout),
-                    Target::new(TargetKind::LogDir { file_name: None }),
-                    Target::new(TargetKind::Webview),
+                    Target::new(TargetKind::Stdout).format(move |out, message, record| {
+                        let src = format!(
+                            "{}:{}",
+                            record.file().unwrap_or("?"),
+                            record.line().unwrap_or(0),
+                        );
+                        out.finish(format_args!(
+                            "{:<5} {} {}",
+                            colors.color(record.level()),
+                            src.color(source_color),
+                            message
+                        ))
+                    }),
+                    Target::new(TargetKind::LogDir { file_name: None }).format(
+                        |out, message, record| {
+                            let src = format!(
+                                "{}:{}",
+                                record.file().unwrap_or("?"),
+                                record.line().unwrap_or(0),
+                            );
+                            out.finish(format_args!("{:<5} {} {}", record.level(), src, message))
+                        },
+                    ),
+                    Target::new(TargetKind::Webview).format(|out, message, record| {
+                        let src = format!(
+                            "{}:{}",
+                            record.file().unwrap_or("?"),
+                            record.line().unwrap_or(0),
+                        );
+                        out.finish(format_args!("{:<5} {} {}", record.level(), src, message))
+                    }),
                 ])
-                .format(|out, message, record| {
-                    out.finish(format_args!(
-                        "{:<5} {} {}",
-                        record.level(),
-                        record.target(),
-                        message
-                    ))
-                })
+                .level(log::LevelFilter::Debug)
                 .build(),
         )
         .setup(|app| {
@@ -65,15 +108,38 @@ pub fn run() {
             // Services
             let plan_service = Arc::new(services::PlanService::new(plan_repo.clone()));
 
+            // Orchestration
+            let plan_orchestrator = Arc::new(orchestrators::plans::PlanOrchestrator::new(
+                plan_service.clone(),
+            ));
+
+            // Setup
+            let plans_dir = app
+                .path()
+                .resolve("plans", tauri::path::BaseDirectory::Resource)
+                .map_err(|e| e.to_string())?;
+
+            database.transaction(|conn| plan_orchestrator.register_all_plans(conn, &plans_dir));
+
             // Shove em inside
-            let app_state = managed::app_state::AppState { storage, database, plan_repo, plan_service };
+            let app_state = managed::app_state::AppState {
+                storage,
+                database,
+                plan_repo,
+                plan_service,
+                plan_orchestrator,
+            };
             app.manage(app_state);
 
             log::info!("Tauri setup complete");
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_app_data_dir, commands::debug::debug_something])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_app_data_dir,
+            commands::debug::debug_something
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

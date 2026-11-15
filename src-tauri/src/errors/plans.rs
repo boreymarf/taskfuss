@@ -15,7 +15,6 @@ pub enum PlanError {
     NotADirectory { path: String },
 
     // Manifest related errors
-
     #[error("manifest not found at {path}")]
     ManifestNotFound { path: String },
 
@@ -51,4 +50,24 @@ pub enum PlanError {
         #[source]
         serde_json::Error,
     ),
+
+    // Plan related errors
+    #[error("failed to read plans directory at {path}")]
+    ReadPlansDir {
+        path: String,
+        #[source]
+        #[serde(skip_serializing)]
+        source: std::io::Error,
+    },
+
+    #[error("failed to read directory entry in {path}")]
+    ReadDirEntry {
+        path: String,
+        #[source]
+        #[serde(skip_serializing)]
+        source: std::io::Error,
+    },
+
+    #[error("plan {plan_id} already exists")]
+    AlreadyExists { plan_id: String },
 }

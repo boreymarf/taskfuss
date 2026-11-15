@@ -42,3 +42,4 @@ pub enum DbError {
         diesel::result::Error,
     ),
 }
+

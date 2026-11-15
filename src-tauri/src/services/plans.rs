@@ -1,3 +1,4 @@
+use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -38,17 +39,22 @@ impl PlanService {
             })?;
 
         let manifest = parse_manifest(&manifest_path, &manifest_contents)?;
-        let new_plan = manifest.into_new_plan()?; // PlanError → AppError via #[from]
+        let new_plan = manifest.into_new_plan()?;
+        let plan_id = new_plan.id.clone(); // so we can put it in the error message
 
-        // diesel::Error → DbError → AppError
-        self.plan_repo
-            .create(conn, new_plan)
-            .map_err(DbError::from)?;
+        self.plan_repo.create(conn, new_plan).map_err(|e| match e {
+            DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _) => {
+                PlanError::AlreadyExists { plan_id }.into()
+            }
+            other => AppError::Db(DbError::Diesel(other)),
+        })?;
 
         Ok(())
     }
 
-    pub fn unregister_all_plans(&self, conn: &mut DbConn) {
-        self.plan_repo.delete_all(conn);
+    pub fn unregister_all_plans(&self, conn: &mut DbConn) -> Result<usize, AppError> {
+        self.plan_repo
+            .delete_all(conn)
+            .map_err(|e| DbError::Diesel(e).into())
     }
 }
