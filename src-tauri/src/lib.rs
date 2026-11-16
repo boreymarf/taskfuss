@@ -113,10 +113,10 @@ pub fn run() {
             // Spectra events
             builder.mount_events(app);
 
-            let storage = managed::storage::Storage::resolve(app)?;
+            let storage = Arc::new(managed::storage::Storage::resolve(app)?);
             let db_path = storage.db_file();
             let pool = db::pool::create_pool(&db_path)?;
-            let database = db::Database::new(pool);
+            let database = Arc::new(db::Database::new(pool));
 
             // DB Stuff
             database.run_migrations()?;

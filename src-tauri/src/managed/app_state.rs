@@ -7,8 +7,8 @@ use crate::repositories::PlanRepository;
 use crate::services::PlanService;
 
 pub(crate) struct AppState {
-    pub database: Database,
-    pub storage: Storage,
+    pub database: Arc<Database>,
+    pub storage: Arc<Storage>,
 
     pub plan_repo: Arc<PlanRepository>,
 
