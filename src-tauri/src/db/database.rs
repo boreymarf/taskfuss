@@ -3,11 +3,14 @@ use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 use crate::db::{DbConn, DbError, DbPool};
 use crate::managed::app_state::AppState;
+use std::sync::Arc;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 /// State struct stored in [`AppState`] and serves as the interface for working with the database.
 /// Holds the database pool.
+/// 
+/// Should be cloned and stored in the app state using [`Arc`].
 #[derive(Clone)]
 pub struct Database {
     pool: DbPool,
@@ -34,7 +37,7 @@ impl Database {
         Ok(())
     }
 
-    /// Creates a connection and runs function `F` within a transaction.
+    /// Creates a connection `conn` and runs function `F` within a transaction.
     ///
     /// # Example
     ///

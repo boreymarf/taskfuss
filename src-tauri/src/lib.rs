@@ -42,7 +42,8 @@ fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Spectra type generation
-    let mut builder = Builder::new().commands(tauri_specta::collect_commands![greet, get_all_plans]);
+    let mut builder =
+        Builder::new().commands(tauri_specta::collect_commands![greet, get_all_plans, commands::debug::debug_something]);
 
     #[cfg(debug_assertions)]
     builder
@@ -123,14 +124,17 @@ pub fn run() {
 
             // Repositories
             let plan_repo = Arc::new(repositories::PlanRepository::new());
+            let quest_repo = Arc::new(repositories::QuestRepository::new());
 
             // Services
             let plan_service = Arc::new(services::PlanService::new(plan_repo.clone()));
+            let quest_service = Arc::new(services::QuestService::new(quest_repo.clone()));
 
             // Orchestration
-            let plan_orchestrator = Arc::new(orchestrators::plans::PlanOrchestrator::new(
-                plan_service.clone(),
-            ));
+            let plan_orchestrator =
+                Arc::new(orchestrators::PlanOrchestrator::new(plan_service.clone()));
+            let quest_orchestrator =
+                Arc::new(orchestrators::QuestOrchestrator::new(quest_service.clone()));
 
             // Setup
             let plans_dir = app
@@ -145,8 +149,11 @@ pub fn run() {
                 storage,
                 database,
                 plan_repo,
+                quest_repo,
                 plan_service,
+                quest_service,
                 plan_orchestrator,
+                quest_orchestrator,
             };
             app.manage(app_state);
 

@@ -1,7 +1,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::db::DbError;
+use crate::{db::DbError, errors::QuestError};
 
 use super::PlanError;
 
@@ -10,6 +10,9 @@ use super::PlanError;
 pub enum AppError {
     #[error(transparent)]
     Plan(#[from] PlanError),
+
+    #[error(transparent)]
+    Quest(#[from] QuestError),
 
     #[error(transparent)]
     Db(#[from] DbError),

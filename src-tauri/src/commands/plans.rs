@@ -2,7 +2,7 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::{db::errors::DbError, domain::Plan, errors::AppError, managed::app_state::AppState};
 
-/// Command that returns the list of plans currently available in the database.
+/// A command that returns the list of plans currently available in the database.
 ///
 /// # Errors
 /// - Any database error is passed through as [`DbError::Diesel`], wrapped in [`AppError`].

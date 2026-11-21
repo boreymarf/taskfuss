@@ -2,9 +2,14 @@
 import { onMounted, ref } from "vue";
 import { commands } from "./generated/bindings";
 
+const debug_result = ref();
 const result = ref();
 
-async function debug_something() {
+async function debugSomething() {
+  debug_result.value = await commands.debugSomething()
+}
+
+async function getAllPlans() {
   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
   result.value = await commands.getAllPlans()
 }
@@ -13,7 +18,9 @@ async function debug_something() {
 <template>
   <main class="container">
     <h1>This is a test page</h1>
-    <button @click="debug_something">Do something</button>
+    <button @click="debugSomething">Debug something</button>
+    <pre>{{ JSON.stringify(debug_result, null, 2) }}</pre>
+    <button @click="getAllPlans">Get all plans</button>
     <pre>{{ JSON.stringify(result, null, 2) }}</pre>
   </main>
 </template>

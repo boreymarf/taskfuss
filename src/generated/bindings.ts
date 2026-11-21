@@ -6,16 +6,17 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 export const commands = {
 	greet: (name: string) => __TAURI_INVOKE<string>("greet", { name }),
 	/**
-	 *  Command that returns the list of plans currently available in the database.
+	 *  A command that returns the list of plans currently available in the database.
 	 * 
 	 *  # Errors
 	 *  - Any database error is passed through as [`DbError::Diesel`], wrapped in [`AppError`].
 	 */
 	getAllPlans: () => __TAURI_INVOKE<Plan[]>("get_all_plans"),
+	debugSomething: () => __TAURI_INVOKE<null>("debug_something"),
 };
 
 /* Types */
-export type AppError = { kind: "plan"; detail: PlanError } | { kind: "db"; detail: DbError } | { kind: "internal"; detail: string };
+export type AppError = { kind: "plan"; detail: PlanError } | { kind: "quest"; detail: QuestError } | { kind: "db"; detail: DbError } | { kind: "internal"; detail: string };
 
 export type DbError = ({ NonUtf8Path: string }) & { CreateDir?: never; PoolOpen?: never } | ({ CreateDir: {
 	path: string,
@@ -40,3 +41,5 @@ export type PlanLanguage = "luau" | "lua";
 export type PlanPermission = "notifications" | "timers" | "storage" | "tasks:read" | "tasks:write";
 
 export type PlanPermissions = PlanPermission[];
+
+export type QuestError = { type: "notFound"; questUuid: string } | { type: "alreadyExists"; questUuid: string } | { type: "planNotFound"; planId: string };
