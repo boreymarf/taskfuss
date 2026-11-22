@@ -6,17 +6,18 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 export const commands = {
 	greet: (name: string) => __TAURI_INVOKE<string>("greet", { name }),
 	/**
-	 *  A command that returns the list of plans currently available in the database.
+	 *  A command that returns the list of plans currently registered.
 	 * 
 	 *  # Errors
-	 *  - Any database error is passed through as [`DbError::Diesel`], wrapped in [`AppError`].
+	 *  - Any plan error is returned as [`AppError`].
 	 */
 	getAllPlans: () => __TAURI_INVOKE<Plan[]>("get_all_plans"),
 	debugSomething: () => __TAURI_INVOKE<null>("debug_something"),
+	getPlanSettingsFields: (planId: string) => __TAURI_INVOKE<{ [key in string]: PlanField_Serialize }>("get_plan_settings_fields", { planId }),
 };
 
 /* Types */
-export type AppError = { kind: "plan"; detail: PlanError } | { kind: "quest"; detail: QuestError } | { kind: "db"; detail: DbError } | { kind: "internal"; detail: string };
+export type AppError = { kind: "plan"; detail: PlanError } | { kind: "quest"; detail: QuestError } | { kind: "db"; detail: DbError } | { kind: "planRuntime"; detail: PlanRuntimeError } | { kind: "internal"; detail: string };
 
 export type DbError = ({ NonUtf8Path: string }) & { CreateDir?: never; PoolOpen?: never } | ({ CreateDir: {
 	path: string,
@@ -24,17 +25,80 @@ export type DbError = ({ NonUtf8Path: string }) & { CreateDir?: never; PoolOpen?
 	path: string,
 } }) & { CreateDir?: never; NonUtf8Path?: never } | "PoolConn" | "Migration" | "Diesel";
 
+export type HookName = "onQuestCreate" | "onRecordCreate" | "getSettingsFields";
+
+export type IntFieldSchema = IntFieldSchema_Serialize | IntFieldSchema_Deserialize;
+
+export type IntFieldSchema_Deserialize = {
+	required: boolean,
+	label?: string | null,
+	description?: string | null,
+	default?: number | null,
+	min?: number | null,
+	max?: number | null,
+};
+
+export type IntFieldSchema_Serialize = {
+	required: boolean,
+	label: string | null,
+	description: string | null,
+	default: number | null,
+	min: number | null,
+	max: number | null,
+};
+
+export type ParentFieldSchema = ParentFieldSchema_Serialize | ParentFieldSchema_Deserialize;
+
+export type ParentFieldSchema_Deserialize = {
+	required: boolean,
+	label?: string | null,
+	children: PlanField_Deserialize[],
+};
+
+export type ParentFieldSchema_Serialize = {
+	required: boolean,
+	label: string | null,
+	children: PlanField_Serialize[],
+};
+
 export type Plan = {
 	id: string,
 	name: string,
 	author: string,
 	version: string,
 	entry: string,
+	path: string,
 	language: PlanLanguage,
 	permissions: PlanPermissions,
 };
 
 export type PlanError = { type: "notFound"; planId: string } | { type: "notADirectory"; path: string } | { type: "manifestNotFound"; path: string } | { type: "manifestRead"; path: string } | { type: "manifestParse"; path: string } | { type: "unsupportedSchemaVersion"; version: number; path: string } | { type: "invalidLanguage" } | { type: "invalidPermissions" } | { type: "readPlansDir"; path: string } | { type: "readDirEntry"; path: string } | { type: "alreadyExists"; planId: string };
+
+export type PlanField = PlanField_Serialize | PlanField_Deserialize;
+
+export type PlanField_Deserialize = {
+	type: "str",
+} & StrFieldSchema_Deserialize | {
+	type: "int",
+} & IntFieldSchema_Deserialize | {
+	type: "str_list",
+} & StrListFieldSchema_Deserialize | {
+	type: "progress",
+} & ProgressBarSchema_Deserialize | {
+	type: "parent",
+} & ParentFieldSchema_Deserialize;
+
+export type PlanField_Serialize = {
+	type: "str",
+} & StrFieldSchema_Serialize | {
+	type: "int",
+} & IntFieldSchema_Serialize | {
+	type: "str_list",
+} & StrListFieldSchema_Serialize | {
+	type: "progress",
+} & ProgressBarSchema_Serialize | {
+	type: "parent",
+} & ParentFieldSchema_Serialize;
 
 export type PlanLanguage = "luau" | "lua";
 
@@ -42,4 +106,68 @@ export type PlanPermission = "notifications" | "timers" | "storage" | "tasks:rea
 
 export type PlanPermissions = PlanPermission[];
 
+export type PlanRuntimeError = { type: "contextCreate"; path: string } | { type: "loadModule"; path: string } | { type: "hookResolve"; path: string; hook: HookName } | { type: "hookInvoke"; path: string; hook: HookName } | { type: "hookDeserialize"; path: string; hook: HookName };
+
+export type ProgressBarSchema = ProgressBarSchema_Serialize | ProgressBarSchema_Deserialize;
+
+export type ProgressBarSchema_Deserialize = {
+	required: boolean,
+	label?: string | null,
+	max_value: number,
+	default: number,
+};
+
+export type ProgressBarSchema_Serialize = {
+	required: boolean,
+	label: string | null,
+	max_value: number,
+	default: number,
+};
+
 export type QuestError = { type: "notFound"; questUuid: string } | { type: "alreadyExists"; questUuid: string } | { type: "planNotFound"; planId: string };
+
+export type StrFieldSchema = StrFieldSchema_Serialize | StrFieldSchema_Deserialize;
+
+export type StrFieldSchema_Deserialize = {
+	required: boolean,
+	label?: string | null,
+	description?: string | null,
+	default?: string | null,
+	max_length?: number | null,
+	min_length?: number | null,
+};
+
+export type StrFieldSchema_Serialize = {
+	required: boolean,
+	label: string | null,
+	description: string | null,
+	default: string | null,
+	max_length: number | null,
+	min_length: number | null,
+};
+
+export type StrListFieldSchema = StrListFieldSchema_Serialize | StrListFieldSchema_Deserialize;
+
+export type StrListFieldSchema_Deserialize = {
+	required: boolean,
+	label?: string | null,
+	description?: string | null,
+	default?: string[] | null,
+	default_length?: number | null,
+	max_array_length?: number | null,
+	min_array_length?: number | null,
+	max_string_length?: number | null,
+	min_string_length?: number | null,
+};
+
+export type StrListFieldSchema_Serialize = {
+	required: boolean,
+	label: string | null,
+	description: string | null,
+	default: string[] | null,
+	default_length: number | null,
+	max_array_length: number | null,
+	min_array_length: number | null,
+	max_string_length: number | null,
+	min_string_length: number | null,
+};

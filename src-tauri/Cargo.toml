@@ -42,7 +42,7 @@ colored = "2"
 specta = { version = "=2.0.0-rc.28", features = ["chrono", "serde_json"] }
 specta-typescript = "0.0.15"
 tauri-specta = { version = "=2.0.0-rc.28", features = ["derive", "typescript"] }
-mlua = { version = "0.10", features = ["luau", "serialize"] }
+mlua = { version = "0.10", features = ["luau", "serialize", "send"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

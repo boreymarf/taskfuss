@@ -1,7 +1,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::{db::DbError, errors::QuestError};
+use crate::{db::DbError, errors::{PlanRuntimeError, QuestError}};
 
 use super::PlanError;
 
@@ -16,6 +16,9 @@ pub enum AppError {
 
     #[error(transparent)]
     Db(#[from] DbError),
+
+    #[error(transparent)]
+    PlanRuntime(#[from] PlanRuntimeError),
 
     // catch-all for anything that isn't a domain error
     #[error("internal error: {0}")]

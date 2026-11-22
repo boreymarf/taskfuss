@@ -4,8 +4,7 @@ use tauri::{AppHandle, Manager, State};
 use mlua::LuaSerdeExt;
 
 use crate::domain::QuestCreateAction;
-use crate::managed::app_state::AppState;
-use crate::repositories::PlanRepository;
+use crate::managed::AppState;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 

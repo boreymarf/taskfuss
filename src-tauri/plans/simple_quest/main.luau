@@ -1,24 +1,34 @@
--- main.lua
--- План: ежедневная привычка.
--- Хук вызывается хостом, когда пользователь запускает новый квест.
-
 local M = {}
 
---- @param ctx table  -- контекст хоста: ctx.now (unix timestamp), ctx.config, ctx.log
---- @param params table -- параметры запуска (пока пусто, задел на будущее)
---- @return table -- QuestCreateAction: { type = "create_quest_state", ... }
+function M.get_settings_fields(ctx)
+    return {
+        title = {
+            type = "str",
+            required = true,
+            label = "Название привычки",
+            max_length = 100,
+        },
+        target = {
+            type = "int",
+            required = true,
+            label = "Цель в день",
+            default = 1,
+            min = 1,
+            max = 100,
+        },
+    }
+end
+
 function M.on_quest_create(ctx, params)
     local now = ctx.now
     local day = 24 * 60 * 60
 
     return {
-        type = "create_quest_state",
-        starts_at = now,
-        ends_at   = now + day,
-        internal = {
-            streak      = 0,
-            best_streak = 0,
-            note        = "",
+        {
+            type = "create_quest_state",
+            starts_at = now,
+            ends_at   = now + day,
+            internal  = { streak = 0, best_streak = 0, note = "" },
         },
     }
 end

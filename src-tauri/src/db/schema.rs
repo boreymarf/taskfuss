@@ -7,6 +7,7 @@ diesel::table! {
         author -> Text,
         version -> Text,
         entry -> Text,
+        path -> Text,
         language -> Text,
         permissions -> Text,
     }

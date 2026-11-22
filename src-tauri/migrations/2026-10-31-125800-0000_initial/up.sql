@@ -4,6 +4,7 @@ CREATE TABLE plans (
     author      TEXT NOT NULL,
     version     TEXT NOT NULL,
     entry       TEXT NOT NULL,
+    path        TEXT NOT NULL,
     language    TEXT NOT NULL,
     permissions TEXT NOT NULL,                       -- JSON array/object
 

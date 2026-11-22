@@ -22,8 +22,6 @@ use tauri_plugin_log::{
 use specta_typescript::Typescript;
 use tauri_specta::{Builder, collect_commands};
 
-use crate::commands::plans::get_all_plans;
-
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 #[specta::specta]
@@ -42,8 +40,12 @@ fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Spectra type generation
-    let mut builder =
-        Builder::new().commands(tauri_specta::collect_commands![greet, get_all_plans, commands::debug::debug_something]);
+    let mut builder = Builder::new().commands(tauri_specta::collect_commands![
+        greet,
+        commands::plans::get_all_plans,
+        commands::debug::debug_something,
+        commands::plans::get_plan_settings_fields
+    ]);
 
     #[cfg(debug_assertions)]
     builder
@@ -114,25 +116,24 @@ pub fn run() {
             // Spectra events
             builder.mount_events(app);
 
-            let storage = Arc::new(managed::storage::Storage::resolve(app)?);
+            // DB Stuff
+            let storage = Arc::new(managed::Storage::resolve(app)?);
             let db_path = storage.db_file();
             let pool = db::pool::create_pool(&db_path)?;
             let database = Arc::new(db::Database::new(pool));
-
-            // DB Stuff
             database.run_migrations()?;
 
+            // Managed
+            let plan_registry = Arc::new(managed::PlanRegistry::new());
+            let plan_runtime = managed::PlanRuntime;
+
             // Repositories
-            let plan_repo = Arc::new(repositories::PlanRepository::new());
             let quest_repo = Arc::new(repositories::QuestRepository::new());
 
             // Services
-            let plan_service = Arc::new(services::PlanService::new(plan_repo.clone()));
             let quest_service = Arc::new(services::QuestService::new(quest_repo.clone()));
 
             // Orchestration
-            let plan_orchestrator =
-                Arc::new(orchestrators::PlanOrchestrator::new(plan_service.clone()));
             let quest_orchestrator =
                 Arc::new(orchestrators::QuestOrchestrator::new(quest_service.clone()));
 
@@ -142,17 +143,18 @@ pub fn run() {
                 .resolve("plans", tauri::path::BaseDirectory::Resource)
                 .map_err(|e| e.to_string())?;
 
-            database.transaction(|conn| plan_orchestrator.register_all_plans(conn, &plans_dir));
+            plan_registry
+                .register_all_plans(&plans_dir)
+                .map_err(|e| e.to_string())?;
 
             // Shove em inside
-            let app_state = managed::app_state::AppState {
+            let app_state = managed::AppState {
                 storage,
                 database,
-                plan_repo,
+                plan_registry,
+                plan_runtime,
                 quest_repo,
-                plan_service,
                 quest_service,
-                plan_orchestrator,
                 quest_orchestrator,
             };
             app.manage(app_state);
@@ -163,9 +165,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             greet,
-            get_all_plans,
             get_app_data_dir,
-            commands::debug::debug_something
+            commands::debug::debug_something,
+            commands::plans::get_plan_settings_fields,
+            commands::plans::get_all_plans,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

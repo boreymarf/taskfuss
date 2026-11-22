@@ -1,19 +1,39 @@
-use tauri::{AppHandle, Manager, State};
+use std::{collections::HashMap, path::Path};
 
-use crate::{db::errors::DbError, domain::Plan, errors::AppError, managed::app_state::AppState};
+use tauri::{AppHandle, Manager};
 
-/// A command that returns the list of plans currently available in the database.
+use crate::{domain::{Plan, Field}, errors::{AppError, PlanError}, managed::{AppState, PlanRuntime}};
+
+/// A command that returns the list of plans currently registered.
 ///
 /// # Errors
-/// - Any database error is passed through as [`DbError::Diesel`], wrapped in [`AppError`].
+/// - Any plan error is returned as [`AppError`].
 #[tauri::command]
 #[specta::specta]
 pub fn get_all_plans(app: AppHandle) -> Result<Vec<Plan>, AppError> {
     let app_state = app.state::<AppState>();
-    let database = app_state.database.clone();
-    let plan_orchestrator = app_state.plan_orchestrator.clone();
 
-    database
-        .transaction(|conn| plan_orchestrator.get_all_plans(conn))
-        .inspect_err(|e| log::error!("get_all_plans failed: {e}"))
+    Ok(app_state.plan_registry.get_all())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_plan_settings_fields(
+    app: AppHandle,
+    plan_id: String,
+) -> Result<HashMap<String, Field>, AppError> {
+    let app_state = app.state::<AppState>();
+
+    let plan = app_state
+        .plan_registry
+        .get(&plan_id)
+        .ok_or_else(|| PlanError::NotFound { plan_id })?;
+
+    let entry_path = Path::new(&plan.path).join(&plan.entry);
+
+    let lua = PlanRuntime::create_lua_vm();
+    let module = PlanRuntime::load_module(&lua, &entry_path)?;
+    let ctx = PlanRuntime::create_context(&lua, &entry_path)?;
+
+    PlanRuntime::get_settings_fields(&lua, &module, &entry_path, ctx)
 }

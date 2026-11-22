@@ -2,7 +2,7 @@ use diesel::Connection;
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 use crate::db::{DbConn, DbError, DbPool};
-use crate::managed::app_state::AppState;
+use crate::managed::AppState;
 use std::sync::Arc;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");

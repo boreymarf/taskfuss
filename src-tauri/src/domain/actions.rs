@@ -1,7 +1,13 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::PlanField;
+use crate::domain::Field;
+
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct QuestCreateParams {
+    // пока пусто — заполняется по мере надобности
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(tag = "type")]
@@ -16,5 +22,5 @@ pub struct CreateQuestStateActionData {
     pub starts_at: Option<i64>,
     pub ends_at: Option<i64>,
     #[serde(default)]
-    pub fields: Vec<PlanField>,
+    pub fields: Vec<Field>,
 }

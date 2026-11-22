@@ -13,7 +13,7 @@ pub struct RawManifest {
 }
 
 pub trait IntoNewPlan {
-    fn into_new_plan(self) -> Result<NewPlan, PlanError>;
+    fn into_new_plan(self, path: &Path) -> Result<NewPlan, PlanError>;
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -34,9 +34,9 @@ pub enum PlanSpec {
 }
 
 impl IntoNewPlan for PlanSpec {
-    fn into_new_plan(self) -> Result<NewPlan, PlanError> {
+    fn into_new_plan(self, path: &Path) -> Result<NewPlan, PlanError> {
         match self {
-            PlanSpec::V1(v1) => v1.into_new_plan(),
+            PlanSpec::V1(v1) => v1.into_new_plan(path),
         }
     }
 }
@@ -64,13 +64,14 @@ pub fn parse_manifest(path: &Path, contents: &str) -> Result<PlanSpec, PlanError
 }
 
 impl IntoNewPlan for PlanSpecV1 {
-    fn into_new_plan(self) -> Result<NewPlan, PlanError> {
+    fn into_new_plan(self, path: &Path) -> Result<NewPlan, PlanError> {
         Ok(NewPlan {
             id: self.id,
             name: self.name,
             author: self.author,
             version: self.version,
             entry: self.entry,
+            path: path.to_string_lossy().into_owned(),
             language: self
                 .language
                 .try_into()

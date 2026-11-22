@@ -13,6 +13,7 @@ pub struct Plan {
     pub author: String,
     pub version: String,
     pub entry: String,
+    pub path: String,
     #[diesel(deserialize_as = String)]
     pub language: PlanLanguage,
     #[diesel(deserialize_as = String)]
@@ -27,6 +28,7 @@ pub struct NewPlan {
     pub author: String,
     pub version: String,
     pub entry: String,
+    pub path: String,
     #[diesel(serialize_as = String)]
     pub language: PlanLanguage,
     #[diesel(serialize_as = String)]
