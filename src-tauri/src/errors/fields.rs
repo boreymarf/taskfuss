@@ -1,10 +1,14 @@
-#[derive(Debug, thiserror::Error)]
+use std::collections::HashMap;
+
+use serde::Serialize;
+
+#[derive(specta::Type, Debug, thiserror::Error, Serialize)]
 pub enum FieldSchemaError {
     #[error("min ({min}) is greater than max ({max})")]
     MinGreaterThanMax { min: i64, max: i64 },
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(specta::Type, Debug, thiserror::Error, Serialize)]
 pub enum FieldValueError {
     #[error("field is required")]
     Required,
@@ -18,4 +22,14 @@ pub enum FieldValueError {
     OutOfRange,
     #[error("nested: {0}")]
     Nested(Box<FieldValueError>),
+}
+
+#[derive(specta::Type, Debug, thiserror::Error, Serialize)]
+pub enum FormError {
+    #[error("values must be a JSON object")]
+    NotAnObject,
+    #[error("unknown field: {key}")]
+    UnknownField { key: String },
+    #[error("invalid values")]
+    Invalid(HashMap<String, FieldValueError>),
 }
