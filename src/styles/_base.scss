@@ -1,0 +1,15 @@
+body {
+  font-family: "Inter Variable", system-ui, sans-serif;
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);      
+  line-height: 1.2;                
+  tab-size: 2;                     
+  overflow-x: auto;                
+  white-space: pre;                
+  font-variant-ligatures: none;   
+  font-feature-settings: "liga" 0, "calt" 0;
+  hyphens: none;
+}

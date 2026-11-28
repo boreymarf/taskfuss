@@ -14,4 +14,9 @@ const model = defineModel<string | number>();
   <input :type="type" v-bind="$attrs" v-model="model" />
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+input {
+  width: 100%;
+  box-sizing: border-box;
+}
+</style>

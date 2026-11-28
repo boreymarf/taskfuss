@@ -25,7 +25,8 @@
       "@/*": ["./src/*"],
       "@modules/*": ["./src/modules/*"],
       "@generated/*": ["./src/generated/*"],
-      "@assets/*": ["./src/assets/*"]
+      "@assets/*": ["./src/assets/*"],
+      "@utils/*": ["./src/utils/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],

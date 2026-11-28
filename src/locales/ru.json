@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "fields": {
+      "Required": "Обязательное поле",
+      "WrongType": "Ожидался тип: {expected}",
+      "TooShort": "Минимум {min} символов",
+      "TooLong": "Максимум {max} символов",
+      "TooSmall": "Значение {value} меньше {min}",
+      "TooBig": "Значение {value} больше {max}",
+      "I32Overflow": "Значение {value} не влезает в i32",
+      "U32Overflow": "Значение {value} не влезает в u32",
+      "Nested": "{message}"
+    }
+  }
+}

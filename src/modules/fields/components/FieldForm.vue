@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
-import type { PlanField } from '@generated/bindings';
+import type { Field, FieldValueError } from '@generated/bindings';
 import FieldRenderer from './FieldRenderer.vue';
 
 const props = defineProps<{
-  fields: Record<string, PlanField>;
+  fields: Record<string, Field>;
+  errors?: Record<string, FieldValueError>;
 }>();
 
 const model = defineModel<Record<string, unknown>>({ default: () => ({}) });
@@ -46,6 +47,7 @@ watch(
       :key="key"
       v-model="values[key]"
       :field="field"
+      :error="props.errors?.[key]"
     />
   </div>
 </template>

@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "fields": {
+      "Required": "This field is required",
+      "WrongType": "Expected type: {expected}",
+      "TooShort": "Must be at least {min} characters",
+      "TooLong": "Must be at most {max} characters",
+      "TooSmall": "Value {value} is less than {min}",
+      "TooBig": "Value {value} is greater than {max}",
+      "I32Overflow": "Value {value} does not fit into i32",
+      "U32Overflow": "Value {value} does not fit into u32",
+      "Nested": "{message}"
+    }
+  }
+}
