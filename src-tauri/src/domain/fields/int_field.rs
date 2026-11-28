@@ -31,8 +31,8 @@ impl FieldSchema for IntField {
         if let (Some(min), Some(max)) = (self.min, self.max) {
             if min > max {
                 return Err(FieldSchemaError::MinGreaterThanMax {
-                    min: min as i64,
-                    max: max as i64,
+                    min: min as i32,
+                    max: max as i32,
                 });
             }
         }
@@ -47,22 +47,41 @@ impl FieldSchema for IntField {
                 }
                 Ok(None)
             }
-            JsonValue::Number(n) => {
-                let i = n.as_i64().and_then(|v| i32::try_from(v).ok()).ok_or(
-                    FieldValueError::WrongType {
-                        expected: "integer",
-                    },
-                )?;
+            JsonValue::String(v) => {
+                let len = v.chars().count() as usize;
+
+                if len == 0 {
+                    if self.required {
+                        return Err(FieldValueError::Required);
+                    } else {
+                        return Ok(None);
+                    }
+                }
+
+                Err(FieldValueError::WrongType {
+                    expected: "integer",
+                })
+            }
+            JsonValue::Number(v) => {
+                let n = v.as_i64().ok_or(FieldValueError::WrongType {
+                    expected: "integer",
+                })?;
+
+                let i = i32::try_from(n).map_err(|_| FieldValueError::I32Overflow {
+                    value: n.to_string(),
+                })?;
+
                 if let Some(min) = self.min {
                     if i < min {
-                        return Err(FieldValueError::OutOfRange);
+                        return Err(FieldValueError::TooSmall { min, value: i });
                     }
                 }
                 if let Some(max) = self.max {
                     if i > max {
-                        return Err(FieldValueError::OutOfRange);
+                        return Err(FieldValueError::TooBig { max, value: i });
                     }
                 }
+
                 Ok(Some(i))
             }
             _ => Err(FieldValueError::WrongType {

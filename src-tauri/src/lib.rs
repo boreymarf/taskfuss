@@ -3,7 +3,6 @@
 mod commands;
 mod db;
 mod domain;
-mod dto;
 mod errors;
 mod managed;
 mod orchestrators;
@@ -44,8 +43,9 @@ pub fn run() {
         greet,
         commands::plans::get_all_plans,
         commands::debug::debug_something,
-        commands::plans::get_plan_settings_fields
-    ]);
+        commands::plans::get_plan_settings_fields,
+        commands::plans::validate_settings_form,
+    ]).dangerously_cast_bigints_to_number(); // Yeah fuck it, don't care
 
     #[cfg(debug_assertions)]
     builder
@@ -169,6 +169,7 @@ pub fn run() {
             commands::debug::debug_something,
             commands::plans::get_plan_settings_fields,
             commands::plans::get_all_plans,
+            commands::plans::validate_settings_form,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

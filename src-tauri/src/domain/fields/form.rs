@@ -1,5 +1,5 @@
 // domain/form.rs
-use serde_json::Value as JsonValue;
+use serde_json::Value;
 use std::collections::HashMap;
 
 use crate::domain::fields::{Field, FieldSchema, FieldValue};
@@ -12,9 +12,9 @@ use crate::errors::{FieldValueError, FormError};
 /// treated as `null` and validated by the field's own rules.
 pub fn validate_form(
     fields: &HashMap<String, Field>,
-    values: &JsonValue,
+    values: &Value,
 ) -> Result<HashMap<String, FieldValue>, FormError> {
-    let null = JsonValue::Null;
+    let null = Value::Null;
     let mut out = HashMap::with_capacity(fields.len()); // Ok
     let mut errors = HashMap::new(); // Err
 

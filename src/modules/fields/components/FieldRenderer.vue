@@ -20,6 +20,7 @@ const map: Record<PlanField['type'], Component | null> = {
 
 const component = computed(() => map[props.field.type]);
 
+// Remove the 'type' field from props
 const fieldProps = computed(() => {
   const { type: _, ...rest } = props.field;
   return rest;

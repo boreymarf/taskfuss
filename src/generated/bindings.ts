@@ -13,11 +13,12 @@ export const commands = {
 	 */
 	getAllPlans: () => __TAURI_INVOKE<Plan[]>("get_all_plans"),
 	debugSomething: () => __TAURI_INVOKE<null>("debug_something"),
-	getPlanSettingsFields: (planId: string) => __TAURI_INVOKE<{ [key in string]: PlanField_Serialize }>("get_plan_settings_fields", { planId }),
+	getPlanSettingsFields: (planId: string) => __TAURI_INVOKE<{ [key in string]: Field_Serialize }>("get_plan_settings_fields", { planId }),
+	validateSettingsForm: (planId: string, settingsData: Value) => __TAURI_INVOKE<null>("validate_settings_form", { planId, settingsData }),
 };
 
 /* Types */
-export type AppError = { kind: "plan"; detail: PlanError } | { kind: "quest"; detail: QuestError } | { kind: "db"; detail: DbError } | { kind: "planRuntime"; detail: PlanRuntimeError } | { kind: "internal"; detail: string };
+export type AppError = { kind: "plan"; detail: PlanError } | { kind: "quest"; detail: QuestError } | { kind: "db"; detail: DbError } | { kind: "planRuntime"; detail: PlanRuntimeError } | { kind: "form"; detail: FormError } | { kind: "internal"; detail: string };
 
 export type DbError = ({ NonUtf8Path: string }) & { CreateDir?: never; PoolOpen?: never } | ({ CreateDir: {
 	path: string,
@@ -25,40 +26,110 @@ export type DbError = ({ NonUtf8Path: string }) & { CreateDir?: never; PoolOpen?
 	path: string,
 } }) & { CreateDir?: never; NonUtf8Path?: never } | "PoolConn" | "Migration" | "Diesel";
 
+/**
+ *  Discriminated union of every supported field type.
+ * 
+ *  This is the single entry point for working with fields of unknown kind:
+ *  it carries the per-type schema and implements [`FieldSchema`] so callers 
+ *  can validate without matching on variants.
+ */
+export type Field = Field_Serialize | Field_Deserialize;
+
+export type FieldValueError = "Required" | ({ WrongType: {
+	expected: string,
+} }) & { I32Overflow?: never; Nested?: never; TooBig?: never; TooLong?: never; TooShort?: never; TooSmall?: never; U32Overflow?: never } | ({ TooShort: {
+	min: number,
+} }) & { I32Overflow?: never; Nested?: never; TooBig?: never; TooLong?: never; TooSmall?: never; U32Overflow?: never; WrongType?: never } | ({ TooLong: {
+	max: number,
+} }) & { I32Overflow?: never; Nested?: never; TooBig?: never; TooShort?: never; TooSmall?: never; U32Overflow?: never; WrongType?: never } | ({ TooSmall: {
+	min: number,
+	value: number,
+} }) & { I32Overflow?: never; Nested?: never; TooBig?: never; TooLong?: never; TooShort?: never; U32Overflow?: never; WrongType?: never } | ({ TooBig: {
+	max: number,
+	value: number,
+} }) & { I32Overflow?: never; Nested?: never; TooLong?: never; TooShort?: never; TooSmall?: never; U32Overflow?: never; WrongType?: never } | ({ I32Overflow: {
+	value: string,
+} }) & { Nested?: never; TooBig?: never; TooLong?: never; TooShort?: never; TooSmall?: never; U32Overflow?: never; WrongType?: never } | ({ U32Overflow: {
+	value: string,
+} }) & { I32Overflow?: never; Nested?: never; TooBig?: never; TooLong?: never; TooShort?: never; TooSmall?: never; WrongType?: never } | ({ Nested: FieldValueError }) & { I32Overflow?: never; TooBig?: never; TooLong?: never; TooShort?: never; TooSmall?: never; U32Overflow?: never; WrongType?: never };
+
+/**
+ *  Discriminated union of every supported field type.
+ * 
+ *  This is the single entry point for working with fields of unknown kind:
+ *  it carries the per-type schema and implements [`FieldSchema`] so callers 
+ *  can validate without matching on variants.
+ */
+export type Field_Deserialize = {
+	type: "str",
+} & StrFieldSchema_Deserialize | {
+	type: "int",
+} & IntFieldSchema_Deserialize;
+
+/**
+ *  Discriminated union of every supported field type.
+ * 
+ *  This is the single entry point for working with fields of unknown kind:
+ *  it carries the per-type schema and implements [`FieldSchema`] so callers 
+ *  can validate without matching on variants.
+ */
+export type Field_Serialize = {
+	type: "str",
+} & StrFieldSchema_Serialize | {
+	type: "int",
+} & IntFieldSchema_Serialize;
+
+export type FormError = "NotAnObject" | ({ UnknownField: {
+	key: string,
+} }) & { Invalid?: never } | ({ Invalid: { [key in string]: FieldValueError } }) & { UnknownField?: never };
+
 export type HookName = "onQuestCreate" | "onRecordCreate" | "getSettingsFields";
 
+/**
+ *  Schema for a plain integer input field.
+ * 
+ *  Used when a setting expects a whole number within an optional range.
+ */
 export type IntFieldSchema = IntFieldSchema_Serialize | IntFieldSchema_Deserialize;
 
+/**
+ *  Schema for a plain integer input field.
+ * 
+ *  Used when a setting expects a whole number within an optional range.
+ */
 export type IntFieldSchema_Deserialize = {
+	/**  Whether the user must provide a value. */
 	required: boolean,
+	/**  Human-readable label shown next to the input. */
 	label?: string | null,
+	/**  Optional helper text describing the field's purpose. */
 	description?: string | null,
+	/**  Value used when the user leaves the field empty. */
 	default?: number | null,
+	/**  Minimum allowed value (inclusive). */
 	min?: number | null,
+	/**  Maximum allowed value (inclusive). */
 	max?: number | null,
 };
 
+/**
+ *  Schema for a plain integer input field.
+ * 
+ *  Used when a setting expects a whole number within an optional range.
+ */
 export type IntFieldSchema_Serialize = {
+	/**  Whether the user must provide a value. */
 	required: boolean,
+	/**  Human-readable label shown next to the input. */
 	label: string | null,
+	/**  Optional helper text describing the field's purpose. */
 	description: string | null,
+	/**  Value used when the user leaves the field empty. */
 	default: number | null,
+	/**  Minimum allowed value (inclusive). */
 	min: number | null,
+	/**  Maximum allowed value (inclusive). */
 	max: number | null,
-};
-
-export type ParentFieldSchema = ParentFieldSchema_Serialize | ParentFieldSchema_Deserialize;
-
-export type ParentFieldSchema_Deserialize = {
-	required: boolean,
-	label?: string | null,
-	children: PlanField_Deserialize[],
-};
-
-export type ParentFieldSchema_Serialize = {
-	required: boolean,
-	label: string | null,
-	children: PlanField_Serialize[],
 };
 
 export type Plan = {
@@ -74,32 +145,6 @@ export type Plan = {
 
 export type PlanError = { type: "notFound"; planId: string } | { type: "notADirectory"; path: string } | { type: "manifestNotFound"; path: string } | { type: "manifestRead"; path: string } | { type: "manifestParse"; path: string } | { type: "unsupportedSchemaVersion"; version: number; path: string } | { type: "invalidLanguage" } | { type: "invalidPermissions" } | { type: "readPlansDir"; path: string } | { type: "readDirEntry"; path: string } | { type: "alreadyExists"; planId: string };
 
-export type PlanField = PlanField_Serialize | PlanField_Deserialize;
-
-export type PlanField_Deserialize = {
-	type: "str",
-} & StrFieldSchema_Deserialize | {
-	type: "int",
-} & IntFieldSchema_Deserialize | {
-	type: "str_list",
-} & StrListFieldSchema_Deserialize | {
-	type: "progress",
-} & ProgressBarSchema_Deserialize | {
-	type: "parent",
-} & ParentFieldSchema_Deserialize;
-
-export type PlanField_Serialize = {
-	type: "str",
-} & StrFieldSchema_Serialize | {
-	type: "int",
-} & IntFieldSchema_Serialize | {
-	type: "str_list",
-} & StrListFieldSchema_Serialize | {
-	type: "progress",
-} & ProgressBarSchema_Serialize | {
-	type: "parent",
-} & ParentFieldSchema_Serialize;
-
 export type PlanLanguage = "luau" | "lua";
 
 export type PlanPermission = "notifications" | "timers" | "storage" | "tasks:read" | "tasks:write";
@@ -108,66 +153,53 @@ export type PlanPermissions = PlanPermission[];
 
 export type PlanRuntimeError = { type: "contextCreate"; path: string } | { type: "loadModule"; path: string } | { type: "hookResolve"; path: string; hook: HookName } | { type: "hookInvoke"; path: string; hook: HookName } | { type: "hookDeserialize"; path: string; hook: HookName };
 
-export type ProgressBarSchema = ProgressBarSchema_Serialize | ProgressBarSchema_Deserialize;
-
-export type ProgressBarSchema_Deserialize = {
-	required: boolean,
-	label?: string | null,
-	max_value: number,
-	default: number,
-};
-
-export type ProgressBarSchema_Serialize = {
-	required: boolean,
-	label: string | null,
-	max_value: number,
-	default: number,
-};
-
 export type QuestError = { type: "notFound"; questUuid: string } | { type: "alreadyExists"; questUuid: string } | { type: "planNotFound"; planId: string };
 
+/**
+ *  Schema for a plain text input field.
+ * 
+ *  Used when a setting expects a string within an optional length range.
+ */
 export type StrFieldSchema = StrFieldSchema_Serialize | StrFieldSchema_Deserialize;
 
+/**
+ *  Schema for a plain text input field.
+ * 
+ *  Used when a setting expects a string within an optional length range.
+ */
 export type StrFieldSchema_Deserialize = {
+	/**  Whether the user must provide a value. */
 	required: boolean,
+	/**  Human-readable label shown next to the input. */
 	label?: string | null,
+	/**  Optional helper text describing the field's purpose. */
 	description?: string | null,
+	/**  Value used when the user leaves the field empty. */
 	default?: string | null,
+	/**  Maximum allowed length in characters (inclusive). */
 	max_length?: number | null,
+	/**  Minimum allowed length in characters (inclusive). */
 	min_length?: number | null,
 };
 
+/**
+ *  Schema for a plain text input field.
+ * 
+ *  Used when a setting expects a string within an optional length range.
+ */
 export type StrFieldSchema_Serialize = {
+	/**  Whether the user must provide a value. */
 	required: boolean,
+	/**  Human-readable label shown next to the input. */
 	label: string | null,
+	/**  Optional helper text describing the field's purpose. */
 	description: string | null,
+	/**  Value used when the user leaves the field empty. */
 	default: string | null,
+	/**  Maximum allowed length in characters (inclusive). */
 	max_length: number | null,
+	/**  Minimum allowed length in characters (inclusive). */
 	min_length: number | null,
 };
 
-export type StrListFieldSchema = StrListFieldSchema_Serialize | StrListFieldSchema_Deserialize;
-
-export type StrListFieldSchema_Deserialize = {
-	required: boolean,
-	label?: string | null,
-	description?: string | null,
-	default?: string[] | null,
-	default_length?: number | null,
-	max_array_length?: number | null,
-	min_array_length?: number | null,
-	max_string_length?: number | null,
-	min_string_length?: number | null,
-};
-
-export type StrListFieldSchema_Serialize = {
-	required: boolean,
-	label: string | null,
-	description: string | null,
-	default: string[] | null,
-	default_length: number | null,
-	max_array_length: number | null,
-	min_array_length: number | null,
-	max_string_length: number | null,
-	min_string_length: number | null,
-};
+export type Value = null | boolean | number | string | Value[] | { [key in string]: Value };

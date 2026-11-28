@@ -2,7 +2,13 @@ use std::{collections::HashMap, path::Path};
 
 use tauri::{AppHandle, Manager};
 
-use crate::{domain::{Plan, Field}, errors::{AppError, PlanError}, managed::{AppState, PlanRuntime}};
+use crate::{
+    domain::{Field, Plan, validate_form},
+    errors::{AppError, FormError, PlanError},
+    managed::{AppState, PlanRuntime},
+};
+
+use serde_json::Value;
 
 /// A command that returns the list of plans currently registered.
 ///
@@ -36,4 +42,31 @@ pub fn get_plan_settings_fields(
     let ctx = PlanRuntime::create_context(&lua, &entry_path)?;
 
     PlanRuntime::get_settings_fields(&lua, &module, &entry_path, ctx)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn validate_settings_form(
+    app: AppHandle,
+    plan_id: String,
+    settings_data: Value,
+) -> Result<(), AppError> {
+    let app_state = app.state::<AppState>();
+
+    let plan = app_state
+        .plan_registry
+        .get(&plan_id)
+        .ok_or_else(|| PlanError::NotFound { plan_id })?;
+
+    let entry_path = Path::new(&plan.path).join(&plan.entry);
+
+    let lua = PlanRuntime::create_lua_vm();
+    let module = PlanRuntime::load_module(&lua, &entry_path)?;
+    let ctx = PlanRuntime::create_context(&lua, &entry_path)?;
+
+    let settings_fields = PlanRuntime::get_settings_fields(&lua, &module, &entry_path, ctx)?;
+
+    validate_form(&settings_fields, &settings_data)?;
+
+    Ok(())
 }

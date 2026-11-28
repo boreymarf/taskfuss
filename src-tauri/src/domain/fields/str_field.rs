@@ -31,8 +31,8 @@ impl FieldSchema for StrField {
         if let (Some(min), Some(max)) = (self.min_length, self.max_length) {
             if min > max {
                 return Err(FieldSchemaError::MinGreaterThanMax {
-                    min: min as i64,
-                    max: max as i64,
+                    min: min as i32,
+                    max: max as i32,
                 });
             }
         }
@@ -47,8 +47,17 @@ impl FieldSchema for StrField {
                 }
                 Ok(None)
             }
-            JsonValue::String(s) => {
-                let len = s.chars().count() as u32;
+            JsonValue::String(v) => {
+                let len = v.chars().count() as u32;
+
+                if len == 0 {
+                    if self.required {
+                        return Err(FieldValueError::Required);
+                    } else {
+                        return Ok(None);
+                    }
+                }
+
                 if let Some(max) = self.max_length {
                     if len > max {
                         return Err(FieldValueError::TooLong { max });
@@ -59,7 +68,7 @@ impl FieldSchema for StrField {
                         return Err(FieldValueError::TooShort { min });
                     }
                 }
-                Ok(Some(s.clone()))
+                Ok(Some(v.clone()))
             }
             _ => Err(FieldValueError::WrongType { expected: "string" }),
         }
